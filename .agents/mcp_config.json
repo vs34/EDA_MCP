@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "eda-mcp": {
+      "command": "python3",
+      "args": [
+        "/Users/vs/function/EDA_MCP/server.py"
+      ]
+    }
+  }
+}
