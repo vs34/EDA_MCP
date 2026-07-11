@@ -19,10 +19,10 @@ config_path = os.path.join(base_dir, "config.json")
 session = RemoteSession(config_path=config_path)
 
 @mcp.tool()
-def run_command(command: str) -> str:
+def run_remote_command(command: str) -> str:
     """
     Executes a shell command on the remote EDA server.
-    The Cadence tool environment (/cadance/cshrc) is automatically sourced.
+    The Cadence tool environment (/cadence/cshrc) is automatically sourced.
     
     Args:
         command: The shell command to run (e.g., 'genus -version' or 'ls -la')
@@ -41,7 +41,7 @@ def run_command(command: str) -> str:
         return f"Error executing command: {str(e)}"
 
 @mcp.tool()
-def read_file(path: str) -> str:
+def read_remote_file(path: str) -> str:
     """
     Reads the content of a file from the remote EDA server.
     Useful for reading log files, timing reports, and script files.
@@ -56,7 +56,7 @@ def read_file(path: str) -> str:
         return f"Error reading file: {str(e)}"
 
 @mcp.tool()
-def write_file(path: str, content: str) -> str:
+def write_remote_file(path: str, content: str) -> str:
     """
     Writes or overwrites content to a file on the remote EDA server.
     Useful for creating Tcl scripts or configuration files.
@@ -73,7 +73,7 @@ def write_file(path: str, content: str) -> str:
         return f"Error writing file: {str(e)}"
 
 @mcp.tool()
-def list_dir(path: str = ".") -> list[dict]:
+def list_remote_dir(path: str = ".") -> list[dict]:
     """
     Lists directories and files inside a remote path.
     
