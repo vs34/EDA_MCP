@@ -1,21 +1,19 @@
-# Implementation Plan: EDA MCP Server
+# Implementation Plan: Basic EDA SSH Bridge MCP Server
 
-Build a Python-based Model Context Protocol (MCP) server that runs locally and connects to a remote Electronic Design Automation (EDA) server via SSH. The MCP server will expose tools to execute EDA commands (specifically targeting Cadence tools like Innovus, Genus, Tempus, Jasper, etc.) synchronously or asynchronously, read/write configuration and Tcl scripts, manage remote files, and check job status.
+Build a basic Python-based Model Context Protocol (MCP) server that acts as a bridge between the local AI client and the remote EDA server. The server will initialize an SSH pipeline, source the remote shell configuration (e.g., `~/.cshrc`), and expose basic command execution and file management tools.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **SSH Authentication Configuration**
-> By default, the server will read connection credentials from a local `.env` file or `config.json` file in the repository. Please ensure you configure this before running the MCP server.
+> **SSH Credentials Configuration**
+> You will need to provide your SSH connection details (Host, Username, Key Path or Password) and the path to the startup shell script (e.g., `~/.cshrc` or `~/.bashrc`) in a local `config.json` or `.env` file before launching.
 >
-> **Background Job Management**
-> Since synthesis, place & route, and timing signoff can take hours, the server will run long tasks in the background using remote system utilities (like `nohup` or `screen` or shell background execution) and return a job identifier (Process ID). The LLM can monitor these jobs via a status checking tool.
+> **Interactive CSHRC Sourcing**
+> Sourcing `.cshrc` or `.bashrc` remotely over non-interactive SSH shells can sometimes skip environment setup if the script checks for interactive shells (`$-` or `$prompt`). We will configure the SSH client to allocate a pseudo-terminal (PTY) or prepend the sourcing command directly to all command execution runs to ensure environment settings are loaded.
 
 ## Open Questions
 
-> [!WARNING]
-> 1. **Cadence Tool Environment Setup**: Do your remote EDA tools require sourcing a specific environment setup script (e.g., `source /cadence/setup.sh` or setting `PATH`/`LM_LICENSE_FILE`) before running? We can add a configuration setting `env_setup_cmd` in `config.json` to prepend this configuration to every command execution.
-> 2. **Authentication Method**: Do you prefer using SSH keys (recommended) or passwords? We will support both, but we want to confirm if your SSH keys are password-protected (which would require a passphrase).
+None for the basic version. We will implement support for both SSH keys and passwords, and allow configuring the shell initialization command.
 
 ## Proposed Changes
 
@@ -23,37 +21,27 @@ We will create a lightweight Python application using the official Python MCP SD
 
 ---
 
-### Component: SSH Client & Execution Engine
-Wraps Paramiko to manage connection persistence, SFTP for file read/write operations, and command execution (both synchronous and background).
+### Component: SSH Client
+Manages a persistent connection to the remote EDA server, handles PTY allocation, sources the environment startup file, and performs SFTP file operations.
 
 #### [NEW] [ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)
 - Implements `RemoteSession` class.
-- Handles connection/reconnection to the remote SSH server.
-- Supports SFTP operations: `read_file`, `write_file`, `list_dir`.
-- Supports executing commands synchronously with timeout.
-- Supports launching commands in the background and returning the PID (e.g., using `nohup <cmd> > <logfile> 2>&1 & echo $!`).
+- Establishes connection using Paramiko.
+- Implements command execution that automatically prepends shell initialization (e.g. `source ~/.cshrc && <command>`).
+- Implements SFTP-based file reading and writing.
 
 ---
 
 ### Component: MCP Server Interface
-Exposes the tools to the Model Context Protocol using FastMCP.
+Exposes the core bridge tools using FastMCP.
 
 #### [NEW] [server.py](file:///Users/vs/function/EDA_MCP/server.py)
-- Initializes `FastMCP("EDA-MCP-Server")`.
+- Initializes `FastMCP("EDA-Bridge")`.
 - Exposes tools:
-  - `run_ssh_command(command)`: Execute low-level SSH commands.
-  - `list_remote_dir(path)`: List directory contents on the remote server.
-  - `read_remote_file(path)`: View contents of logs or reports on the remote server.
-  - `write_remote_file(path, content)`: Upload scripts or configuration files.
-  - `run_genus(script_path, run_in_background, log_path)`: Run Cadence Genus.
-  - `run_innovus(script_path, run_in_background, log_path)`: Run Cadence Innovus.
-  - `run_tempus(script_path, run_in_background, log_path)`: Run Cadence Tempus.
-  - `run_jasper(script_path, run_in_background, log_path)`: Run Cadence Jasper.
-  - `check_job_status(pid)`: Check status of background processes.
-- Exposes resources:
-  - `remote://file/path`: Access files dynamically as resources.
-- Exposes prompts:
-  - Templates for typical Cadence tasks (e.g., standard synthesis script templates, floorplanning templates).
+  - `run_command(command: str)`: Run shell commands on the remote EDA server (e.g. `genus -version`, `innovus -version`, `ls`, etc.) with the remote `.cshrc` environment fully loaded.
+  - `read_file(path: str)`: Read contents of a remote file.
+  - `write_file(path: str, content: str)`: Write/create a remote file (useful for Tcl scripts).
+  - `list_dir(path: str)`: List contents of a remote directory.
 
 ---
 
@@ -64,26 +52,17 @@ Handles packages and configuration options.
 - Declares dependencies: `mcp`, `paramiko`, `python-dotenv`.
 
 #### [NEW] [config.json.template](file:///Users/vs/function/EDA_MCP/config.json.template)
-- Template for configuring the SSH connection and remote environment settings.
+- Template for SSH host, credentials, and the shell startup command.
 
 #### [MODIFY] [README.md](file:///Users/vs/function/EDA_MCP/README.md)
-- Documents instructions to configure and run the MCP server with Claude Desktop or other client editors.
+- Explains how to set up the configuration and run the basic bridge.
 
 ---
 
 ## Verification Plan
 
-### Automated Tests
- We can create a mock SSH testing script to verify the connection logic locally before running against the remote server:
-- Run `python -m unittest tests/test_ssh.py` (we will place scratch tests in the scratch directory).
-
 ### Manual Verification
-1. Create a local `.env` or `config.json` with test SSH connection details (e.g. local loopback or a staging server).
-2. Start the server using:
-   ```bash
-   mcp run server.py
-   ```
-3. Test remote operations:
-   - Run low-level remote commands (`whoami`, `hostname`, `ls`).
-   - Read and write files.
-   - Run a mock background job and check its status.
+1. Create a `config.json` with actual SSH details.
+2. Run the MCP server locally using `mcp run server.py`.
+3. Call `run_command` with commands like `whoami`, `echo $PATH`, and Cadence tool version checks (`genus -version` or `innovus -version`) to verify the environment sourced correctly.
+4. Call `write_file` and `read_file` to verify SFTP operations.
