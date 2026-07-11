@@ -1,18 +1,15 @@
 import os
 import json
 import logging
-import paramiko
 import shlex
+import subprocess
+import base64
 
 logger = logging.getLogger("eda_mcp.ssh_client")
 
 class RemoteSession:
     def __init__(self, config_path="config.json"):
         self.config_path = config_path
-        self.ssh_client = None
-        self.sftp_client = None
-        
-        # Load configuration
         self.load_config()
         
     def load_config(self):
@@ -23,71 +20,29 @@ class RemoteSession:
             self.config = json.load(f)
             
         self.ssh_host = self.config.get("ssh_host", "eda-uni")
-        self.ssh_config_path = os.path.expanduser(self.config.get("ssh_config_path", "~/.ssh/config"))
         self.env_setup_cmd = self.config.get("env_setup_cmd", "source /cadance/cshrc")
 
     def connect(self):
-        if self.ssh_client is not None:
-            return
-            
+        # Verify connection works
         logger.info(f"Connecting to remote host: {self.ssh_host}")
-        self.ssh_client = paramiko.SSHClient()
-        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        
-        # Load SSH config if available
-        connect_kwargs = {}
-        if os.path.exists(self.ssh_config_path):
-            ssh_config = paramiko.SSHConfig()
-            with open(self.ssh_config_path) as f:
-                ssh_config.parse(f)
-            host_info = ssh_config.lookup(self.ssh_host)
-            
-            # Extract parameters
-            hostname = host_info.get("hostname", self.ssh_host)
-            username = host_info.get("user")
-            port = host_info.get("port")
-            if port:
-                port = int(port)
-                
-            if "identityfile" in host_info:
-                key_files = host_info["identityfile"]
-                if isinstance(key_files, str):
-                    key_files = [key_files]
-                key_files = [os.path.expanduser(kf) for kf in key_files if kf]
-                connect_kwargs["key_filename"] = [kf for kf in key_files if os.path.exists(kf)]
-        else:
-            hostname = self.ssh_host
-            username = None
-            port = 22
-            
         try:
-            self.ssh_client.connect(
-                hostname,
-                username=username,
-                port=port or 22,
-                **connect_kwargs
+            r = subprocess.run(
+                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, 'echo CONNECTED'],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=10
             )
-            self.sftp_client = self.ssh_client.open_sftp()
-            logger.info("SSH and SFTP connections established successfully.")
+            if r.returncode != 0:
+                raise RuntimeError(f"SSH Connection test failed with code {r.returncode}: {r.stderr}")
+            logger.info("SSH connection tested successfully.")
+        except subprocess.TimeoutExpired:
+            raise TimeoutError("SSH Connection test timed out after 10 seconds.")
         except Exception as e:
-            self.close()
             logger.error(f"Failed to connect to remote host: {e}")
             raise e
 
     def close(self):
-        if self.sftp_client:
-            try:
-                self.sftp_client.close()
-            except Exception:
-                pass
-            self.sftp_client = None
-            
-        if self.ssh_client:
-            try:
-                self.ssh_client.close()
-            except Exception:
-                pass
-            self.ssh_client = None
         logger.info("SSH connection closed.")
 
     def wrap_command(self, cmd: str) -> str:
@@ -103,58 +58,125 @@ class RemoteSession:
         Executes a command on the remote host with environment sourced.
         Returns: (exit_status, stdout_string, stderr_string)
         """
-        self.connect()
         wrapped_cmd = self.wrap_command(cmd)
         logger.debug(f"Executing wrapped command: {wrapped_cmd}")
         
-        stdin, stdout, stderr = self.ssh_client.exec_command(wrapped_cmd)
-        
-        # Read channels
-        stdout_str = stdout.read().decode("utf-8", errors="replace")
-        stderr_str = stderr.read().decode("utf-8", errors="replace")
-        exit_status = stdout.channel.recv_exit_status()
-        
-        return exit_status, stdout_str, stderr_str
+        r = subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, wrapped_cmd],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True
+        )
+        return r.returncode, r.stdout, r.stderr
 
     def read_file(self, remote_path: str) -> str:
         """
         Reads a file from the remote server.
         """
-        self.connect()
         logger.info(f"Reading remote file: {remote_path}")
-        with self.sftp_client.open(remote_path, "r") as f:
-            return f.read().decode("utf-8", errors="replace")
+        
+        # Try using base64 for safe binary/unicode transfer
+        r = subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'base64 {shlex.quote(remote_path)}'],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True
+        )
+        if r.returncode == 0:
+            b64_data = r.stdout.replace('\n', '').replace('\r', '')
+            try:
+                return base64.b64decode(b64_data).decode('utf-8', errors='replace')
+            except Exception:
+                pass
+                
+        # Fallback to cat
+        r = subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'cat {shlex.quote(remote_path)}'],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True
+        )
+        if r.returncode != 0:
+            raise FileNotFoundError(f"Failed to read file {remote_path}: {r.stderr}")
+        return r.stdout
 
     def write_file(self, remote_path: str, content: str):
         """
         Writes content to a remote file.
         """
-        self.connect()
         logger.info(f"Writing remote file: {remote_path}")
-        # Ensure remote directory path exists or file is created
-        with self.sftp_client.open(remote_path, "w") as f:
-            f.write(content.encode("utf-8"))
+        
+        # Try using base64 for safe transfer
+        b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        r = subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'base64 -d > {shlex.quote(remote_path)}'],
+            input=b64_content,
+            capture_output=True,
+            text=True
+        )
+        if r.returncode != 0:
+            # Fallback to cat piping
+            r = subprocess.run(
+                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'cat > {shlex.quote(remote_path)}'],
+                input=content,
+                capture_output=True,
+                text=True
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"Failed to write file {remote_path}: {r.stderr}")
 
     def list_dir(self, remote_path: str) -> list[dict]:
         """
         Lists files in a remote directory.
         """
-        self.connect()
         logger.info(f"Listing remote directory: {remote_path}")
+        
+        # Run python 2/3 compatible script on remote to list directory and output JSON
+        py_script = f"""import os, json, sys
+path = {repr(remote_path)}
+try:
+    items = os.listdir(path)
+    res = []
+    for item in items:
+        p = os.path.join(path, item)
+        is_dir = os.path.isdir(p)
         try:
-            attributes = self.sftp_client.listdir_attr(remote_path)
-            results = []
-            for attr in attributes:
-                is_dir = (attr.st_mode & 0o170000) == 0o040000
-                results.append({
-                    "name": attr.filename,
-                    "is_directory": is_dir,
-                    "size": attr.st_size,
-                    "modified": attr.st_mtime
-                })
-            return results
+            stat = os.stat(p)
+            size = stat.st_size if not is_dir else 0
+            mtime = int(stat.st_mtime)
+        except Exception:
+            size = 0
+            mtime = 0
+        res.append({{"name": item, "is_directory": is_dir, "size": size, "modified": mtime}})
+    print(json.dumps(res))
+except Exception as e:
+    print(json.dumps([{{"error": str(e)}}]))
+"""
+        # Run using remote Python (python 2 or 3)
+        r = subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f"python -c {shlex.quote(py_script)}"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True
+        )
+        if r.returncode != 0:
+            # Try python3 if python command not found
+            r = subprocess.run(
+                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f"python3 -c {shlex.quote(py_script)}"],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"Failed to list directory {remote_path}: {r.stderr}")
+                
+        try:
+            data = json.loads(r.stdout.strip())
+            if isinstance(data, list) and len(data) > 0 and "error" in data[0]:
+                raise RuntimeError(data[0]["error"])
+            return data
         except Exception as e:
-            logger.error(f"Failed to list remote directory {remote_path}: {e}")
+            logger.error(f"Failed to parse directory list output: {r.stdout} (error: {e})")
             raise e
 
     def __enter__(self):
