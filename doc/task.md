@@ -1,0 +1,7 @@
+- [x] Gather SSH connection details from the user
+- [x] Create `requirements.txt` with dependencies
+- [x] Create `config.json` using user details (and `config.json.template`)
+- [x] Implement `ssh_client.py` for Paramiko connection, command execution with env sourcing, and SFTP file operations
+- [x] Implement `server.py` using FastMCP named "EDA_MCP"
+- [x] Verify local functionality using a mock/test command run
+- [x] Update `README.md` with instructions

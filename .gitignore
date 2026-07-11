@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*$py.class
+config.json
+.env
+.DS_Store
