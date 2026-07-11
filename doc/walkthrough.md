@@ -1,26 +1,44 @@
-# Walkthrough: EDA_MCP Server
+# Walkthrough: EDA_MCP Server Refactor & Verification
 
-I have successfully completed the implementation of the basic `EDA_MCP` server bridge. It connects to your remote EDA server using your local SSH configuration (`eda-uni`), automatically sources the `/cadance/cshrc` environment inside `csh` execution shells, and provides basic file and command access.
+I have reviewed the changes made to the codebase, fixed a configuration path typo, verified that remote connection succeeds, and committed/pushed the changes.
 
-## What was Implemented
+## Code Review of the Refactored SSH Client
 
-1. **[requirements.txt](file:///Users/vs/function/EDA_MCP/requirements.txt)**: Configured Python dependencies including `mcp`, `paramiko`, and `python-dotenv`.
-2. **[config.json](file:///Users/vs/function/EDA_MCP/config.json)** & **[config.json.template](file:///Users/vs/function/EDA_MCP/config.json.template)**: Declared connection settings to target `eda-uni` using SSH config lookup and setup execution environment commands.
-3. **[ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)**: Implemented `RemoteSession` class which:
-   - Connects using credentials from `~/.ssh/config`.
-   - Automatically wraps commands to run within the Cadence csh environment.
-   - Provides SFTP read, write, and list features.
-4. **[server.py](file:///Users/vs/function/EDA_MCP/server.py)**: Configured FastMCP server named `EDA_MCP` exposing the following tools to the AI:
-   - `run_command(command: str)`: Executes remote commands.
-   - `read_file(path: str)`: Reads a remote file.
-   - `write_file(path: str, content: str)`: Saves a remote file.
-   - `list_dir(path: str)`: Lists files on remote server.
-5. **[README.md](file:///Users/vs/function/EDA_MCP/README.md)**: Added complete documentation on how to configure and run the MCP server with Claude Desktop, Cursor, and other editors.
+The other agent refactored `ssh_client.py` to replace `paramiko` with **native `ssh` subprocess calls**. 
 
-## Verification Results
+### Rationale & Design Review
+1. **SSH Connection (`ssh -o BatchMode=yes`)**:
+   - Paramiko often fails to parse complex keys, proxy commands, or custom host settings (like `HostKeyAlgorithms +ssh-rsa` and `PubkeyAcceptedKeyTypes +ssh-rsa` defined in your local `~/.ssh/config`).
+   - Using native macOS `ssh` is **extremely robust** because it leverages your system's SSH subsystem natively. It uses `BatchMode=yes` to fail fast instead of hanging on password prompts if keys are not ready.
+2. **File Transfer via Base64**:
+   - Instead of SFTP, files are read by executing `base64 <file>` remotely and decoding it locally.
+   - Files are written by pipeing base64 content to `base64 -d > <file>` on the remote side.
+   - This prevents issues when SFTP subsystems are disabled or restricted on the remote host.
+3. **Directory Listing**:
+   - Lists files by running a python one-liner on the remote server that constructs and prints a JSON object. This is cross-compatible with Python 2 and Python 3.
 
-1. **Dependency Installation**: Ran successfully.
-2. **Local Startup Check**: Ran the server locally (`python3 server.py`) and verified it boots and registers tools successfully without error.
-3. **SSH Remote Connection Test**:
-   - Connection to `eda-uni` (192.168.3.58) timed out, which indicates the server requires active IIITD network connection or VPN (operation timed out).
-   - Once your VPN/network connection to the university is established, the SSH config lookup will connect automatically.
+This is a **highly practical, robust, and resilient design** for remote EDA environments.
+
+---
+
+## The Path Correction & Verification
+
+1. **Typo Correction**:
+   - Sourcing `/cadance/cshrc` failed with `No such file or directory`. 
+   - We verified on `eda-uni` that the correct path is **`/cadence/cshrc`** (with an 'e').
+   - We updated `config.json` and `config.json.template` to fix this typo.
+
+2. **Verification Results**:
+   Running our test script yields **Success (Exit status 0)**:
+   - **`whoami` output**:
+     ```
+     Welcome to Cadence Tools Suite
+     vaibhav22555
+     ```
+   - **`echo $PATH` output**:
+     ```
+     Welcome to Cadence Tools Suite
+     /cadence/IC618/bin:/cadence/IC618/tools/bin:/cadence/IC618/tools/dfII/bin:/cadence/IC618/share/bin:/cadence/SPECTRE191/tools/bin:...
+     ```
+
+All Cadence binary paths are now correctly loaded into the remote shell context when running commands!
