@@ -1,3 +1,4 @@
+import os
 import logging
 from mcp.server.fastmcp import FastMCP
 from ssh_client import RemoteSession
@@ -9,9 +10,13 @@ logger = logging.getLogger("EDA_MCP")
 # Initialize FastMCP named EDA_MCP
 mcp = FastMCP("EDA_MCP")
 
+# Get absolute path to config.json
+base_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.join(base_dir, "config.json")
+
 # Global SSH session
 # We initialize it here; it will connect lazily on the first tool invocation
-session = RemoteSession(config_path="config.json")
+session = RemoteSession(config_path=config_path)
 
 @mcp.tool()
 def run_command(command: str) -> str:
