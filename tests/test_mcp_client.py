@@ -1,0 +1,61 @@
+import asyncio
+import os
+import sys
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def run_mcp_client_test():
+    # Get the absolute path to server.py in the same directory structure
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    server_script = os.path.join(base_dir, "server.py")
+    
+    print(f"Target Server Script: {server_script}")
+    if not os.path.exists(server_script):
+        print(f"ERROR: server.py not found at {server_script}", file=sys.stderr)
+        sys.exit(1)
+
+    # Configure server execution parameters (launches server.py via stdio)
+    server_params = StdioServerParameters(
+        command="python3",
+        args=[server_script]
+    )
+
+    print("Launching MCP server in stdio client mode...")
+    try:
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                # 1. Initialize the session with the server
+                print("Initializing session...")
+                await session.initialize()
+                print("Initialization successful!")
+
+                # 2. List tools exposed by the server
+                print("\nListing available tools...")
+                response = await session.list_tools()
+                print(f"Found {len(response.tools)} tools:")
+                for tool in response.tools:
+                    print(f" - Tool Name: {tool.name}")
+                    print(f"   Description: {tool.description.strip().splitlines()[0] if tool.description else 'No description'}")
+                    print(f"   Parameters: {list(tool.inputSchema.get('properties', {}).keys())}")
+
+                # 3. Test calling 'run_remote_command'
+                print("\nCalling 'run_remote_command' with command='whoami'...")
+                tool_call_response = await session.call_tool(
+                    name="run_remote_command",
+                    arguments={"command": "whoami"}
+                )
+                
+                print("Tool Response:")
+                for content in tool_call_response.content:
+                    if hasattr(content, "text"):
+                        print(content.text)
+                    else:
+                        print(content)
+
+    except Exception as e:
+        print(f"\nERROR: MCP client test failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    # Ensure correct asyncio event loop policy on macOS if needed, but standard run is fine
+    asyncio.run(run_mcp_client_test())
