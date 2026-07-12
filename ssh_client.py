@@ -10,6 +10,7 @@ logger = logging.getLogger("eda_mcp.ssh_client")
 class RemoteSession:
     def __init__(self, config_path="config.json"):
         self.config_path = config_path
+        self.process = None
         self.load_config()
         
     def load_config(self):
@@ -20,116 +21,199 @@ class RemoteSession:
             self.config = json.load(f)
             
         self.ssh_host = self.config.get("ssh_host", "eda-uni")
-        self.env_setup_cmd = self.config.get("env_setup_cmd", "source /cadance/cshrc")
+        self.env_setup_cmd = self.config.get("env_setup_cmd", "source /cadence/cshrc")
 
     def connect(self):
-        # Verify connection works
-        logger.info(f"Connecting to remote host: {self.ssh_host}")
+        if self.process is not None and self.process.poll() is None:
+            return
+            
+        logger.info(f"Establishing persistent SSH shell session to: {self.ssh_host}")
         try:
-            r = subprocess.run(
-                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, 'echo CONNECTED'],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
+            # Start the ssh process executing csh on the remote host
+            # We merge stderr into stdout (stderr=subprocess.STDOUT) to easily interleave them,
+            # which mimics a real terminal and prevents pipe buffer deadlocks.
+            self.process = subprocess.Popen(
+                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, 'csh'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                timeout=10
+                bufsize=0  # Unbuffered
             )
-            if r.returncode != 0:
-                raise RuntimeError(f"SSH Connection test failed with code {r.returncode}: {r.stderr}")
-            logger.info("SSH connection tested successfully.")
-        except subprocess.TimeoutExpired:
-            raise TimeoutError("SSH Connection test timed out after 10 seconds.")
+            
+            # Sourcing the CAD environment script on startup
+            init_sentinel = "__CSH_INIT_DONE__"
+            init_cmd = f"{self.env_setup_cmd}; echo '{init_sentinel}:'$status\n"
+            self.process.stdin.write(init_cmd)
+            self.process.stdin.flush()
+            
+            # Read stdout until the initialization is complete
+            while True:
+                line = self.process.stdout.readline()
+                if not line:
+                    raise RuntimeError("SSH connection lost during shell initialization.")
+                if init_sentinel in line:
+                    break
+                    
+            logger.info("Persistent SSH shell session established and sourced successfully.")
         except Exception as e:
-            logger.error(f"Failed to connect to remote host: {e}")
+            self.close()
+            logger.error(f"Failed to connect and initialize persistent shell: {e}")
             raise e
 
     def close(self):
+        if self.process:
+            logger.info("Closing persistent SSH session...")
+            try:
+                # Send exit to csh
+                self.process.stdin.write("exit\n")
+                self.process.stdin.flush()
+                self.process.terminate()
+                self.process.wait(timeout=2)
+            except Exception:
+                try:
+                    self.process.kill()
+                except Exception:
+                    pass
+            self.process = None
         logger.info("SSH connection closed.")
-
-    def wrap_command(self, cmd: str) -> str:
-        """
-        Wraps the command to run inside csh and source the environment script.
-        """
-        # Escape single quotes in the command to safely nest it inside csh -c '...'
-        escaped_cmd = cmd.replace("'", "'\\''")
-        return f"csh -c '{self.env_setup_cmd} && {escaped_cmd}'"
 
     def execute_command(self, cmd: str) -> tuple[int, str, str]:
         """
-        Executes a command on the remote host with environment sourced.
+        Executes a command on the remote host in the persistent shell session.
+        Keeps directory state (cd) and environment variables across calls.
         Returns: (exit_status, stdout_string, stderr_string)
         """
-        wrapped_cmd = self.wrap_command(cmd)
-        logger.debug(f"Executing wrapped command: {wrapped_cmd}")
+        self.connect()
+        sentinel = f"__CMD_FINISHED_{os.urandom(4).hex()}__"
         
-        r = subprocess.run(
-            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, wrapped_cmd],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True
-        )
-        return r.returncode, r.stdout, r.stderr
+        # csh executes command and prints the sentinel with exit status
+        full_cmd = f"{cmd}; echo '{sentinel}:'$status\n"
+        logger.debug(f"Sending command: {cmd}")
+        
+        self.process.stdin.write(full_cmd)
+        self.process.stdin.flush()
+        
+        # Read lines from stdout until we see the sentinel
+        output_lines = []
+        exit_code = 0
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost during command execution.")
+            if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    try:
+                        exit_code = int(parts[1])
+                    except ValueError:
+                        exit_code = 0
+                break
+            output_lines.append(line)
+            
+        stdout_str = "".join(output_lines)
+        # Stderr is merged into stdout for the terminal timeline, so we return empty stderr
+        return exit_code, stdout_str, ""
 
     def read_file(self, remote_path: str) -> str:
         """
         Reads a file from the remote server.
         """
+        self.connect()
         logger.info(f"Reading remote file: {remote_path}")
         
-        # Try using base64 for safe binary/unicode transfer
-        r = subprocess.run(
-            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'base64 {shlex.quote(remote_path)}'],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True
-        )
-        if r.returncode == 0:
-            b64_data = r.stdout.replace('\n', '').replace('\r', '')
-            try:
-                return base64.b64decode(b64_data).decode('utf-8', errors='replace')
-            except Exception:
-                pass
+        quoted_path = shlex.quote(remote_path)
+        sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
+        cmd = f"base64 {quoted_path}; echo '{sentinel}:'$status\n"
+        
+        self.process.stdin.write(cmd)
+        self.process.stdin.flush()
+        
+        output_lines = []
+        exit_code = 0
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost during file read.")
+            if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    try:
+                        exit_code = int(parts[1])
+                    except ValueError:
+                        exit_code = 0
+                break
+            output_lines.append(line)
+            
+        # Fallback to cat if base64 failed (e.g. base64 command not found)
+        if exit_code != 0:
+            cat_sentinel = f"__CAT_FINISHED_{os.urandom(4).hex()}__"
+            cat_cmd = f"cat {quoted_path}; echo '{cat_sentinel}:'$status\n"
+            self.process.stdin.write(cat_cmd)
+            self.process.stdin.flush()
+            
+            cat_lines = []
+            while True:
+                line = self.process.stdout.readline()
+                if not line:
+                    self.close()
+                    raise RuntimeError("SSH connection lost during fallback file read.")
+                if cat_sentinel in line:
+                    break
+                cat_lines.append(line)
                 
-        # Fallback to cat
-        r = subprocess.run(
-            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'cat {shlex.quote(remote_path)}'],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True
-        )
-        if r.returncode != 0:
-            raise FileNotFoundError(f"Failed to read file {remote_path}: {r.stderr}")
-        return r.stdout
+            stdout_str = "".join(cat_lines)
+            # Remove potential MOTD/warnings that might have been printed before stdout
+            return stdout_str
+            
+        b64_data = "".join(output_lines)
+        # Strip potential warnings (like post-quantum keys warning) before the base64 payload
+        # Base64 string only contains alphanumeric, +, /, and =. We extract the valid base64 chars.
+        b64_clean = "".join(c for c in b64_data if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r")
+        try:
+            return base64.b64decode(b64_clean.encode('utf-8')).decode('utf-8', errors='replace')
+        except Exception:
+            return "".join(output_lines) # Fallback to raw text if base64 decode fails
 
     def write_file(self, remote_path: str, content: str):
         """
         Writes content to a remote file.
         """
+        self.connect()
         logger.info(f"Writing remote file: {remote_path}")
         
-        # Try using base64 for safe transfer
-        b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        r = subprocess.run(
-            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'base64 -d > {shlex.quote(remote_path)}'],
-            input=b64_content,
-            capture_output=True,
-            text=True
-        )
-        if r.returncode != 0:
-            # Fallback to cat piping
-            r = subprocess.run(
-                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f'cat > {shlex.quote(remote_path)}'],
-                input=content,
-                capture_output=True,
-                text=True
-            )
-            if r.returncode != 0:
-                raise RuntimeError(f"Failed to write file {remote_path}: {r.stderr}")
+        quoted_path = shlex.quote(remote_path)
+        eof_marker = f"__WRITE_EOF_{os.urandom(8).hex()}__"
+        sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
+        
+        # We write via here-document to avoid closing stdin
+        cmd = f"cat << '{eof_marker}' > {quoted_path}\n{content}\n{eof_marker}\n"
+        self.process.stdin.write(cmd)
+        self.process.stdin.flush()
+        
+        # Check command
+        check_cmd = f"echo '{sentinel}:'$status\n"
+        self.process.stdin.write(check_cmd)
+        self.process.stdin.flush()
+        
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost during file write.")
+            if sentinel in line:
+                break
 
     def list_dir(self, remote_path: str) -> list[dict]:
         """
         Lists files in a remote directory.
         """
+        self.connect()
         logger.info(f"Listing remote directory: {remote_path}")
+        
+        sentinel = f"__LIST_FINISHED_{os.urandom(4).hex()}__"
         
         # Run python 2/3 compatible script on remote to list directory and output JSON
         py_script = f"""import os, json, sys
@@ -152,31 +236,68 @@ try:
 except Exception as e:
     print(json.dumps([{{"error": str(e)}}]))
 """
-        # Run using remote Python (python 2 or 3)
-        r = subprocess.run(
-            ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f"python -c {shlex.quote(py_script)}"],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True
-        )
-        if r.returncode != 0:
-            # Try python3 if python command not found
-            r = subprocess.run(
-                ['ssh', '-o', 'BatchMode=yes', self.ssh_host, f"python3 -c {shlex.quote(py_script)}"],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True
-            )
-            if r.returncode != 0:
-                raise RuntimeError(f"Failed to list directory {remote_path}: {r.stderr}")
+        eof_marker = f"__PY_EOF_{os.urandom(8).hex()}__"
+        cmd = f"python -c << '{eof_marker}'\n{py_script}\n{eof_marker}\n"
+        self.process.stdin.write(cmd)
+        self.process.stdin.flush()
+        
+        check_cmd = f"echo '{sentinel}:'$status\n"
+        self.process.stdin.write(check_cmd)
+        self.process.stdin.flush()
+        
+        output_lines = []
+        exit_code = 0
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost during directory listing.")
+            if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    try:
+                        exit_code = int(parts[1])
+                    except ValueError:
+                        exit_code = 0
+                break
+            output_lines.append(line)
+            
+        # Try python3 if python command not found
+        if exit_code != 0:
+            py3_sentinel = f"__LIST3_FINISHED_{os.urandom(4).hex()}__"
+            cmd = f"python3 -c << '{eof_marker}'\n{py_script}\n{eof_marker}\n"
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+            
+            check_cmd = f"echo '{py3_sentinel}:'$status\n"
+            self.process.stdin.write(check_cmd)
+            self.process.stdin.flush()
+            
+            output_lines = []
+            while True:
+                line = self.process.stdout.readline()
+                if not line:
+                    self.close()
+                    raise RuntimeError("SSH connection lost during directory listing fallback.")
+                if py3_sentinel in line:
+                    break
+                output_lines.append(line)
                 
+        stdout_str = "".join(output_lines).strip()
         try:
-            data = json.loads(r.stdout.strip())
-            if isinstance(data, list) and len(data) > 0 and "error" in data[0]:
-                raise RuntimeError(data[0]["error"])
-            return data
+            # Parse only the JSON portion to ignore warnings/MOTD
+            json_start = stdout_str.find("[")
+            json_end = stdout_str.rfind("]")
+            if json_start != -1 and json_end != -1:
+                json_str = stdout_str[json_start:json_end+1]
+                data = json.loads(json_str)
+                if isinstance(data, list) and len(data) > 0 and "error" in data[0]:
+                    raise RuntimeError(data[0]["error"])
+                return data
+            else:
+                raise RuntimeError("Could not find JSON payload in command output.")
         except Exception as e:
-            logger.error(f"Failed to parse directory list output: {r.stdout} (error: {e})")
+            logger.error(f"Failed to parse directory list output: {stdout_str} (error: {e})")
             raise e
 
     def __enter__(self):
