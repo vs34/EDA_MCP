@@ -52,6 +52,19 @@ async def run_mcp_client_test():
                     else:
                         print(content)
 
+
+                print("\nCalling 'run_remote_command' with command='ls -l'...")
+                tool_call_response = await session.call_tool(
+                    name="run_remote_command",
+                    arguments={"command": "ls -l"}
+                )
+                
+                print("Tool Response:")
+                for content in tool_call_response.content:
+                    if hasattr(content, "text"):
+                        print(content.text)
+                    else:
+                        print(content)
     except Exception as e:
         print(f"\nERROR: MCP client test failed: {e}", file=sys.stderr)
         sys.exit(1)

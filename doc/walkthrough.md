@@ -42,3 +42,18 @@ This is a **highly practical, robust, and resilient design** for remote EDA envi
      ```
 
 All Cadence binary paths are now correctly loaded into the remote shell context when running commands!
+
+---
+
+## Programmatic Agent Initialization Test
+We created **[tests/test_mcp_client.py](file:///Users/vs/function/EDA_MCP/tests/test_mcp_client.py)** to simulate how an AI agent client programmatically launches the server, initializes the session, and triggers tool calls.
+
+Running `python3 tests/test_mcp_client.py` completed successfully:
+1. **Server Launch**: Standard Input/Output (stdio) pipeline established.
+2. **Session Initialization**: Handshake completed successfully.
+3. **Tool Inspection**: Discovered all 4 renamed tools:
+   * `run_remote_command` (expects `command`)
+   * `read_remote_file` (expects `path`)
+   * `write_remote_file` (expects `path`, `content`)
+   * `list_remote_dir` (expects `path`)
+4. **Call Tool Execution**: Executed `run_remote_command` with `whoami` and successfully processed the remote output payload.
