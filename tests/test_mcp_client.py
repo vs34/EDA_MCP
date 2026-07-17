@@ -53,10 +53,23 @@ async def run_mcp_client_test():
                         print(content)
 
 
-                print("\nCalling 'run_remote_command' with command='ls -l'...")
+                print("\nCalling 'run_remote_command' with command='pwd'...")
                 tool_call_response = await session.call_tool(
                     name="run_remote_command",
-                    arguments={"command": "ls -l"}
+                    arguments={"command": "pwd"}
+                )
+                
+                print("Tool Response:")
+                for content in tool_call_response.content:
+                    if hasattr(content, "text"):
+                        print(content.text)
+                    else:
+                        print(content)
+
+                print("\nCalling 'run_remote_command' with command='cd .. && pwd'...")
+                tool_call_response = await session.call_tool(
+                    name="run_remote_command",
+                    arguments={"command": "cd .. && pwd"}
                 )
                 
                 print("Tool Response:")
