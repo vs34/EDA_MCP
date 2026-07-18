@@ -125,13 +125,24 @@ class RemoteSession:
         
         quoted_path = shlex.quote(remote_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
-        cmd = f"base64 {quoted_path}; echo '{sentinel}:'$status\n"
+        
+        # csh multi-line if statement to check path status
+        cmd = (
+            f"if ( -d {quoted_path} ) then\n"
+            f"  echo '{sentinel}:is_dir'\n"
+            f"else if ( -e {quoted_path} ) then\n"
+            f"  base64 {quoted_path}; echo '{sentinel}:'$status\n"
+            f"else\n"
+            f"  echo '{sentinel}:404'\n"
+            f"endif\n"
+        )
         
         self.process.stdin.write(cmd)
         self.process.stdin.flush()
         
         output_lines = []
-        exit_code = 0
+        result_status = "0"
+        
         while True:
             line = self.process.stdout.readline()
             if not line:
@@ -140,42 +151,56 @@ class RemoteSession:
             if sentinel in line:
                 parts = line.strip().split(":")
                 if len(parts) > 1:
-                    try:
-                        exit_code = int(parts[1])
-                    except ValueError:
-                        exit_code = 0
+                    result_status = parts[-1]
                 break
             output_lines.append(line)
             
-        # Fallback to cat if base64 failed (e.g. base64 command not found)
-        if exit_code != 0:
+        if result_status == "404":
+            raise FileNotFoundError(f"File not found: {remote_path}")
+        elif result_status == "is_dir":
+            raise IsADirectoryError(f"Path is a directory: {remote_path}")
+            
+        # If base64 failed (e.g. status was non-zero like 1 or command not found)
+        if result_status != "0":
             cat_sentinel = f"__CAT_FINISHED_{os.urandom(4).hex()}__"
             cat_cmd = f"cat {quoted_path}; echo '{cat_sentinel}:'$status\n"
             self.process.stdin.write(cat_cmd)
             self.process.stdin.flush()
             
             cat_lines = []
+            cat_exit_code = 0
             while True:
                 line = self.process.stdout.readline()
                 if not line:
                     self.close()
                     raise RuntimeError("SSH connection lost during fallback file read.")
                 if cat_sentinel in line:
+                    parts = line.strip().split(":")
+                    if len(parts) > 1:
+                        try:
+                            cat_exit_code = int(parts[-1])
+                        except ValueError:
+                            cat_exit_code = 0
                     break
                 cat_lines.append(line)
                 
-            stdout_str = "".join(cat_lines)
-            # Remove potential MOTD/warnings that might have been printed before stdout
-            return stdout_str
+            if cat_exit_code != 0:
+                err_msg = "".join(cat_lines).strip()
+                if "Permission denied" in err_msg:
+                    raise PermissionError(f"Permission denied: {remote_path}")
+                raise RuntimeError(f"Failed to read file {remote_path}: {err_msg}")
+                
+            return "".join(cat_lines)
             
+        # Decode base64
         b64_data = "".join(output_lines)
-        # Strip potential warnings (like post-quantum keys warning) before the base64 payload
-        # Base64 string only contains alphanumeric, +, /, and =. We extract the valid base64 chars.
         b64_clean = "".join(c for c in b64_data if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r")
         try:
             return base64.b64decode(b64_clean.encode('utf-8')).decode('utf-8', errors='replace')
-        except Exception:
-            return "".join(output_lines) # Fallback to raw text if base64 decode fails
+        except Exception as e:
+            # Fallback to output lines if base64 decoding fails unexpectedly
+            logger.warning(f"Base64 decoding failed for {remote_path}, returning raw lines: {e}")
+            return "".join(output_lines)
 
     def write_file(self, remote_path: str, content: str):
         """
@@ -184,12 +209,15 @@ class RemoteSession:
         self.connect()
         logger.info(f"Writing remote file: {remote_path}")
         
-        quoted_path = shlex.quote(remote_path)
+        b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
         eof_marker = f"__WRITE_EOF_{os.urandom(8).hex()}__"
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
         
-        # We write via here-document to avoid closing stdin
-        cmd = f"cat << '{eof_marker}' > {quoted_path}\n{content}\n{eof_marker}\n"
+        # csh script to run python to decode and write file
+        py_script = f"""import base64
+open({repr(remote_path)}, "wb").write(base64.b64decode(b"{b64_content}"))
+"""
+        cmd = f"python << {eof_marker}\n{py_script}\n{eof_marker}\n"
         self.process.stdin.write(cmd)
         self.process.stdin.flush()
         
@@ -198,13 +226,23 @@ class RemoteSession:
         self.process.stdin.write(check_cmd)
         self.process.stdin.flush()
         
+        exit_code = 0
         while True:
             line = self.process.stdout.readline()
             if not line:
                 self.close()
                 raise RuntimeError("SSH connection lost during file write.")
             if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    try:
+                        exit_code = int(parts[-1])
+                    except ValueError:
+                        exit_code = 0
                 break
+                
+        if exit_code != 0:
+            raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
 
     def list_dir(self, remote_path: str) -> list[dict]:
         """
