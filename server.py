@@ -72,21 +72,6 @@ def write_remote_file(path: str, content: str) -> str:
         logger.error(f"Error writing file {path}: {e}")
         return f"Error writing file: {str(e)}"
 
-@mcp.tool()
-def list_remote_dir(path: str = ".") -> list[dict]:
-    """
-    Lists directories and files inside a remote path.
-    
-    Args:
-        path: Path to list directory contents (defaults to '.')
-    """
-    try:
-        return session.list_dir(path)
-    except Exception as e:
-        logger.error(f"Error listing directory {path}: {e}")
-        # Return a list indicating error so FastMCP doesn't fail serialization
-        return [{"error": str(e)}]
-
 if __name__ == "__main__":
     # Start the server on stdio transport (default)
     mcp.run()

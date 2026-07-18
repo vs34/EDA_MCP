@@ -14,7 +14,6 @@ I have successfully designed, refactored, and verified the **Stateful SSH Shell 
    - Because the session is persistent, `cd` commands persist. If the agent runs `cd workspace`, subsequent commands (like `ls` or file reads) execute inside `workspace`.
    - File reads (`read_remote_file`) use `base64` transfers inside the persistent session.
    - File writes (`write_remote_file`) use a `cat << 'EOF'` here-document inside the persistent session.
-   - Directory listings (`list_remote_dir`) run a remote Python script inside the persistent session.
 3. **Verification & Testing**:
    - Verified that directory changes persist (`cd /tmp` followed by `pwd` correctly returns `/tmp`).
    - Verified that Cadence path environments are preserved across all tool calls.
