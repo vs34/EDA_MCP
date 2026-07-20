@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "eda-mcp": {
-      "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+      "command": "python3",
       "args": [
         "/Users/vs/function/EDA_MCP/server.py"
       ]
