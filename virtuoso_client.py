@@ -36,6 +36,7 @@ class VirtuosoClient:
         self.session.connect()
         self.workdir = work_dir
         
+        # Future development: This will handle full agentic flow (e.g., virtuoso -nograph and automated code development later on)
         cmd = f"cd {shlex.quote(work_dir)} && sh MCP_initalize.sh"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
