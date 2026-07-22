@@ -42,6 +42,9 @@ class VirtuosoClient:
         if exit_code != 0:
             return f"Failed to initialize Virtuoso (Exit code {exit_code}): {stdout}"
 
+        # Wait 2 seconds for Virtuoso process to initialize
+        time.sleep(2)
+
         # Fetch Virtuoso PID for current user
         pid_cmd = "pgrep -u $USER virtuoso | head -n 1"
         _, pid_stdout, _ = self.session.execute_command(pid_cmd)

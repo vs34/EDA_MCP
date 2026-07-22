@@ -17,4 +17,4 @@ if ( ! $?DISPLAY ) then
     setenv DISPLAY :0
 endif
 
-(virtuoso < /dev/null >& /dev/null &)
+virtuoso >& virtuoso_launch.log &
