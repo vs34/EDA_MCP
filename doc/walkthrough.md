@@ -1,48 +1,53 @@
-# Walkthrough: EDA_MCP Server Stateful Shell Session & Verification
+# Walkthrough: Modular Virtuoso MCP Tool Implementation
 
-I have successfully designed, refactored, and verified the **Stateful SSH Shell Session** implementation. The server now runs a single, persistent shell session on the remote server, maintaining directory structure (`cd`) and environment variables across subsequent tool calls.
-
-## What was Implemented
-
-1. **Stateful SSH Client (`ssh_client.py`)**:
-   - Spawns a persistent `csh` process over `ssh` at startup.
-   - Sources the CAD environment `/cadence/cshrc` **once** upon initialization.
-   - Redirects `stderr` to `stdout` (`stderr=subprocess.STDOUT`) to prevent buffer deadlocks and interleave outputs naturally, mimicking a real terminal screen.
-   - Uses unique execution sentinels (e.g., `__CMD_FINISHED_[random_hex]__`) to track when commands finish and capture their exact exit codes.
-   - Keeps connection alive. Subsequent commands run instantly inside the same shell session.
-2. **Synchronized Workspace State**:
-   - Because the session is persistent, `cd` commands persist. If the agent runs `cd workspace`, subsequent commands (like `ls` or file reads) execute inside `workspace`.
-   - File reads (`read_remote_file`) use `base64` transfers inside the persistent session.
-   - File writes (`write_remote_file`) use a `cat << 'EOF'` here-document inside the persistent session.
-3. **Verification & Testing**:
-   - Verified that directory changes persist (`cd /tmp` followed by `pwd` correctly returns `/tmp`).
-   - Verified that Cadence path environments are preserved across all tool calls.
+We have refactored the EDA_MCP server into a highly modular and maintainable architecture.
 
 ---
 
-## Verification Logs
+## 🏗️ Modular Architecture Overview
 
-### Stateful Connection Test (`test_connection.py`)
 ```
-Connecting to remote host...
-Connection successful!
-
-Testing command execution: 'whoami'
-Status: 0
-Stdout: vaibhav22555
-
-Testing CAD environment command: 'echo $PATH'
-Status: 0
-Stdout (first 200 chars): /cadence/IC618/bin:/cadence/IC618/tools/bin:/cadence/IC618/tools/dfII/bin:/cadence/IC618/share/bin:...
-
-Testing directory change: 'cd /tmp'
-Status: 0
-
-Testing subsequent path query: 'pwd'
-Status: 0
-Stdout: /tmp
-
-Connection closed successfully.
+                          ┌───────────────────────────┐
+                          │         server.py         │
+                          │   (FastMCP Tool Definitions)│
+                          └─────────────┬─────────────┘
+                                        │
+                                        ▼
+                          ┌───────────────────────────┐
+                          │    virtuoso_client.py     │
+                          │   (VirtuosoClient Class)  │
+                          └─────────────┬─────────────┘
+                                        │
+                                        ▼
+                          ┌───────────────────────────┐
+                          │       ssh_client.py       │
+                          │   (RemoteSession Backbone)│
+                          └───────────────────────────┘
 ```
 
-All operations now execute **instantly** (under 100ms) after the initial handshake, with a fully synchronized workspace directory state!
+### 1. Low-Level SSH Transport Backbone ([ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py))
+Contains standard SSH primitives:
+- `connect()`
+- `execute_command(command: str)`
+- `read_file(remote_path: str)`
+- `write_file(remote_path: str, content: str)`
+
+### 2. High-Level Tool Client ([virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py))
+Encapsulates `VirtuosoClient` class:
+- `initialize(work_dir)`: Starts Virtuoso and captures PID.
+- `run(skill_code, timeout)`: Pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
+- `exit()`: Gracefully exits Virtuoso via SKILL and PID check/kill.
+- `_clean_skill_command()`: Strips line/inline `;;` comments and formats single line string.
+
+### 3. FastMCP Server Entrypoint ([server.py](file:///Users/vs/function/EDA_MCP/server.py))
+Instantiates:
+```python
+session = RemoteSession(config_path=config_path)
+virtuoso_client = VirtuosoClient(session=session)
+```
+And registers `@mcp.tool()` `virtuoso(action, command="", work_dir="~/Desktop/cmos65")` delegating directly to `virtuoso_client`.
+
+---
+
+## Verification
+- `python3 -m py_compile ssh_client.py virtuoso_client.py server.py tests/test_mcp_client.py` executed cleanly with **0 syntax errors**.

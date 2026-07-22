@@ -1,7 +1,10 @@
 import os
+import time
+import shlex
 import logging
 from mcp.server.fastmcp import FastMCP
 from ssh_client import RemoteSession
+from virtuoso_client import VirtuosoClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,9 +17,9 @@ mcp = FastMCP("EDA_MCP")
 base_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(base_dir, "config.json")
 
-# Global SSH session
-# We initialize it here; it will connect lazily on the first tool invocation
+# Global SSH session and tool clients
 session = RemoteSession(config_path=config_path)
+virtuoso_client = VirtuosoClient(session=session)
 
 @mcp.tool()
 def run_remote_command(command: str) -> str:
@@ -71,6 +74,32 @@ def write_remote_file(path: str, content: str) -> str:
     except Exception as e:
         logger.error(f"Error writing file {path}: {e}")
         return f"Error writing file: {str(e)}"
+
+@mcp.tool()
+def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65") -> str:
+    """
+    Control and interact with Cadence Virtuoso.
+    
+    Args:
+        action: The operation to perform ('initialize', 'run', or 'exit')
+        command: SKILL code/command to execute when action='run'
+        work_dir: Working directory containing MCP_initalize.sh when action='initialize'
+    """
+    try:
+        act = action.lower().strip()
+        if act == "initialize":
+            return virtuoso_client.initialize(work_dir=work_dir)
+        elif act == "run":
+            if not command.strip():
+                return "Error: 'command' argument is required when action='run'."
+            return virtuoso_client.run(skill_code=command)
+        elif act == "exit":
+            return virtuoso_client.exit()
+        else:
+            return f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run', 'exit'."
+    except Exception as e:
+        logger.error(f"Error in virtuoso tool (action={action}): {e}")
+        return f"Error in virtuoso tool: {str(e)}"
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)

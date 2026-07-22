@@ -4,10 +4,10 @@ A Model Context Protocol (MCP) server that bridges your local AI tools (like Cla
 
 ## Features
 
-1. **Stateful Command Execution (`run_command`)**: Runs terminal commands on the remote EDA server inside a `csh` session with the environment script sourced.
-2. **File Sifting (`read_file`)**: Reads file contents directly from the remote server over SFTP (ideal for loading large logs or reports).
-3. **File Deploying (`write_file`)**: Writes or updates files on the remote server (great for creating Tcl scripts for Innovus/Genus/Tempus).
-4. **Directory Listing (`list_dir`)**: Inspect files and directory trees on the remote server.
+1. **Stateful Command Execution (`run_remote_command`)**: Runs terminal commands on the remote EDA server inside a `csh` session with the environment script sourced.
+2. **File Reading (`read_remote_file`)**: Reads file contents directly from the remote server over SSH (ideal for loading large logs or reports).
+3. **File Writing (`write_remote_file`)**: Writes or updates files on the remote server (great for creating Tcl/SKILL scripts for Innovus/Genus/Tempus/Virtuoso).
+4. **Cadence Virtuoso Control (`virtuoso`)**: Initializes Virtuoso, sends SKILL commands via FIFO IPC with response polling, and handles graceful session termination.
 
 ---
 
@@ -61,5 +61,6 @@ Go to Settings -> MCP -> Add New MCP Server:
 ## API & Modular Structure
 
 * `config.json`: Stores user-specific environment variables and server target.
-* `ssh_client.py`: Handles connecting using your SSH config, running remote commands inside `csh` with your env sourced, and handles SFTP.
-* `server.py`: Defines the FastMCP tools exposed to the AI client.
+* `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions, command execution, and file I/O.
+* `virtuoso_client.py`: High-level Cadence Virtuoso client encapsulating SKILL comment processing, FIFO pipe communication, output polling, and process lifecycle.
+* `server.py`: Defines FastMCP tools (`run_remote_command`, `read_remote_file`, `write_remote_file`, `virtuoso`) exposed to AI clients.
