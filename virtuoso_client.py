@@ -29,45 +29,18 @@ class VirtuosoClient:
                 clean_lines.append(stripped)
         return " ".join(clean_lines)
 
-    def initialize(self, work_dir: str = "~/Desktop/cmos65", display: str = ":0") -> str:
+    def initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir, deploys MCP_initialize.sh, sets DISPLAY, runs script, and tracks Virtuoso PID.
+        Navigates to work_dir, executes MCP_initalize.sh, and tracks the Virtuoso PID.
         """
         self.session.connect()
         self.workdir = work_dir
         
-        init_script_content = (
-            "#!/bin/csh\n"
-            "if ( ! -e MCP.command ) then\n"
-            "    mkfifo MCP.command\n"
-            "    echo 'Created FIFO pipe: MCP.command'\n"
-            "else\n"
-            "    echo 'FIFO pipe MCP.command already exists.'\n"
-            "endif\n\n"
-            "if ( -e .cshrc_cmos065 ) then\n"
-            "    source .cshrc_cmos065\n"
-            "endif\n\n"
-            "if ( ! $?DISPLAY ) then\n"
-            f"    setenv DISPLAY {display}\n"
-            "endif\n\n"
-            "virtuoso >& virtuoso_launch.log &\n"
-        )
-        
-        deploy_cmd = f"cat << 'EOF' > {work_dir}/MCP_initialize.sh\n{init_script_content}EOF\n"
-        try:
-            self.session.execute_command(deploy_cmd)
-            self.session.execute_command(f"chmod +x {work_dir}/MCP_initialize.sh")
-        except Exception as e:
-            logger.warning(f"Could not deploy script to {work_dir}/MCP_initialize.sh: {e}")
-
-        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} csh MCP_initialize.sh &"
+        cmd = f"cd {shlex.quote(work_dir)} && sh MCP_initalize.sh"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
             return f"Failed to initialize Virtuoso (Exit code {exit_code}): {stdout}"
-
-        # Wait 3 seconds for Virtuoso process to initialize
-        time.sleep(3)
 
         # Fetch Virtuoso PID for current user
         pid_cmd = "pgrep -u $USER -f virtuoso | head -n 1"
