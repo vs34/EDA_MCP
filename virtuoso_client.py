@@ -37,21 +37,13 @@ class VirtuosoClient:
         self.workdir = work_dir
         
         # Future development: This will handle full agentic flow (e.g., virtuoso -nograph and automated code development later on)
-        cmd = f"cd {shlex.quote(work_dir)} && sh MCP_initalize.sh"
+        cmd = f"cd {shlex.quote(work_dir)}"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
             return f"Failed to initialize Virtuoso (Exit code {exit_code}): {stdout}"
 
-        # Fetch Virtuoso PID for current user
-        pid_cmd = "pgrep -u $USER -f virtuoso | head -n 1"
-        _, pid_stdout, _ = self.session.execute_command(pid_cmd)
-        pid_str = pid_stdout.strip()
-        if pid_str.isdigit():
-            self.pid = int(pid_str)
-        
-        pid_info = f"PID: {self.pid}" if self.pid else "PID: unknown"
-        return f"Virtuoso initialization complete in {work_dir}. ({pid_info})\nOutput:\n{stdout.strip()}"
+        return f"Virtuoso initialization complete in {work_dir}."
 
     def run(self, skill_code: str, timeout: float = 10.0) -> str:
         """
@@ -117,17 +109,17 @@ class VirtuosoClient:
             
         time.sleep(2)
         
-        if self.pid:
-            check_cmd = f"ps -p {self.pid}"
-            exit_code, out, _ = self.session.execute_command(check_cmd)
-            if exit_code == 0 and str(self.pid) in out:
-                output.append(f"Virtuoso (PID {self.pid}) is still alive. Sending kill -9...")
-                self.session.execute_command(f"kill -9 {self.pid}")
-                output.append(f"Killed Virtuoso PID {self.pid}.")
-            else:
-                output.append(f"Virtuoso (PID {self.pid}) has cleanly exited.")
-            self.pid = None
-        else:
-            output.append("No recorded Virtuoso PID to kill.")
+        # if self.pid:
+        #     check_cmd = f"ps -p {self.pid}"
+        #     exit_code, out, _ = self.session.execute_command(check_cmd)
+        #     if exit_code == 0 and str(self.pid) in out:
+        #         output.append(f"Virtuoso (PID {self.pid}) is still alive. Sending kill -9...")
+        #         self.session.execute_command(f"kill -9 {self.pid}")
+        #         output.append(f"Killed Virtuoso PID {self.pid}.")
+        #     else:
+        #         output.append(f"Virtuoso (PID {self.pid}) has cleanly exited.")
+        #     self.pid = None
+        # else:
+        #     output.append("No recorded Virtuoso PID to kill.")
             
         return "\n".join(output)
