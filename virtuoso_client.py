@@ -53,12 +53,12 @@ class VirtuosoClient:
             "virtuoso >& virtuoso_launch.log &\n"
         )
         
-        remote_script = f"{work_dir}/MCP_initialize.sh"
+        deploy_cmd = f"cat << 'EOF' > {work_dir}/MCP_initialize.sh\n{init_script_content}EOF\n"
         try:
-            self.session.write_file(remote_script, init_script_content)
-            self.session.execute_command(f"chmod +x {shlex.quote(remote_script)}")
+            self.session.execute_command(deploy_cmd)
+            self.session.execute_command(f"chmod +x {work_dir}/MCP_initialize.sh")
         except Exception as e:
-            logger.warning(f"Could not deploy script to {remote_script}: {e}")
+            logger.warning(f"Could not deploy script to {work_dir}/MCP_initialize.sh: {e}")
 
         cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} csh MCP_initialize.sh &"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
