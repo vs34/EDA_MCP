@@ -36,7 +36,7 @@ class VirtuosoClient:
         self.session.connect()
         self.workdir = work_dir
         
-        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} sh MCP_initalize.sh"
+        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} csh MCP_initalize.sh &"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
