@@ -37,7 +37,8 @@ class VirtuosoClient:
         self.workdir = work_dir
         
         # Future development: This will handle full agentic flow (e.g., virtuoso -nograph and automated code development later on)
-        cmd = f"cd {shlex.quote(work_dir)}"
+        safe_dir = f"$HOME{work_dir[1:]}" if work_dir.startswith("~") else shlex.quote(work_dir)
+        cmd = f"cd {safe_dir}"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
@@ -51,7 +52,8 @@ class VirtuosoClient:
         """
         self.session.connect()
         if self.workdir:
-            self.session.execute_command(f"cd {shlex.quote(self.workdir)}")
+            safe_dir = f"$HOME{self.workdir[1:]}" if self.workdir.startswith("~") else shlex.quote(self.workdir)
+            self.session.execute_command(f"cd {safe_dir}")
             
         clean_skill = self._clean_skill_command(skill_code)
         if not clean_skill:
