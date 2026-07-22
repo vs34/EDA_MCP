@@ -29,14 +29,14 @@ class VirtuosoClient:
                 clean_lines.append(stripped)
         return " ".join(clean_lines)
 
-    def initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
+    def initialize(self, work_dir: str = "~/Desktop/cmos65", display: str = ":0") -> str:
         """
-        Navigates to work_dir, runs MCP_initalize.sh, and tracks the Virtuoso PID.
+        Navigates to work_dir, sets DISPLAY, runs MCP_initalize.sh, and tracks the Virtuoso PID.
         """
         self.session.connect()
         self.workdir = work_dir
         
-        cmd = f"cd {shlex.quote(work_dir)} && sh MCP_initalize.sh"
+        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} sh MCP_initalize.sh"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:

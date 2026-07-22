@@ -6,4 +6,9 @@ if [ ! -p MCP.command ]; then
 else
     echo "FIFO pipe MCP.command already exists."
 fi
-virtuoso &
+# Set DISPLAY if not already set (default to :0 for local display/VNC)
+if [ -z "$DISPLAY" ]; then
+    export DISPLAY=:0
+fi
+
+nohup virtuoso > /dev/null 2>&1 &

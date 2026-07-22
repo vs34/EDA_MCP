@@ -76,7 +76,7 @@ def write_remote_file(path: str, content: str) -> str:
         return f"Error writing file: {str(e)}"
 
 @mcp.tool()
-def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65") -> str:
+def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65", display: str = ":0") -> str:
     """
     Control and interact with Cadence Virtuoso.
     
@@ -84,11 +84,12 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         action: The operation to perform ('initialize', 'run', or 'exit')
         command: SKILL code/command to execute when action='run'
         work_dir: Working directory containing MCP_initalize.sh when action='initialize'
+        display: Remote X display address (default: ':0') when action='initialize'
     """
     try:
         act = action.lower().strip()
         if act == "initialize":
-            return virtuoso_client.initialize(work_dir=work_dir)
+            return virtuoso_client.initialize(work_dir=work_dir, display=display)
         elif act == "run":
             if not command.strip():
                 return "Error: 'command' argument is required when action='run'."
