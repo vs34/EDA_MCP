@@ -31,19 +31,43 @@ class VirtuosoClient:
 
     def initialize(self, work_dir: str = "~/Desktop/cmos65", display: str = ":0") -> str:
         """
-        Navigates to work_dir, sets DISPLAY, runs MCP_initalize.sh, and tracks the Virtuoso PID.
+        Navigates to work_dir, deploys MCP_initialize.sh, sets DISPLAY, runs script, and tracks Virtuoso PID.
         """
         self.session.connect()
         self.workdir = work_dir
         
-        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} csh MCP_initalize.sh &"
+        init_script_content = (
+            "#!/bin/csh\n"
+            "if ( ! -e MCP.command ) then\n"
+            "    mkfifo MCP.command\n"
+            "    echo 'Created FIFO pipe: MCP.command'\n"
+            "else\n"
+            "    echo 'FIFO pipe MCP.command already exists.'\n"
+            "endif\n\n"
+            "if ( -e .cshrc_cmos065 ) then\n"
+            "    source .cshrc_cmos065\n"
+            "endif\n\n"
+            "if ( ! $?DISPLAY ) then\n"
+            f"    setenv DISPLAY {display}\n"
+            "endif\n\n"
+            "virtuoso >& virtuoso_launch.log &\n"
+        )
+        
+        remote_script = f"{work_dir}/MCP_initialize.sh"
+        try:
+            self.session.write_file(remote_script, init_script_content)
+            self.session.execute_command(f"chmod +x {shlex.quote(remote_script)}")
+        except Exception as e:
+            logger.warning(f"Could not deploy script to {remote_script}: {e}")
+
+        cmd = f"cd {shlex.quote(work_dir)} && env DISPLAY={shlex.quote(display)} csh MCP_initialize.sh &"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
             return f"Failed to initialize Virtuoso (Exit code {exit_code}): {stdout}"
 
-        # Wait 2 seconds for Virtuoso process to initialize
-        time.sleep(2)
+        # Wait 3 seconds for Virtuoso process to initialize
+        time.sleep(3)
 
         # Fetch Virtuoso PID for current user
         pid_cmd = "pgrep -u $USER -f virtuoso | head -n 1"
