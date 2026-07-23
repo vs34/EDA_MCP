@@ -4,3 +4,5 @@ __pycache__/
 config.json
 .env
 .DS_Store
+temp/
+
