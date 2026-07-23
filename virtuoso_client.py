@@ -100,7 +100,8 @@ class VirtuosoClient:
         """
         self.session.connect()
         if self.workdir:
-            self.session.execute_command(f"cd {shlex.quote(self.workdir)}")
+            safe_dir = f"$HOME{self.workdir[1:]}" if self.workdir.startswith("~") else shlex.quote(self.workdir)
+            self.session.execute_command(f"cd {safe_dir}")
             
         output = []
         try:
