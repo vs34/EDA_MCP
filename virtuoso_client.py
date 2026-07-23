@@ -70,28 +70,10 @@ class VirtuosoClient:
         if exit_code != 0:
             return f"Failed to send command to Virtuoso FIFO pipe: {out}"
             
-        # Polling loop: wait for RESULT: marker in mcp_output.txt
-        start_time = time.time()
-        poll_interval = 0.3
-        
-        while time.time() - start_time < timeout:
-            try:
-                content = self.session.read_file(output_file)
-                if content and "RESULT:" in content:
-                    return content
-            except Exception:
-                pass
-            time.sleep(poll_interval)
-            
-        # If timeout reached, return whatever is in mcp_output.txt or a timeout notice
         try:
-            current_content = self.session.read_file(output_file)
-            if current_content.strip():
-                return f"[Timeout Warning: RESULT marker not detected within {timeout}s]\n{current_content}"
-        except Exception:
-            pass
-            
-        return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}."
+            return self.session.read_file(output_file)
+        except Exception as e:
+            return f"Command sent to MCP.command (Error reading output file: {e})"
 
     def exit(self) -> str:
         """
