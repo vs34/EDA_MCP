@@ -10,16 +10,29 @@ class EldoClient:
     High-level client for managing and executing Mentor Graphics/Siemens Eldo simulations
     over a RemoteSession SSH transport.
     """
-    def __init__(self, session: RemoteSession):
-        self.session = session
-        self.workdir = None
+    def initialize(self, work_dir: str = "~/Desktop/eldo") -> str:
+        """
+        Navigates to work_dir (default: ~/Desktop/eldo) and sets working directory for Eldo.
+        """
+        self.session.connect()
+        target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/eldo"
+        self.workdir = target_dir
+        
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        cmd = f"cd {safe_dir}"
+        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        
+        if exit_code != 0:
+            return f"Failed to initialize Eldo working directory at {target_dir} (Exit code {exit_code}): {stdout}"
 
-    def run_script(self, script_path: str = "", work_dir: str = "~") -> str:
+        return f"Eldo session initialized in {target_dir}."
+
+    def run_script(self, script_path: str = "", work_dir: str = "") -> str:
         """
         Runs Eldo simulation on a batch script or netlist file.
         """
         self.session.connect()
-        target_dir = work_dir or self.workdir or "~"
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
         self.session.execute_command(f"cd {safe_dir}")
 
@@ -37,12 +50,12 @@ class EldoClient:
             output.append(f"\n--- STDERR ---\n{stderr}")
         return "\n".join(output)
 
-    def run_interactive(self, command: str = "", work_dir: str = "~") -> str:
+    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
         """
         Executes interactive Eldo command.
         """
         self.session.connect()
-        target_dir = work_dir or self.workdir or "~"
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
         self.session.execute_command(f"cd {safe_dir}")
 

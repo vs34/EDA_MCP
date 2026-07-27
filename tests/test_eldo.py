@@ -25,11 +25,20 @@ async def run_eldo_test():
             print(f"Exposed Tools: {tool_names}")
             assert "eldo" in tool_names, "'eldo' tool was not found in server tools!"
 
-            # 2. Test action='run_script'
+            # 2. Test action='initialize' with default work_dir (~/Desktop/eldo)
+            print("\nTesting eldo action='initialize' (default ~/Desktop/eldo)...")
+            init_res = await session.call_tool(
+                name="eldo",
+                arguments={"action": "initialize"}
+            )
+            init_text = init_res.content[0].text if init_res.content else ""
+            print(f"Initialize Default Response: {init_text.strip()}")
+
+            # 3. Test action='run_script'
             print("\nTesting eldo action='run_script' with command='test_netlist.cir'...")
             script_res = await session.call_tool(
                 name="eldo",
-                arguments={"action": "run_script", "command": "test_netlist.cir", "work_dir": "~"}
+                arguments={"action": "run_script", "command": "test_netlist.cir"}
             )
             script_text = script_res.content[0].text if script_res.content else ""
             print(f"Run Script Response: {script_text.strip()}")

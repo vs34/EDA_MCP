@@ -147,25 +147,27 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         return f"Error in virtuoso tool: {str(e)}"
 
 @mcp.tool()
-def eldo(action: str = "run_script", command: str = "", work_dir: str = "~") -> str:
+def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Desktop/eldo") -> str:
     """
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
     Args:
-        action: The operation to perform ('run_script' or 'run_interactive')
+        action: The operation to perform ('initialize', 'run_script', or 'run_interactive')
         command: Netlist or script path when action='run_script', or command when action='run_interactive'
-        work_dir: Working directory for simulation execution
+        work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
     """
     logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, work_dir={work_dir!r}")
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act in ("run_script", "script"):
+        if act == "initialize":
+            res = eldo_client.initialize(work_dir=work_dir)
+        elif act in ("run_script", "script"):
             res = eldo_client.run_script(script_path=command, work_dir=work_dir)
         elif act in ("run_interactive", "run", "interactive"):
             res = eldo_client.run_interactive(command=command, work_dir=work_dir)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'run_script', 'run_interactive'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run_script', 'run_interactive'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s")
