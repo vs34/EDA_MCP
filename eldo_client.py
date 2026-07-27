@@ -50,11 +50,22 @@ class EldoClient:
         run_cmd = f"eldo {quoted_script} >& {log_file}"
         exit_code, stdout, stderr = self.session.execute_command(run_cmd)
 
-        # Read the log content using read_file
+        # Read log content: if size/lines > 100, read last 100 lines using tail -100
+        line_count_cmd = f"wc -l < {log_file}"
+        _, count_out, _ = self.session.execute_command(line_count_cmd)
         try:
-            log_content = self.session.read_file(log_file)
-        except Exception as e:
-            log_content = f"Error reading {log_file}: {str(e)}"
+            line_count = int(count_out.strip())
+        except ValueError:
+            line_count = 0
+
+        if line_count > 100:
+            _, log_content, _ = self.session.execute_command(f"tail -100 {log_file}")
+            log_content = f"[Log exceeds 100 lines. Displaying last 100 lines of {log_file} (total {line_count} lines)]\n{log_content}"
+        else:
+            try:
+                log_content = self.session.read_file(log_file)
+            except Exception as e:
+                log_content = f"Error reading {log_file}: {str(e)}"
 
         output = []
         output.append(f"[Eldo Batch Script Run]: eldo {quoted_script}")
