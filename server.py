@@ -152,7 +152,7 @@ def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Deskt
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
     Args:
-        action: The operation to perform ('initialize', 'run_script', or 'run_interactive')
+        action: The operation to perform ('initialize', 'run_script', 'run_interactive', or 'read_extract')
         command: Netlist or script path when action='run_script', or command when action='run_interactive'
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
     """
@@ -166,8 +166,10 @@ def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Deskt
             res = eldo_client.run_script(script_path=command, work_dir=work_dir)
         elif act in ("run_interactive", "run", "interactive"):
             res = eldo_client.run_interactive(command=command, work_dir=work_dir)
+        elif act in ("read_extract", "extract"):
+            res = eldo_client.read_extract(work_dir=work_dir)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run_script', 'run_interactive'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run_script', 'run_interactive', 'read_extract'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s")

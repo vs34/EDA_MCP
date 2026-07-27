@@ -43,7 +43,7 @@ async def run_eldo_test():
             script_text = script_res.content[0].text if script_res.content else ""
             print(f"Run Script Response: {script_text.strip()}")
 
-            # 3. Test action='run_interactive'
+            # 4. Test action='run_interactive'
             print("\nTesting eldo action='run_interactive' with command='echo $PATH'...")
             interact_res = await session.call_tool(
                 name="eldo",
@@ -51,6 +51,15 @@ async def run_eldo_test():
             )
             interact_text = interact_res.content[0].text if interact_res.content else ""
             print(f"Run Interactive Response: {interact_text.strip()}")
+
+            # 5. Test action='read_extract'
+            print("\nTesting eldo action='read_extract'...")
+            extract_res = await session.call_tool(
+                name="eldo",
+                arguments={"action": "read_extract"}
+            )
+            extract_text = extract_res.content[0].text if extract_res.content else ""
+            print(f"Read Extract Response: {extract_text.strip()}")
             print("\nEldo Tool Verification Successful!")
 
 if __name__ == "__main__":
