@@ -9,6 +9,7 @@ A Model Context Protocol (MCP) server that bridges your local AI tools (like Cla
    - `action='read_file'`: Reads file contents directly from the remote server.
    - `action='write_file'`: Creates or updates remote files (e.g. Tcl/SKILL scripts).
 2. **Cadence Virtuoso Control (`virtuoso`)**: Initializes Virtuoso, sends SKILL commands via FIFO IPC with response polling, and handles graceful session termination (`initialize`, `run`, `exit`).
+3. **Siemens Eldo Control (`eldo`)**: Controls Siemens/Mentor Graphics Eldo simulations with dedicated environment setup (`source /mentor2020/ams.cshrc`).
 
 ---
 
@@ -24,6 +25,7 @@ pip3 install -r requirements.txt
 Configuration files reside in the `config/` directory (see `config/*.json.template`):
 - `config/config_remote_control.json`: SSH & environment setup for `remote_control`.
 - `config/config_virtuoso.json`: SSH & environment setup for `virtuoso`.
+- `config/config_eldo.json`: SSH & environment setup for `eldo` (`env_setup_cmd`: `"source /mentor2020/ams.cshrc"`).
 
 Example configuration (`config/config_remote_control.json`):
 ```json

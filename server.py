@@ -6,6 +6,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 from ssh_client import RemoteSession
 from virtuoso_client import VirtuosoClient
+from eldo_client import EldoClient
 
 # Get absolute path to base dir and setup temp logging folder
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -46,12 +47,15 @@ mcp = FastMCP("EDA_MCP")
 config_dir = os.path.join(base_dir, "config")
 remote_control_config = os.path.join(config_dir, "config_remote_control.json")
 virtuoso_config = os.path.join(config_dir, "config_virtuoso.json")
+eldo_config = os.path.join(config_dir, "config_eldo.json")
 
 # Dedicated SSH sessions per tool
 remote_session = RemoteSession(config_path=remote_control_config)
 virtuoso_session = RemoteSession(config_path=virtuoso_config)
+eldo_session = RemoteSession(config_path=eldo_config)
 
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
+eldo_client = EldoClient(session=eldo_session)
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "") -> str:
@@ -141,6 +145,37 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         duration = time.time() - start_time
         logger.error(f"[TOOL ERROR] virtuoso (action={action}) failed in {duration:.2f}s: {e}")
         return f"Error in virtuoso tool: {str(e)}"
+
+@mcp.tool()
+def eldo(action: str, command: str = "", work_dir: str = "~") -> str:
+    """
+    Control and interact with Siemens/Mentor Graphics Eldo simulator.
+    
+    Args:
+        action: The operation to perform ('initialize', 'run', or 'exit')
+        command: Eldo command/netlist path to execute when action='run'
+        work_dir: Working directory when action='initialize'
+    """
+    logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, work_dir={work_dir!r}")
+    start_time = time.time()
+    try:
+        act = action.lower().strip()
+        if act == "initialize":
+            res = eldo_client.initialize(work_dir=work_dir)
+        elif act == "run":
+            res = eldo_client.run(command=command)
+        elif act == "exit":
+            res = eldo_client.exit()
+        else:
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run', 'exit'."
+        
+        duration = time.time() - start_time
+        logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s")
+        return res
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"[TOOL ERROR] eldo (action={action}) failed in {duration:.2f}s: {e}")
+        return f"Error in eldo tool: {str(e)}"
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)
