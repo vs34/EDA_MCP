@@ -42,9 +42,10 @@ logger.info(f"EDA_MCP Server logging initialized. Log file: {log_filepath}")
 # Initialize FastMCP named EDA_MCP
 mcp = FastMCP("EDA_MCP")
 
-# Get tool-specific config paths
-remote_control_config = os.path.join(base_dir, "config_remote_control.json")
-virtuoso_config = os.path.join(base_dir, "config_virtuoso.json")
+# Get tool-specific config paths inside config/ directory
+config_dir = os.path.join(base_dir, "config")
+remote_control_config = os.path.join(config_dir, "config_remote_control.json")
+virtuoso_config = os.path.join(config_dir, "config_virtuoso.json")
 
 # Dedicated SSH sessions per tool
 remote_session = RemoteSession(config_path=remote_control_config)

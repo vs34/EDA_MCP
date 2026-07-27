@@ -21,7 +21,11 @@ pip3 install -r requirements.txt
 ```
 
 ### 2. Configure SSH Settings
-Create a `config.json` file in the root of this project (see `config.json.template`):
+Configuration files reside in the `config/` directory (see `config/*.json.template`):
+- `config/config_remote_control.json`: SSH & environment setup for `remote_control`.
+- `config/config_virtuoso.json`: SSH & environment setup for `virtuoso`.
+
+Example configuration (`config/config_remote_control.json`):
 ```json
 {
   "ssh_host": "eda-uni",
@@ -61,7 +65,7 @@ Go to Settings -> MCP -> Add New MCP Server:
 
 ## API & Modular Structure
 
-* `config.json`: Stores user-specific environment variables and server target.
+* `config/`: Stores tool-specific configuration files (`config_remote_control.json`, `config_virtuoso.json`).
 * `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions, command execution, and file I/O.
 * `virtuoso_client.py`: High-level Cadence Virtuoso client encapsulating SKILL comment processing, FIFO pipe communication, output polling, and process lifecycle.
 * `server.py`: Defines FastMCP tools (`remote_control`, `virtuoso`) exposed to AI clients.

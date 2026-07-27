@@ -1,7 +1,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-config.json
+config/*.json
+!config/*.json.template
 .env
 .DS_Store
 temp/
