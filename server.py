@@ -42,12 +42,15 @@ logger.info(f"EDA_MCP Server logging initialized. Log file: {log_filepath}")
 # Initialize FastMCP named EDA_MCP
 mcp = FastMCP("EDA_MCP")
 
-# Get absolute path to config.json
-config_path = os.path.join(base_dir, "config.json")
+# Get tool-specific config paths
+remote_control_config = os.path.join(base_dir, "config_remote_control.json")
+virtuoso_config = os.path.join(base_dir, "config_virtuoso.json")
 
-# Global SSH session and tool clients
-session = RemoteSession(config_path=config_path)
-virtuoso_client = VirtuosoClient(session=session)
+# Dedicated SSH sessions per tool
+remote_session = RemoteSession(config_path=remote_control_config)
+virtuoso_session = RemoteSession(config_path=virtuoso_config)
+
+virtuoso_client = VirtuosoClient(session=virtuoso_session)
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "") -> str:
@@ -68,7 +71,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         if act in ("run_command", "run_remote_command", "run", "exec", "execute"):
             if not command.strip():
                 return "Error: 'command' argument is required when action='run_command'."
-            exit_code, stdout, stderr = session.execute_command(command)
+            exit_code, stdout, stderr = remote_session.execute_command(command)
             output = []
             output.append(f"Exit Status: {exit_code}")
             if stdout.strip():
@@ -83,7 +86,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         elif act in ("read_file", "read_remote_file", "read"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='read_file'."
-            res = session.read_file(path)
+            res = remote_session.read_file(path)
             duration = time.time() - start_time
             logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s (read {len(res)} chars)")
             return res
@@ -91,7 +94,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         elif act in ("write_file", "write_remote_file", "write"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='write_file'."
-            session.write_file(path, content)
+            remote_session.write_file(path, content)
             duration = time.time() - start_time
             logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s")
             return f"Successfully wrote file to remote path: {path}"
