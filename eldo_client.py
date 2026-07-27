@@ -59,7 +59,12 @@ class EldoClient:
         output = []
         output.append(f"[Eldo Batch Script Run]: eldo {quoted_script}")
         output.append(f"Exit Status: {exit_code}")
-        output.append(f"\n--- LOG CONTENT ({log_file}) ---\n{log_content}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR / ERROUT ---\n{stderr}")
+        if log_content.strip():
+            output.append(f"\n--- LOG CONTENT ({log_file}) ---\n{log_content}")
 
         return "\n".join(output)
 
