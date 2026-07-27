@@ -39,11 +39,11 @@ async def run_mcp_client_test():
                     print(f"   Description: {tool.description.strip().splitlines()[0] if tool.description else 'No description'}")
                     print(f"   Parameters: {list(tool.inputSchema.get('properties', {}).keys())}")
 
-                # 3. Test calling 'run_remote_command'
-                print("\nCalling 'run_remote_command' with command='whoami'...")
+                # 3. Test calling 'remote_control' with action='run_command'
+                print("\nCalling 'remote_control' with action='run_command', command='whoami'...")
                 tool_call_response = await session.call_tool(
-                    name="run_remote_command",
-                    arguments={"command": "whoami"}
+                    name="remote_control",
+                    arguments={"action": "run_command", "command": "whoami"}
                 )
                 
                 print("Tool Response:")
@@ -54,10 +54,10 @@ async def run_mcp_client_test():
                         print(content)
 
 
-                print("\nCalling 'run_remote_command' with command='pwd'...")
+                print("\nCalling 'remote_control' with action='run_command', command='pwd'...")
                 tool_call_response = await session.call_tool(
-                    name="run_remote_command",
-                    arguments={"command": "pwd"}
+                    name="remote_control",
+                    arguments={"action": "run_command", "command": "pwd"}
                 )
                 
                 print("Tool Response:")
@@ -67,10 +67,10 @@ async def run_mcp_client_test():
                     else:
                         print(content)
 
-                print("\nCalling 'run_remote_command' with command='cd .. && pwd'...")
+                print("\nCalling 'remote_control' with action='run_command', command='cd .. && pwd'...")
                 tool_call_response = await session.call_tool(
-                    name="run_remote_command",
-                    arguments={"command": "cd .. && pwd"}
+                    name="remote_control",
+                    arguments={"action": "run_command", "command": "cd .. && pwd"}
                 )
                 
                 print("Tool Response:")
@@ -80,15 +80,15 @@ async def run_mcp_client_test():
                     else:
                         print(content)
 
-                # 4. Test write_remote_file and read_remote_file
+                # 4. Test remote_control with write_file and read_file actions
                 unique_id = uuid.uuid4().hex
                 temp_file_path = f"/tmp/eda_mcp_test_{unique_id}.txt"
                 test_content = f"Hello from Antigravity test run {unique_id}"
                 
                 print(f"\nVerifying file does not already exist: {temp_file_path}")
                 check_response = await session.call_tool(
-                    name="run_remote_command",
-                    arguments={"command": f"test -e {temp_file_path}"}
+                    name="remote_control",
+                    arguments={"action": "run_command", "command": f"test -e {temp_file_path}"}
                 )
                 check_output = ""
                 for content in check_response.content:
@@ -99,10 +99,10 @@ async def run_mcp_client_test():
                 if "Exit Status: 0" in check_output:
                     raise RuntimeError(f"Safety violation: Test file {temp_file_path} already exists on remote!")
 
-                print(f"\nCalling 'write_remote_file' to path={temp_file_path}...")
+                print(f"\nCalling 'remote_control' with action='write_file' to path={temp_file_path}...")
                 write_response = await session.call_tool(
-                    name="write_remote_file",
-                    arguments={"path": temp_file_path, "content": test_content}
+                    name="remote_control",
+                    arguments={"action": "write_file", "path": temp_file_path, "content": test_content}
                 )
                 print("Write Response:")
                 for content in write_response.content:
@@ -111,10 +111,10 @@ async def run_mcp_client_test():
                     else:
                         print(content)
 
-                print(f"\nCalling 'read_remote_file' from path={temp_file_path}...")
+                print(f"\nCalling 'remote_control' with action='read_file' from path={temp_file_path}...")
                 read_response = await session.call_tool(
-                    name="read_remote_file",
-                    arguments={"path": temp_file_path}
+                    name="remote_control",
+                    arguments={"action": "read_file", "path": temp_file_path}
                 )
                 print("Read Response:")
                 read_text = ""
@@ -130,10 +130,10 @@ async def run_mcp_client_test():
                     raise AssertionError(f"Expected content '{test_content}' was not found in read response: '{read_text}'")
                 print("Verification successful: written content matches read content!")
 
-                print(f"\nCleaning up: deleting remote file {temp_file_path} via run_remote_command...")
+                print(f"\nCleaning up: deleting remote file {temp_file_path} via remote_control...")
                 delete_response = await session.call_tool(
-                    name="run_remote_command",
-                    arguments={"command": f"rm {temp_file_path}"}
+                    name="remote_control",
+                    arguments={"action": "run_command", "command": f"rm {temp_file_path}"}
                 )
                 print("Delete Response:")
                 delete_output = ""

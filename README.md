@@ -4,10 +4,11 @@ A Model Context Protocol (MCP) server that bridges your local AI tools (like Cla
 
 ## Features
 
-1. **Stateful Command Execution (`run_remote_command`)**: Runs terminal commands on the remote EDA server inside a `csh` session with the environment script sourced.
-2. **File Reading (`read_remote_file`)**: Reads file contents directly from the remote server over SSH (ideal for loading large logs or reports).
-3. **File Writing (`write_remote_file`)**: Writes or updates files on the remote server (great for creating Tcl/SKILL scripts for Innovus/Genus/Tempus/Virtuoso).
-4. **Cadence Virtuoso Control (`virtuoso`)**: Initializes Virtuoso, sends SKILL commands via FIFO IPC with response polling, and handles graceful session termination.
+1. **Remote Control (`remote_control`)**: Unified remote shell execution and file management interface supporting:
+   - `action='run_command'`: Stateful terminal command execution inside a sourced `csh` session.
+   - `action='read_file'`: Reads file contents directly from the remote server.
+   - `action='write_file'`: Creates or updates remote files (e.g. Tcl/SKILL scripts).
+2. **Cadence Virtuoso Control (`virtuoso`)**: Initializes Virtuoso, sends SKILL commands via FIFO IPC with response polling, and handles graceful session termination (`initialize`, `run`, `exit`).
 
 ---
 
@@ -25,7 +26,7 @@ Create a `config.json` file in the root of this project (see `config.json.templa
 {
   "ssh_host": "eda-uni",
   "ssh_config_path": "~/.ssh/config",
-  "env_setup_cmd": "source /cadance/cshrc"
+  "env_setup_cmd": "source /cadence/cshrc"
 }
 ```
 *Note: Make sure your `~/.ssh/config` has the `eda-uni` host configured (with hostname, username, and key file).*
@@ -63,4 +64,4 @@ Go to Settings -> MCP -> Add New MCP Server:
 * `config.json`: Stores user-specific environment variables and server target.
 * `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions, command execution, and file I/O.
 * `virtuoso_client.py`: High-level Cadence Virtuoso client encapsulating SKILL comment processing, FIFO pipe communication, output polling, and process lifecycle.
-* `server.py`: Defines FastMCP tools (`run_remote_command`, `read_remote_file`, `write_remote_file`, `virtuoso`) exposed to AI clients.
+* `server.py`: Defines FastMCP tools (`remote_control`, `virtuoso`) exposed to AI clients.

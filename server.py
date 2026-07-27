@@ -50,75 +50,59 @@ session = RemoteSession(config_path=config_path)
 virtuoso_client = VirtuosoClient(session=session)
 
 @mcp.tool()
-def run_remote_command(command: str) -> str:
+def remote_control(action: str, command: str = "", path: str = "", content: str = "") -> str:
     """
-    Executes a shell command on the remote EDA server.
-    The Cadence tool environment (/cadence/cshrc) is automatically sourced.
+    Execute shell commands and perform file operations on the remote EDA server.
     
     Args:
-        command: The shell command to run (e.g., 'genus -version' or 'ls -la')
+        action: The operation to perform ('run_command', 'read_file', or 'write_file')
+        command: Shell command to execute when action='run_command'
+        path: Remote file path when action='read_file' or action='write_file'
+        content: Text content to write when action='write_file'
     """
-    logger.info(f"[TOOL CALL] run_remote_command: command={command!r}")
+    logger.info(f"[TOOL CALL] remote_control: action={action!r}, command={command!r}, path={path!r}, content_len={len(content)}")
     start_time = time.time()
-    try:
-        exit_code, stdout, stderr = session.execute_command(command)
-        output = []
-        output.append(f"Exit Status: {exit_code}")
-        if stdout.strip():
-            output.append(f"\n--- STDOUT ---\n{stdout}")
-        if stderr.strip():
-            output.append(f"\n--- STDERR ---\n{stderr}")
-        res_str = "\n".join(output)
-        duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] run_remote_command finished in {duration:.2f}s (exit_code={exit_code})")
-        return res_str
-    except Exception as e:
-        duration = time.time() - start_time
-        logger.error(f"[TOOL ERROR] run_remote_command failed in {duration:.2f}s: {e}")
-        return f"Error executing command: {str(e)}"
-
-@mcp.tool()
-def read_remote_file(path: str) -> str:
-    """
-    Reads the content of a file from the remote EDA server.
-    Useful for reading log files, timing reports, and script files.
+    act = action.lower().strip()
     
-    Args:
-        path: Path to the remote file (e.g., 'workspace/genus.log' or '/tmp/report.txt')
-    """
-    logger.info(f"[TOOL CALL] read_remote_file: path={path!r}")
-    start_time = time.time()
     try:
-        res = session.read_file(path)
-        duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] read_remote_file finished in {duration:.2f}s (read {len(res)} chars)")
-        return res
+        if act in ("run_command", "run_remote_command", "run", "exec", "execute"):
+            if not command.strip():
+                return "Error: 'command' argument is required when action='run_command'."
+            exit_code, stdout, stderr = session.execute_command(command)
+            output = []
+            output.append(f"Exit Status: {exit_code}")
+            if stdout.strip():
+                output.append(f"\n--- STDOUT ---\n{stdout}")
+            if stderr.strip():
+                output.append(f"\n--- STDERR ---\n{stderr}")
+            res_str = "\n".join(output)
+            duration = time.time() - start_time
+            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s (exit_code={exit_code})")
+            return res_str
+            
+        elif act in ("read_file", "read_remote_file", "read"):
+            if not path.strip():
+                return "Error: 'path' argument is required when action='read_file'."
+            res = session.read_file(path)
+            duration = time.time() - start_time
+            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s (read {len(res)} chars)")
+            return res
+            
+        elif act in ("write_file", "write_remote_file", "write"):
+            if not path.strip():
+                return "Error: 'path' argument is required when action='write_file'."
+            session.write_file(path, content)
+            duration = time.time() - start_time
+            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s")
+            return f"Successfully wrote file to remote path: {path}"
+            
+        else:
+            return f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."
+            
     except Exception as e:
         duration = time.time() - start_time
-        logger.error(f"[TOOL ERROR] read_remote_file failed in {duration:.2f}s: {e}")
-        return f"Error reading file: {str(e)}"
-
-@mcp.tool()
-def write_remote_file(path: str, content: str) -> str:
-    """
-    Writes or overwrites content to a file on the remote EDA server.
-    Useful for creating Tcl scripts or configuration files.
-    
-    Args:
-        path: Path where the file should be saved on the remote server
-        content: The text content to write into the file
-    """
-    logger.info(f"[TOOL CALL] write_remote_file: path={path!r}, content_length={len(content)}")
-    start_time = time.time()
-    try:
-        session.write_file(path, content)
-        duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] write_remote_file finished in {duration:.2f}s")
-        return f"Successfully wrote file to remote path: {path}"
-    except Exception as e:
-        duration = time.time() - start_time
-        logger.error(f"[TOOL ERROR] write_remote_file failed in {duration:.2f}s: {e}")
-        return f"Error writing file: {str(e)}"
+        logger.error(f"[TOOL ERROR] remote_control (action={action}) failed in {duration:.2f}s: {e}")
+        return f"Error in remote_control tool: {str(e)}"
 
 @mcp.tool()
 def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65") -> str:
