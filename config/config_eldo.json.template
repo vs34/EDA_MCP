@@ -1,5 +1,5 @@
 {
   "ssh_host": "eda-uni",
   "ssh_config_path": "~/.ssh/config",
-  "env_setup_cmd": "source /mentor2020/ams.cshrc"
+  "env_setup_cmd": "if ( -e /mentor2020/ams.cshrc ) source /mentor2020/ams.cshrc"
 }

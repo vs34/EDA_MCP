@@ -14,30 +14,14 @@ class EldoClient:
         self.session = session
         self.workdir = None
 
-    def initialize(self, work_dir: str = "~") -> str:
-        """
-        Navigates to work_dir and initializes the Eldo environment.
-        """
-        self.session.connect()
-        self.workdir = work_dir
-        
-        safe_dir = f"$HOME{work_dir[1:]}" if work_dir.startswith("~") else shlex.quote(work_dir)
-        cmd = f"cd {safe_dir}"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
-        
-        if exit_code != 0:
-            return f"Failed to initialize Eldo (Exit code {exit_code}): {stdout}"
-
-        return f"Eldo initialization complete in {work_dir}."
-
-    def run_script(self, script_path: str = "") -> str:
+    def run_script(self, script_path: str = "", work_dir: str = "~") -> str:
         """
         Runs Eldo simulation on a batch script or netlist file.
         """
         self.session.connect()
-        if self.workdir:
-            safe_dir = f"$HOME{self.workdir[1:]}" if self.workdir.startswith("~") else shlex.quote(self.workdir)
-            self.session.execute_command(f"cd {safe_dir}")
+        target_dir = work_dir or self.workdir or "~"
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        self.session.execute_command(f"cd {safe_dir}")
 
         if not script_path.strip():
             return "Error: 'command' argument specifying script/netlist path is required for action='run_script'."
@@ -46,6 +30,27 @@ class EldoClient:
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         output = []
         output.append(f"[Eldo Batch Script Run]: {cmd}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr}")
+        return "\n".join(output)
+
+    def run_interactive(self, command: str = "", work_dir: str = "~") -> str:
+        """
+        Executes interactive Eldo command.
+        """
+        self.session.connect()
+        target_dir = work_dir or self.workdir or "~"
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        self.session.execute_command(f"cd {safe_dir}")
+
+        if not command.strip():
+            return "Eldo interactive execution placeholder. Pass an Eldo command to execute."
+
+        exit_code, stdout, stderr = self.session.execute_command(command)
+        output = []
         output.append(f"Exit Status: {exit_code}")
         if stdout.strip():
             output.append(f"\n--- STDOUT ---\n{stdout}")
