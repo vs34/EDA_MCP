@@ -34,23 +34,14 @@ async def run_eldo_test():
             init_text = init_res.content[0].text if init_res.content else ""
             print(f"Initialize Response: {init_text.strip()}")
 
-            # 3. Test action='run'
-            print("\nTesting eldo action='run' with command='which eldo'...")
-            run_res = await session.call_tool(
+            # 3. Test action='run_script'
+            print("\nTesting eldo action='run_script' with command='test_netlist.cir'...")
+            script_res = await session.call_tool(
                 name="eldo",
-                arguments={"action": "run", "command": "echo $PATH"}
+                arguments={"action": "run_script", "command": "test_netlist.cir"}
             )
-            run_text = run_res.content[0].text if run_res.content else ""
-            print(f"Run Response: {run_text.strip()}")
-
-            # 4. Test action='exit'
-            print("\nTesting eldo action='exit'...")
-            exit_res = await session.call_tool(
-                name="eldo",
-                arguments={"action": "exit"}
-            )
-            exit_text = exit_res.content[0].text if exit_res.content else ""
-            print(f"Exit Response: {exit_text.strip()}")
+            script_text = script_res.content[0].text if script_res.content else ""
+            print(f"Run Script Response: {script_text.strip()}")
             print("\nEldo Tool Verification Successful!")
 
 if __name__ == "__main__":
