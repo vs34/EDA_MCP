@@ -33,29 +33,29 @@ Manages a persistent connection to the remote EDA server, handles PTY allocation
 ---
 
 ### Component: MCP Server Interface
-Exposes the core bridge tools using FastMCP.
+Exposes the core bridge tools using FastMCP with dedicated per-tool SSH sessions and config files in `config/`.
 
-#### [NEW] [server.py](file:///Users/vs/function/EDA_MCP/server.py)
-- Initializes `FastMCP("EDA-Bridge")`.
+#### [MODIFY] [server.py](file:///Users/vs/function/EDA_MCP/server.py)
+- Initializes `FastMCP("EDA_MCP")`.
+- Creates dedicated SSH sessions:
+  - `remote_session`: Isolated session for `remote_control` using `config/config_remote_control.json`.
+  - `virtuoso_session`: Isolated session for `virtuoso` using `config/config_virtuoso.json`.
 - Exposes tools:
-  - `run_command(command: str)`: Run shell commands on the remote EDA server (e.g. `genus -version`, `innovus -version`, `ls`, etc.) with the remote `.cshrc` environment fully loaded.
-  - `read_file(path: str)`: Read contents of a remote file.
-  - `write_file(path: str, content: str)`: Write/create a remote file (useful for Tcl scripts).
-  - `list_dir(path: str)`: List contents of a remote directory.
+  - `remote_control(action, command="", path="", content="")`: Remote shell command execution (`action='run_command'`), file reading (`action='read_file'`), and file writing (`action='write_file'`).
+  - `virtuoso(action, command="", work_dir="~/Desktop/cmos65")`: Cadence Virtuoso initialization (`action='initialize'`), SKILL execution (`action='run'`), and session termination (`action='exit'`).
 
 ---
 
 ### Component: Configuration & Dependency Management
-Handles packages and configuration options.
+Handles packages and tool-specific configuration files.
 
-#### [NEW] [requirements.txt](file:///Users/vs/function/EDA_MCP/requirements.txt)
-- Declares dependencies: `mcp`, `paramiko`, `python-dotenv`.
-
-#### [NEW] [config.json.template](file:///Users/vs/function/EDA_MCP/config.json.template)
-- Template for SSH host, credentials, and the shell startup command.
+#### [NEW] [config/](file:///Users/vs/function/EDA_MCP/config)
+- `config/config_remote_control.json` & `config/config_remote_control.json.template`: Dedicated configuration for `remote_control`.
+- `config/config_virtuoso.json` & `config/config_virtuoso.json.template`: Dedicated configuration for `virtuoso`.
+- `config/config.json.template`: Fallback configuration template.
 
 #### [MODIFY] [README.md](file:///Users/vs/function/EDA_MCP/README.md)
-- Explains how to set up the configuration and run the basic bridge.
+- Explains tool-specific configurations in `config/`, tool signatures (`remote_control`, `virtuoso`), and AI client connection instructions.
 
 ---
 

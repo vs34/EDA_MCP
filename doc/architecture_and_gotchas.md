@@ -7,27 +7,31 @@ This document captures key technical findings, architecture details, and critica
 ## 🏗️ 1. Core Architecture
 
 ```
-                          ┌───────────────────────────┐
-                          │         server.py         │
-                          │   (FastMCP Tool Definitions)│
-                          └─────────────┬─────────────┘
-                                        │
-                                        ▼
-                          ┌───────────────────────────┐
-                          │    virtuoso_client.py     │
-                          │   (VirtuosoClient Class)  │
-                          └─────────────┬─────────────┘
-                                        │
-                                        ▼
-                          ┌───────────────────────────┐
-                          │       ssh_client.py       │
-                          │   (RemoteSession Backbone)│
-                          └───────────────────────────┘
+                                  ┌───────────────────────────┐
+                                  │         server.py         │
+                                  │ (FastMCP: remote_control, │
+                                  │         virtuoso)         │
+                                  └──────────────┬────────────┘
+                                                 │
+                        ┌────────────────────────┴────────────────────────┐
+                        ▼                                                 ▼
+          ┌───────────────────────────┐                     ┌───────────────────────────┐
+          │      remote_session       │                     │    virtuoso_client.py     │
+          │(config_remote_control.json│                     │   (VirtuosoClient Class)  │
+          │   isolated SSH session)   │                     └─────────────┬─────────────┘
+          └───────────────────────────┘                                   │
+                                                                          ▼
+                                                            ┌───────────────────────────┐
+                                                            │     virtuoso_session      │
+                                                            │   (config_virtuoso.json   │
+                                                            │   isolated SSH session)   │
+                                                            └───────────────────────────┘
 ```
 
-- **[server.py](file:///Users/vs/function/EDA_MCP/server.py)**: Exposes `@mcp.tool()` definitions to MCP clients (Cursor, Claude Desktop, Antigravity CLI). Handles per-instance logging in `temp/`.
+- **[server.py](file:///Users/vs/function/EDA_MCP/server.py)**: Exposes `@mcp.tool()` definitions (`remote_control` and `virtuoso`) to MCP clients. Instantiates distinct, isolated `RemoteSession` instances for each tool. Handles per-instance logging in `temp/`.
+- **[config/](file:///Users/vs/function/EDA_MCP/config)**: Holds tool-specific JSON configuration files (`config_remote_control.json` and `config_virtuoso.json`). `RemoteSession.load_config()` automatically resolves tool-specific configs with a fallback to `config.json`.
 - **[virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py)**: High-level client encapsulating SKILL command cleaning, FIFO pipe communication, response polling, and Virtuoso lifecycle.
-- **[ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)**: Low-level transport layer managing a persistent, stateful `csh` shell session over SSH (`RemoteSession`).
+- **[ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)**: Low-level transport layer managing persistent, stateful `csh` shell sessions over SSH (`RemoteSession`).
 
 ---
 
