@@ -29,7 +29,8 @@ class EldoClient:
 
     def run_script(self, script_path: str = "", work_dir: str = "") -> str:
         """
-        Runs Eldo simulation on a batch script or netlist file.
+        Runs Eldo simulation on a batch script or netlist file, redirects output to mcp_run.log,
+        and reads the log content via read_file.
         """
         self.session.connect()
         target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
@@ -39,15 +40,27 @@ class EldoClient:
         if not script_path.strip():
             return "Error: 'command' argument specifying script/netlist path is required for action='run_script'."
 
-        cmd = f"eldo {shlex.quote(script_path.strip())}"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        log_file = "mcp_run.log"
+
+        # Clear & touch log file before running script
+        self.session.execute_command(f"rm -f {log_file} && touch {log_file}")
+
+        # Execute Eldo simulation script piping stdout & stderr to mcp_run.log
+        quoted_script = shlex.quote(script_path.strip())
+        run_cmd = f"eldo {quoted_script} >& {log_file}"
+        exit_code, stdout, stderr = self.session.execute_command(run_cmd)
+
+        # Read the log content using read_file
+        try:
+            log_content = self.session.read_file(log_file)
+        except Exception as e:
+            log_content = f"Error reading {log_file}: {str(e)}"
+
         output = []
-        output.append(f"[Eldo Batch Script Run]: {cmd}")
+        output.append(f"[Eldo Batch Script Run]: eldo {quoted_script}")
         output.append(f"Exit Status: {exit_code}")
-        if stdout.strip():
-            output.append(f"\n--- STDOUT ---\n{stdout}")
-        if stderr.strip():
-            output.append(f"\n--- STDERR ---\n{stderr}")
+        output.append(f"\n--- LOG CONTENT ({log_file}) ---\n{log_content}")
+
         return "\n".join(output)
 
     def run_interactive(self, command: str = "", work_dir: str = "") -> str:
