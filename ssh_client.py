@@ -14,10 +14,25 @@ class RemoteSession:
         self.load_config()
         
     def load_config(self):
-        if not os.path.exists(self.config_path):
-            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+        target_path = self.config_path
+        if not os.path.exists(target_path):
+            dir_name = os.path.dirname(os.path.abspath(target_path))
+            fallback_candidates = [
+                os.path.join(dir_name, "config.json"),
+                os.path.join(os.path.dirname(dir_name), "config", "config.json"),
+                os.path.join(os.path.dirname(dir_name), "config.json"),
+            ]
+            found = False
+            for fb in fallback_candidates:
+                if os.path.exists(fb):
+                    logger.warning(f"Config file '{target_path}' not found. Falling back to '{fb}'.")
+                    target_path = fb
+                    found = True
+                    break
+            if not found:
+                raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
             
-        with open(self.config_path, "r") as f:
+        with open(target_path, "r") as f:
             self.config = json.load(f)
             
         self.ssh_host = self.config.get("ssh_host", "eda-uni")

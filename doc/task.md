@@ -1,7 +1,10 @@
 - [x] Gather SSH connection details from the user
 - [x] Create `requirements.txt` with dependencies
-- [x] Create `config.json` using user details (and `config.json.template`)
-- [x] Implement `ssh_client.py` for Paramiko connection, command execution with env sourcing, and SFTP file operations
+- [x] Implement `ssh_client.py` for SSH connection, command execution with env sourcing, and base64 SFTP file operations
+- [x] Implement `virtuoso_client.py` for Cadence Virtuoso FIFO pipe IPC & response polling
 - [x] Implement `server.py` using FastMCP named "EDA_MCP"
-- [x] Verify local functionality using a mock/test command run
-- [x] Update `README.md` with instructions
+- [x] Consolidate shell & file management tools into unified `remote_control` tool
+- [x] Create dedicated per-tool SSH sessions (`remote_session`, `virtuoso_session`) for state isolation
+- [x] Organize tool-specific configurations inside `config/` directory (`config_remote_control.json`, `config_virtuoso.json`)
+- [x] Verify local functionality using test suite (`test_mcp_client.py` and `test_session_isolation.py`)
+- [x] Update `README.md` and `doc/` documentation files
