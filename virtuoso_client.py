@@ -27,16 +27,16 @@ class VirtuosoClient:
         self.interactive_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        cmd = f"cd {safe_dir}"
+        cmd = f"cd {safe_dir} && virtuoso -nograph &"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
-            return f"Failed to navigate to interactive workspace {target_dir}: {stderr or stdout}"
+            return f"Failed to start interactive Virtuoso in {target_dir}: {stderr or stdout}"
 
         self.interactive_active = True
-        return f"Virtuoso interactive session initialized in {target_dir} (running on dedicated terminal instance)."
+        return f"Virtuoso interactive session (virtuoso -nograph) initialized in {target_dir}."
 
-    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
+    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
         Executes a SKILL statement directly in the dedicated interactive Virtuoso session.
         """
@@ -56,13 +56,28 @@ class VirtuosoClient:
         if not clean_skill:
             return "Error: Empty SKILL command provided for interactive Virtuoso session."
 
-        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
+        output_file = "mcp_output.txt"
+        self.session.execute_command(f"rm -f {output_file} && touch {output_file}")
         
+        fifo_write_cmd = f"if ( -p MCP.command ) then\n echo {shlex.quote(clean_skill)} > MCP.command\n else\n echo {shlex.quote(clean_skill)}\n endif"
+        exit_code, out, stderr = self.session.execute_command(fifo_write_cmd)
+
+        # Polling loop for output file response
+        start_time = time.time()
+        while time.time() - start_time < min(timeout, 3.0):
+            try:
+                content = self.session.read_file(output_file)
+                if content and "RESULT:" in content:
+                    return content
+            except Exception:
+                pass
+            time.sleep(0.3)
+
         output = []
         output.append(f"[Interactive Virtuoso SKILL]: {clean_skill}")
         output.append(f"Exit Status: {exit_code}")
-        if stdout.strip():
-            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if out.strip():
+            output.append(f"\n--- STDOUT ---\n{out}")
         if stderr.strip():
             output.append(f"\n--- STDERR ---\n{stderr}")
             
