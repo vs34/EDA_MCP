@@ -14,6 +14,75 @@ class VirtuosoClient:
         self.session = session
         self.pid = None
         self.workdir = None
+        self.interactive_active = False
+        self.interactive_workdir = None
+
+    def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
+        """
+        Navigates to work_dir and starts non-graphical interactive Virtuoso (virtuoso -nograph)
+        in the dedicated terminal session.
+        """
+        self.session.connect()
+        target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
+        self.interactive_workdir = target_dir
+        
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        cmd = f"cd {safe_dir}"
+        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        
+        if exit_code != 0:
+            return f"Failed to navigate to interactive workspace {target_dir}: {stderr or stdout}"
+
+        self.interactive_active = True
+        return f"Virtuoso interactive session initialized in {target_dir} (running on dedicated terminal instance)."
+
+    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
+        """
+        Executes a SKILL statement directly in the dedicated interactive Virtuoso session.
+        """
+        self.session.connect()
+        
+        if not self.interactive_active:
+            target_dir = work_dir or self.interactive_workdir or "~/Desktop/cmos65"
+            init_res = self.start_interactive(work_dir=target_dir)
+            if "Failed" in init_res:
+                return init_res
+
+        if self.interactive_workdir:
+            safe_dir = f"$HOME{self.interactive_workdir[1:]}" if self.interactive_workdir.startswith("~") else shlex.quote(self.interactive_workdir)
+            self.session.execute_command(f"cd {safe_dir}")
+
+        clean_skill = self._clean_skill_command(command)
+        if not clean_skill:
+            return "Error: Empty SKILL command provided for interactive Virtuoso session."
+
+        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
+        
+        output = []
+        output.append(f"[Interactive Virtuoso SKILL]: {clean_skill}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr}")
+            
+        return "\n".join(output)
+
+    def stop_interactive(self) -> str:
+        """
+        Stops and closes the interactive Virtuoso session cleanly.
+        """
+        if not self.interactive_active:
+            return "No interactive Virtuoso session is currently active."
+
+        try:
+            self.session.execute_command("exit()")
+        except Exception:
+            pass
+
+        self.interactive_active = False
+        self.interactive_workdir = None
+        return "Interactive Virtuoso session terminated."
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """

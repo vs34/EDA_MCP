@@ -50,8 +50,10 @@ virtuoso_config = os.path.join(config_dir, "config_virtuoso.json")
 # Dedicated SSH sessions per tool
 remote_session = RemoteSession(config_path=remote_control_config)
 virtuoso_session = RemoteSession(config_path=virtuoso_config)
+virtuoso_interactive_session = RemoteSession(config_path=virtuoso_config)
 
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
+virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "") -> str:
@@ -79,30 +81,25 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
                 output.append(f"\n--- STDOUT ---\n{stdout}")
             if stderr.strip():
                 output.append(f"\n--- STDERR ---\n{stderr}")
-            res_str = "\n".join(output)
-            duration = time.time() - start_time
-            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s (exit_code={exit_code})")
-            return res_str
+            res = "\n".join(output)
             
         elif act in ("read_file", "read_remote_file", "read"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='read_file'."
             res = remote_session.read_file(path)
-            duration = time.time() - start_time
-            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s (read {len(res)} chars)")
-            return res
             
         elif act in ("write_file", "write_remote_file", "write"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='write_file'."
-            remote_session.write_file(path, content)
-            duration = time.time() - start_time
-            logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s")
-            return f"Successfully wrote file to remote path: {path}"
+            res = remote_session.write_file(path, content)
             
         else:
-            return f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."
             
+        duration = time.time() - start_time
+        logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s")
+        return res
+        
     except Exception as e:
         duration = time.time() - start_time
         logger.error(f"[TOOL ERROR] remote_control (action={action}) failed in {duration:.2f}s: {e}")
@@ -114,9 +111,9 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
     Control and interact with Cadence Virtuoso.
     
     Args:
-        action: The operation to perform ('initialize', 'run', or 'exit')
-        command: SKILL code/command to execute when action='run'
-        work_dir: Working directory containing MCP_initalize.sh when action='initialize'
+        action: The operation to perform ('initialize', 'run', 'exit', 'start_interactive', 'run_interactive', or 'stop_interactive')
+        command: SKILL code/command to execute when action='run' or action='run_interactive'
+        work_dir: Working directory when action='initialize' or action='start_interactive'
     """
     logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}")
     start_time = time.time()
@@ -131,8 +128,14 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
                 res = virtuoso_client.run(skill_code=command)
         elif act == "exit":
             res = virtuoso_client.exit()
+        elif act in ("start_interactive", "start_inter", "start"):
+            res = virtuoso_interactive_client.start_interactive(work_dir=work_dir)
+        elif act in ("run_interactive", "run_inter", "interactive", "inter"):
+            res = virtuoso_interactive_client.run_interactive(command=command, work_dir=work_dir)
+        elif act in ("stop_interactive", "stop_inter", "stop", "exit_interactive"):
+            res = virtuoso_interactive_client.stop_interactive()
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run', 'exit'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run', 'exit', 'start_interactive', 'run_interactive', 'stop_interactive'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s")
