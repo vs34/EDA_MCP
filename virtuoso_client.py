@@ -19,26 +19,25 @@ class VirtuosoClient:
 
     def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir and starts non-graphical interactive Virtuoso (virtuoso -nograph)
-        in the dedicated terminal session.
+        Navigates to work_dir and initializes the interactive Virtuoso session.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
         self.interactive_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        cmd = f"cd {safe_dir} && virtuoso -nograph &"
+        cmd = f"cd {safe_dir} && if ( -f MCP_initalize.sh ) sh MCP_initalize.sh &"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
         
         if exit_code != 0:
             return f"Failed to start interactive Virtuoso in {target_dir}: {stderr or stdout}"
 
         self.interactive_active = True
-        return f"Virtuoso interactive session (virtuoso -nograph) initialized in {target_dir}."
+        return f"Virtuoso interactive session initialized in {target_dir}."
 
     def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Executes a SKILL statement directly in the dedicated interactive Virtuoso session.
+        Executes a SKILL statement in the dedicated interactive Virtuoso session.
         """
         self.session.connect()
         
@@ -59,29 +58,33 @@ class VirtuosoClient:
         output_file = "mcp_output.txt"
         self.session.execute_command(f"rm -f {output_file} && touch {output_file}")
         
-        fifo_write_cmd = f"if ( -p MCP.command ) then\n echo {shlex.quote(clean_skill)} > MCP.command\n else\n echo {shlex.quote(clean_skill)}\n endif"
+        fifo_write_cmd = f"echo {shlex.quote(clean_skill)} > MCP.command"
         exit_code, out, stderr = self.session.execute_command(fifo_write_cmd)
 
-        # Polling loop for output file response
+        if exit_code != 0:
+            return f"Failed to send command to Virtuoso FIFO pipe: {out or stderr}"
+
+        # Polling loop: wait for RESULT: marker in mcp_output.txt
         start_time = time.time()
-        while time.time() - start_time < min(timeout, 3.0):
+        poll_interval = 0.3
+        
+        while time.time() - start_time < timeout:
             try:
                 content = self.session.read_file(output_file)
                 if content and "RESULT:" in content:
                     return content
             except Exception:
                 pass
-            time.sleep(0.3)
-
-        output = []
-        output.append(f"[Interactive Virtuoso SKILL]: {clean_skill}")
-        output.append(f"Exit Status: {exit_code}")
-        if out.strip():
-            output.append(f"\n--- STDOUT ---\n{out}")
-        if stderr.strip():
-            output.append(f"\n--- STDERR ---\n{stderr}")
+            time.sleep(poll_interval)
             
-        return "\n".join(output)
+        try:
+            current_content = self.session.read_file(output_file)
+            if current_content.strip():
+                return f"[Timeout Warning: RESULT marker not detected within {timeout}s]\n{current_content}"
+        except Exception:
+            pass
+            
+        return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}."
 
     def stop_interactive(self) -> str:
         """
