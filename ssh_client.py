@@ -135,8 +135,8 @@ class RemoteSession:
 
     def execute_interactive_stream(self, cmd: str, prompt_regex: str = r"(%|>|\$|eldo>)\s*$", timeout: float = 10.0) -> tuple[int, str, str]:
         """
-        Sends a command to the persistent interactive SSH session and streams stdout line-by-line in real-time,
-        detecting prompt readiness (matching prompt_regex) or line completion.
+        Sends a command to the persistent interactive SSH session and streams stdout in real-time,
+        detecting prompt readiness (matching prompt_regex) instantly even without trailing newlines.
         Returns: (exit_status, stdout_string, stderr_string)
         """
         self.connect()
@@ -146,21 +146,22 @@ class RemoteSession:
         self.process.stdin.write(cmd + "\n")
         self.process.stdin.flush()
         
-        output_lines = []
+        output_buffer = ""
         start_time = time.time()
         
         while time.time() - start_time < timeout:
-            line = self.process.stdout.readline()
-            if not line:
+            chunk = self.process.stdout.read(1)
+            if not chunk:
                 break
-            output_lines.append(line)
+            output_buffer += chunk
             
-            # Test if line matches terminal prompt readiness
-            if re.search(prompt_regex, line):
+            # Test trailing line against prompt regex
+            lines = output_buffer.splitlines()
+            last_line = lines[-1] if lines else output_buffer
+            if re.search(prompt_regex, last_line):
                 break
                 
-        output_str = "".join(output_lines)
-        return 0, output_str, ""
+        return 0, output_buffer, ""
 
     def read_file(self, remote_path: str) -> str:
         """
