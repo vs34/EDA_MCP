@@ -20,106 +20,64 @@ class VirtuosoClient:
 
     def start_standalone(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir and launches virtuoso -nograph in the foreground of the dedicated terminal session for pure AI standalone mode.
+        Navigates to work_dir in the dedicated standalone terminal session.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
         self.interactive_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        cmd = f"cd {safe_dir}"
+        exit_code, stdout, stderr = self.session.execute_command(cmd)
         
-        # Navigate to safe_dir and launch virtuoso -nograph in foreground
-        init_cmd = f"cd {safe_dir} && virtuoso -nograph\n"
-        self.session.process.stdin.write(init_cmd)
-        self.session.process.stdin.flush()
-        
-        # Send a sentinel print statement to detect when Virtuoso -nograph initialization is complete
-        sentinel = "__VIRTUOSO_INIT_READY__"
-        self.session.process.stdin.write(f'println("{sentinel}")\n')
-        self.session.process.stdin.flush()
-        
-        start_time = time.time()
-        output_lines = []
-        
-        while time.time() - start_time < 15.0:
-            line = self.session.process.stdout.readline()
-            if not line:
-                break
-            output_lines.append(line)
-            if sentinel in line:
-                break
+        if exit_code != 0:
+            return f"Failed to navigate to standalone workspace {target_dir}: {stderr or stdout}"
 
         self.interactive_active = True
-        return f"Foreground Virtuoso standalone session (virtuoso -nograph) initialized in {target_dir}."
+        return f"Virtuoso standalone terminal session initialized in {target_dir}."
 
     def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
         return self.start_standalone(work_dir=work_dir)
 
-    def run_standalone(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
+    def run_standalone(self, command: str = "", work_dir: str = "") -> str:
         """
-        Executes a SKILL statement directly in the standalone virtuoso -nograph terminal session.
+        Executes a command directly on the dedicated standalone terminal session using execute_command.
         """
         self.session.connect()
         
-        if not self.interactive_active:
-            target_dir = work_dir or self.interactive_workdir or "~/Desktop/cmos65"
-            init_res = self.start_standalone(work_dir=target_dir)
-            if "Failed" in init_res:
-                return init_res
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.interactive_workdir or "~/Desktop/cmos65"
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        self.session.execute_command(f"cd {safe_dir}")
+
+        if not command.strip():
+            return "Error: 'command' argument is required for action='standalone'."
 
         clean_skill = self._clean_skill_command(command)
-        if not clean_skill:
-            return "Error: Empty SKILL command provided for standalone Virtuoso session."
+        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
 
-        sentinel = f"__SKILL_DONE_{os.urandom(4).hex()}__"
-        
-        # Send SKILL command followed by a sentinel print to Virtuoso's stdin
-        exec_str = f'{clean_skill}\nprintln("{sentinel}")\n'
-        self.session.process.stdin.write(exec_str)
-        self.session.process.stdin.flush()
-
-        # Read lines from Virtuoso stdout until sentinel is found
-        start_time = time.time()
-        output_lines = []
-        
-        while time.time() - start_time < timeout:
-            line = self.session.process.stdout.readline()
-            if not line:
-                self.interactive_active = False
-                return f"Standalone Virtuoso session closed unexpectedly.\nPartial Output:\n" + "".join(output_lines)
-            if sentinel in line:
-                break
-            output_lines.append(line)
-
-        output_str = "".join(output_lines).strip()
         output = []
-        output.append(f"[Standalone Virtuoso (virtuoso -nograph)]: {clean_skill}")
-        if output_str:
-            output.append(f"\n--- OUTPUT ---\n{output_str}")
-        else:
-            output.append("\n(Command executed cleanly with no stdout returned)")
+        output.append(f"[Standalone Terminal Execution]: {clean_skill}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr}")
 
         return "\n".join(output)
 
-    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
-        return self.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
+    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
+        return self.run_standalone(command=command, work_dir=work_dir)
 
     def stop_standalone(self) -> str:
         """
-        Stops and closes the standalone Virtuoso session cleanly by sending exit() to Virtuoso.
+        Stops and closes the standalone terminal session cleanly.
         """
         if not self.interactive_active:
-            return "No standalone Virtuoso session is currently active."
-
-        try:
-            self.session.process.stdin.write("exit()\n")
-            self.session.process.stdin.flush()
-        except Exception:
-            pass
+            return "No standalone terminal session is currently active."
 
         self.interactive_active = False
         self.interactive_workdir = None
-        return "Standalone Virtuoso session (virtuoso -nograph) terminated cleanly."
+        return "Standalone terminal session closed."
 
     def stop_interactive(self) -> str:
         return self.stop_standalone()
