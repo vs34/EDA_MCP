@@ -43,16 +43,34 @@ async def run_eldo_test():
             script_text = script_res.content[0].text if script_res.content else ""
             print(f"Run Script Response: {script_text.strip()}")
 
-            # 4. Test action='run_interactive'
-            print("\nTesting eldo action='run_interactive' with command='echo $PATH'...")
+            # 4. Test action='run_interactive' when no process is running
+            print("\nTesting eldo action='run_interactive' without active PID...")
             interact_res = await session.call_tool(
                 name="eldo",
-                arguments={"action": "run_interactive", "command": "echo $PATH", "work_dir": "~"}
+                arguments={"action": "run_interactive", "command": "help"}
             )
             interact_text = interact_res.content[0].text if interact_res.content else ""
-            print(f"Run Interactive Response: {interact_text.strip()}")
+            print(f"Run Interactive (No PID) Response:\n{interact_text.strip()}")
 
-            # 5. Test action='read_extract'
+            # 5. Test action='start_interactive'
+            print("\nTesting eldo action='start_interactive' with netlist 'test_netlist.cir'...")
+            start_res = await session.call_tool(
+                name="eldo",
+                arguments={"action": "start_interactive", "command": "test_netlist.cir"}
+            )
+            start_text = start_res.content[0].text if start_res.content else ""
+            print(f"Start Interactive Response:\n{start_text.strip()}")
+
+            # 6. Test action='stop_interactive'
+            print("\nTesting eldo action='stop_interactive'...")
+            stop_res = await session.call_tool(
+                name="eldo",
+                arguments={"action": "stop_interactive"}
+            )
+            stop_text = stop_res.content[0].text if stop_res.content else ""
+            print(f"Stop Interactive Response:\n{stop_text.strip()}")
+
+            # 7. Test action='read_extract'
             print("\nTesting eldo action='read_extract'...")
             extract_res = await session.call_tool(
                 name="eldo",
