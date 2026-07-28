@@ -41,7 +41,7 @@ class VirtuosoClient:
 
     def run_standalone(self, command: str = "", work_dir: str = "") -> str:
         """
-        Executes a SKILL statement in pure AI standalone mode via non-graphical Virtuoso (virtuoso -nograph).
+        Executes a command directly on the dedicated standalone terminal session using execute_command.
         """
         self.session.connect()
         
@@ -53,18 +53,10 @@ class VirtuosoClient:
             return "Error: 'command' argument is required for action='standalone'."
 
         clean_skill = self._clean_skill_command(command)
-        
-        # Write SKILL command to temporary script file mcp_standalone.il
-        script_file = "mcp_standalone.il"
-        script_content = f"{clean_skill}\nexit()\n"
-        self.session.write_file(script_file, script_content)
-
-        # Execute non-graphical Virtuoso in standalone mode
-        cmd = f"virtuoso -nograph -replay {script_file}"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
 
         output = []
-        output.append(f"[Standalone Virtuoso (virtuoso -nograph)]: {clean_skill}")
+        output.append(f"[Standalone Terminal Execution]: {clean_skill}")
         output.append(f"Exit Status: {exit_code}")
         if stdout.strip():
             output.append(f"\n--- STDOUT ---\n{stdout}")
