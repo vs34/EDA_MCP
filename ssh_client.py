@@ -138,7 +138,8 @@ class RemoteSession:
         self.connect()
         logger.info(f"Reading remote file: {remote_path}")
         
-        quoted_path = shlex.quote(remote_path)
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
         
         # csh multi-line if statement to check path status
@@ -225,20 +226,13 @@ class RemoteSession:
         logger.info(f"Writing remote file: {remote_path}")
         
         b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        eof_marker = f"__WRITE_EOF_{os.urandom(8).hex()}__"
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         
-        # csh script to run python to decode and write file
-        py_script = f"""import base64
-open({repr(remote_path)}, "wb").write(base64.b64decode(b"{b64_content}"))
-"""
-        cmd = f"python << {eof_marker}\n{py_script}\n{eof_marker}\n"
+        # Single-line base64 decode command
+        cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
         self.process.stdin.write(cmd)
-        self.process.stdin.flush()
-        
-        # Check command
-        check_cmd = f"echo '{sentinel}:'$status\n"
-        self.process.stdin.write(check_cmd)
         self.process.stdin.flush()
         
         exit_code = 0
