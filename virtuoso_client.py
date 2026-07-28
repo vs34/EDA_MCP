@@ -20,64 +20,68 @@ class VirtuosoClient:
 
     def start_standalone(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir in the dedicated standalone terminal session.
+        Navigates to work_dir and launches virtuoso -nograph interactive REPL session using execute_interactive_stream.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
         self.interactive_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        cmd = f"cd {safe_dir}"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        self.session.execute_command(f"cd {safe_dir}")
         
-        if exit_code != 0:
-            return f"Failed to navigate to standalone workspace {target_dir}: {stderr or stdout}"
-
+        # Launch virtuoso -nograph and wait for SKILL prompt (> or CIW>)
+        cmd = "virtuoso -nograph"
+        exit_code, stdout, stderr = self.session.execute_interactive_stream(cmd, prompt_regex=r"(>\s*$|\bCIW>\s*$)", timeout=15.0)
+        
         self.interactive_active = True
-        return f"Virtuoso standalone terminal session initialized in {target_dir}."
+        return f"Virtuoso standalone REPL session (virtuoso -nograph) initialized in {target_dir}.\nOutput:\n{stdout.strip()}"
 
     def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
         return self.start_standalone(work_dir=work_dir)
 
-    def run_standalone(self, command: str = "", work_dir: str = "") -> str:
+    def run_standalone(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Executes a command directly on the dedicated standalone terminal session using execute_command.
+        Executes SKILL statements directly in the active virtuoso -nograph interactive REPL stream.
         """
         self.session.connect()
         
-        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.interactive_workdir or "~/Desktop/cmos65"
-        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        self.session.execute_command(f"cd {safe_dir}")
-
-        if not command.strip():
-            return "Error: 'command' argument is required for action='standalone'."
+        if not self.interactive_active:
+            target_dir = work_dir or self.interactive_workdir or "~/Desktop/cmos65"
+            init_res = self.start_standalone(work_dir=target_dir)
+            if "Failed" in init_res:
+                return init_res
 
         clean_skill = self._clean_skill_command(command)
-        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
+        if not clean_skill:
+            return "Error: Empty SKILL command provided for standalone Virtuoso session."
+
+        exit_code, stdout, stderr = self.session.execute_interactive_stream(clean_skill, prompt_regex=r"(>\s*$|\bCIW>\s*$)", timeout=timeout)
 
         output = []
-        output.append(f"[Standalone Terminal Execution]: {clean_skill}")
-        output.append(f"Exit Status: {exit_code}")
+        output.append(f"[Standalone Virtuoso (virtuoso -nograph)]: {clean_skill}")
         if stdout.strip():
-            output.append(f"\n--- STDOUT ---\n{stdout}")
-        if stderr.strip():
-            output.append(f"\n--- STDERR ---\n{stderr}")
+            output.append(f"\n--- STDOUT ---\n{stdout.strip()}")
 
         return "\n".join(output)
 
-    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
-        return self.run_standalone(command=command, work_dir=work_dir)
+    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
+        return self.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
 
     def stop_standalone(self) -> str:
         """
-        Stops and closes the standalone terminal session cleanly.
+        Stops and closes the standalone Virtuoso REPL session cleanly.
         """
         if not self.interactive_active:
-            return "No standalone terminal session is currently active."
+            return "No standalone Virtuoso session is currently active."
+
+        try:
+            self.session.execute_interactive_stream("exit()", prompt_regex=r"(%|>|\$)\s*$", timeout=5.0)
+        except Exception:
+            pass
 
         self.interactive_active = False
         self.interactive_workdir = None
-        return "Standalone terminal session closed."
+        return "Standalone Virtuoso REPL session (virtuoso -nograph) terminated cleanly."
 
     def stop_interactive(self) -> str:
         return self.stop_standalone()
