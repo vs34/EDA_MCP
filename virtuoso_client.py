@@ -18,9 +18,9 @@ class VirtuosoClient:
         self.interactive_active = False
         self.interactive_workdir = None
 
-    def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
+    def start_standalone(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir and launches virtuoso -nograph in the foreground of the dedicated terminal session.
+        Navigates to work_dir and launches virtuoso -nograph in the foreground of the dedicated terminal session for pure AI standalone mode.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
@@ -50,23 +50,26 @@ class VirtuosoClient:
                 break
 
         self.interactive_active = True
-        return f"Foreground Virtuoso interactive session (virtuoso -nograph) initialized in {target_dir}."
+        return f"Foreground Virtuoso standalone session (virtuoso -nograph) initialized in {target_dir}."
 
-    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
+    def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
+        return self.start_standalone(work_dir=work_dir)
+
+    def run_standalone(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Executes a SKILL statement directly in the foreground virtuoso -nograph terminal session.
+        Executes a SKILL statement directly in the standalone virtuoso -nograph terminal session.
         """
         self.session.connect()
         
         if not self.interactive_active:
             target_dir = work_dir or self.interactive_workdir or "~/Desktop/cmos65"
-            init_res = self.start_interactive(work_dir=target_dir)
+            init_res = self.start_standalone(work_dir=target_dir)
             if "Failed" in init_res:
                 return init_res
 
         clean_skill = self._clean_skill_command(command)
         if not clean_skill:
-            return "Error: Empty SKILL command provided for interactive Virtuoso session."
+            return "Error: Empty SKILL command provided for standalone Virtuoso session."
 
         sentinel = f"__SKILL_DONE_{os.urandom(4).hex()}__"
         
@@ -83,14 +86,14 @@ class VirtuosoClient:
             line = self.session.process.stdout.readline()
             if not line:
                 self.interactive_active = False
-                return f"Interactive Virtuoso session closed unexpectedly.\nPartial Output:\n" + "".join(output_lines)
+                return f"Standalone Virtuoso session closed unexpectedly.\nPartial Output:\n" + "".join(output_lines)
             if sentinel in line:
                 break
             output_lines.append(line)
 
         output_str = "".join(output_lines).strip()
         output = []
-        output.append(f"[Interactive Virtuoso (virtuoso -nograph)]: {clean_skill}")
+        output.append(f"[Standalone Virtuoso (virtuoso -nograph)]: {clean_skill}")
         if output_str:
             output.append(f"\n--- OUTPUT ---\n{output_str}")
         else:
@@ -98,12 +101,15 @@ class VirtuosoClient:
 
         return "\n".join(output)
 
-    def stop_interactive(self) -> str:
+    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
+        return self.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
+
+    def stop_standalone(self) -> str:
         """
-        Stops and closes the interactive Virtuoso session cleanly by sending exit() to Virtuoso.
+        Stops and closes the standalone Virtuoso session cleanly by sending exit() to Virtuoso.
         """
         if not self.interactive_active:
-            return "No interactive Virtuoso session is currently active."
+            return "No standalone Virtuoso session is currently active."
 
         try:
             self.session.process.stdin.write("exit()\n")
@@ -113,7 +119,10 @@ class VirtuosoClient:
 
         self.interactive_active = False
         self.interactive_workdir = None
-        return "Interactive Virtuoso session (virtuoso -nograph) terminated cleanly."
+        return "Standalone Virtuoso session (virtuoso -nograph) terminated cleanly."
+
+    def stop_interactive(self) -> str:
+        return self.stop_standalone()
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """
@@ -136,7 +145,6 @@ class VirtuosoClient:
         self.session.connect()
         self.workdir = work_dir
         
-        # Future development: This will handle full agentic flow (e.g., virtuoso -nograph and automated code development later on)
         safe_dir = f"$HOME{work_dir[1:]}" if work_dir.startswith("~") else shlex.quote(work_dir)
         cmd = f"cd {safe_dir}"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
@@ -146,9 +154,9 @@ class VirtuosoClient:
 
         return f"Virtuoso initialization complete in {work_dir}."
 
-    def run(self, skill_code: str, timeout: float = 10.0) -> str:
+    def assisted_run(self, skill_code: str, timeout: float = 10.0) -> str:
         """
-        Executes a SKILL command in Virtuoso via FIFO pipe and polls mcp_output.txt for output.
+        Executes a SKILL command in Human+AI assisted mode via IPC pipe and polls mcp_output.txt for output.
         """
         self.session.connect()
         if self.workdir:
@@ -158,7 +166,7 @@ class VirtuosoClient:
         clean_skill = self._clean_skill_command(skill_code)
         if not clean_skill:
             return "Error: Empty SKILL command after removing comments."
-            
+
         output_file = "mcp_output.txt"
         
         # Clear mcp_output.txt before sending command
@@ -192,6 +200,9 @@ class VirtuosoClient:
             pass
             
         return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}."
+
+    def run(self, skill_code: str, timeout: float = 10.0) -> str:
+        return self.assisted_run(skill_code=skill_code, timeout=timeout)
 
     def exit(self) -> str:
         """

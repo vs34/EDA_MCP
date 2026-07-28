@@ -111,9 +111,9 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
     Control and interact with Cadence Virtuoso.
     
     Args:
-        action: The operation to perform ('initialize', 'run', 'exit', 'start_interactive', 'run_interactive', or 'stop_interactive')
-        command: SKILL code/command to execute when action='run' or action='run_interactive'
-        work_dir: Working directory when action='initialize' or action='start_interactive'
+        action: The operation to perform ('initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'exit')
+        command: SKILL code/command to execute when action='assisted_run' or action='standalone'
+        work_dir: Working directory when action='initialize' or action='start_standalone'
     """
     logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}")
     start_time = time.time()
@@ -121,21 +121,21 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         act = action.lower().strip()
         if act == "initialize":
             res = virtuoso_client.initialize(work_dir=work_dir)
-        elif act == "run":
+        elif act in ("assisted_run", "assisted", "run"):
             if not command.strip():
-                res = "Error: 'command' argument is required when action='run'."
+                res = "Error: 'command' argument is required when action='assisted_run'."
             else:
-                res = virtuoso_client.run(skill_code=command)
+                res = virtuoso_client.assisted_run(skill_code=command)
+        elif act in ("standalone", "run_standalone", "run_interactive", "run_inter", "interactive", "inter"):
+            res = virtuoso_interactive_client.run_standalone(command=command, work_dir=work_dir)
+        elif act in ("start_standalone", "start_interactive", "start_inter", "start"):
+            res = virtuoso_interactive_client.start_standalone(work_dir=work_dir)
+        elif act in ("stop_standalone", "stop_interactive", "stop_inter", "stop", "exit_interactive"):
+            res = virtuoso_interactive_client.stop_standalone()
         elif act == "exit":
             res = virtuoso_client.exit()
-        elif act in ("start_interactive", "start_inter", "start"):
-            res = virtuoso_interactive_client.start_interactive(work_dir=work_dir)
-        elif act in ("run_interactive", "run_inter", "interactive", "inter"):
-            res = virtuoso_interactive_client.run_interactive(command=command, work_dir=work_dir)
-        elif act in ("stop_interactive", "stop_inter", "stop", "exit_interactive"):
-            res = virtuoso_interactive_client.stop_interactive()
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'run', 'exit', 'start_interactive', 'run_interactive', 'stop_interactive'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'exit'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s")
