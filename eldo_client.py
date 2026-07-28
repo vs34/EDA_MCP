@@ -51,126 +51,69 @@ class EldoClient:
             return False
         return True
 
-    def start_interactive(self, netlist_file: str, work_dir: str = "") -> str:
+    def start_interactive(self, netlist_file: str = "", work_dir: str = "") -> str:
         """
-        Initializes and spawns a persistent interactive Eldo background process
-        listening on interctive.fifo and redirecting output to intective_out.txt.
+        Spawns an interactive Eldo REPL session (eldo -inter) using execute_interactive_stream.
         """
         self.session.connect()
         target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
         self.workdir = target_dir
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
 
-        if not netlist_file.strip():
-            return "Error: Please specify the name of the netlist (.cir) file to create an interactive process."
+        self.session.execute_command(f"mkdir -p {safe_dir} && cd {safe_dir}")
 
-        cir_file = netlist_file.strip()
-
-        # Check if an interactive session is already running
-        if self.is_interactive_running():
-            return f"An interactive Eldo session (PID {self.interactive_pid}) is already running for '{self.interactive_cir}'."
-
-        # Setup FIFO and background processes
-        setup_cmd = (
-            f"mkdir -p {safe_dir} && cd {safe_dir} && "
-            f"rm -f interctive.fifo && mkfifo interctive.fifo && touch intective_out.txt && "
-            f"tail -f /dev/null > interctive.fifo & echo $! && "
-            f"eldo {shlex.quote(cir_file)} -inter < interctive.fifo >& intective_out.txt & echo $!"
-        )
-        exit_code, stdout, stderr = self.session.execute_command(setup_cmd)
+        cir_file = netlist_file.strip() if netlist_file else ""
+        cmd = f"eldo {shlex.quote(cir_file)} -inter" if cir_file else "eldo -inter"
         
-        if exit_code != 0:
-            return f"Failed to start interactive Eldo process for '{cir_file}' (Exit code {exit_code}): {stderr or stdout}"
+        # Launch interactive Eldo and wait for eldo> prompt
+        exit_code, stdout, stderr = self.session.execute_interactive_stream(cmd, prompt_regex=r"(eldo>\s*$|\bELDO>\s*$)", timeout=15.0)
 
-        lines = [line.strip() for line in stdout.splitlines() if line.strip().isdigit()]
-        if len(lines) >= 2:
-            self.interactive_keeper_pid = lines[0]
-            self.interactive_pid = lines[1]
-        elif len(lines) == 1:
-            self.interactive_pid = lines[0]
+        self.interactive_active = True
+        self.interactive_cir = cir_file or "interactive"
+        return f"Started interactive Eldo REPL session for '{self.interactive_cir}' in {target_dir}.\nOutput:\n{stdout.strip()}"
 
-        self.interactive_cir = cir_file
-        return f"Started interactive Eldo process (PID {self.interactive_pid}) for '{cir_file}' in {target_dir}."
-
-    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
+    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Sends an interactive command to the running Eldo session via interctive.fifo
-        and reads the response from intective_out.txt.
+        Sends an interactive command to the active Eldo REPL session and streams the response in real-time.
         """
         self.session.connect()
         target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        self.session.execute_command(f"cd {safe_dir}")
 
-        # Verify process health
-        if not self.is_interactive_running():
-            # Auto-start if command looks like a netlist file
+        if not getattr(self, "interactive_active", False):
             clean_cmd = command.strip()
             if clean_cmd.endswith(".cir") or clean_cmd.endswith(".sp") or clean_cmd.endswith(".net"):
                 return self.start_interactive(netlist_file=clean_cmd, work_dir=work_dir)
-            return "No Eldo interactive process is currently running. What is the name of the .cir file with which you want to create an interactive process?"
+            return self.start_interactive(netlist_file="", work_dir=work_dir)
 
         if not command.strip():
-            return f"Interactive Eldo process (PID {self.interactive_pid}) for '{self.interactive_cir}' is active. Provide a command to send to Eldo."
+            return f"Interactive Eldo REPL is active for '{self.interactive_cir}'. Provide a command to send to Eldo."
 
         cmd_str = command.strip()
-
-        # 1. Clear output log: cp /dev/null intective_out.txt
-        # 2. Write command to FIFO: echo "cmd" > interctive.fifo
-        fifo_cmd = (
-            f"cp /dev/null intective_out.txt && "
-            f"echo {shlex.quote(cmd_str)} > interctive.fifo"
-        )
-        exit_code, stdout, stderr = self.session.execute_command(fifo_cmd)
-
-        if exit_code != 0:
-            return f"Failed to send command into interctive.fifo (Exit code {exit_code}): {stderr or stdout}"
-
-        # Allow time for Eldo to process & write output
-        time.sleep(0.3)
-
-        # Read output from intective_out.txt
-        try:
-            out_content = self.session.read_file("intective_out.txt")
-            if not out_content.strip():
-                # Retry once after a brief pause if output file is empty
-                time.sleep(0.5)
-                out_content = self.session.read_file("intective_out.txt")
-        except Exception as e:
-            out_content = f"Error reading intective_out.txt: {str(e)}"
+        exit_code, stdout, stderr = self.session.execute_interactive_stream(cmd_str, prompt_regex=r"(eldo>\s*$|\bELDO>\s*$)", timeout=timeout)
 
         output = []
-        output.append(f"[Interactive Eldo (PID {self.interactive_pid})]: {cmd_str}")
-        if out_content.strip():
-            output.append(f"\n--- OUTPUT (intective_out.txt) ---\n{out_content}")
-        else:
-            output.append("\n(Command sent successfully. No output generated in intective_out.txt)")
+        output.append(f"[Interactive Eldo]: {cmd_str}")
+        if stdout.strip():
+            output.append(f"\n--- OUTPUT ---\n{stdout.strip()}")
 
         return "\n".join(output)
 
     def stop_interactive(self, work_dir: str = "") -> str:
         """
-        Terminates the interactive Eldo background process and keeper.
+        Terminates the interactive Eldo REPL session cleanly.
         """
-        self.session.connect()
-        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
-        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        if not getattr(self, "interactive_active", False):
+            return "No interactive Eldo session is currently active."
 
-        if not self.interactive_pid:
-            return "No interactive Eldo process is currently running."
+        try:
+            self.session.execute_interactive_stream("quit", prompt_regex=r"(%|>|\$)\s*$", timeout=5.0)
+        except Exception:
+            pass
 
-        pid = self.interactive_pid
-        keeper_pid = self.interactive_keeper_pid
-        cir_file = self.interactive_cir
-
-        stop_cmd = f"cd {safe_dir} && kill -9 {pid} {keeper_pid or ''} 2>/dev/null"
-        self.session.execute_command(stop_cmd)
-
-        self.interactive_pid = None
-        self.interactive_keeper_pid = None
+        self.interactive_active = False
         self.interactive_cir = None
-
-        return f"Stopped interactive Eldo session (PID {pid}) for '{cir_file}'."
+        return "Stopped interactive Eldo session."
 
     def read_extract(self, work_dir: str = "") -> str:
         """
