@@ -135,8 +135,8 @@ class RemoteSession:
 
     def execute_interactive_stream(self, cmd: str, prompt_regex: str = r"(%|>|\$|eldo>)\s*$", timeout: float = 10.0) -> tuple[int, str, str]:
         """
-        Sends a command to the persistent interactive SSH session and streams stdout line-by-line in real-time,
-        detecting prompt readiness (matching prompt_regex) or line completion.
+        Sends a command to the persistent interactive SSH session and streams stdout in real-time,
+        detecting prompt readiness (matching prompt_regex) instantly even without trailing newlines.
         Returns: (exit_status, stdout_string, stderr_string)
         """
         self.connect()
@@ -146,21 +146,22 @@ class RemoteSession:
         self.process.stdin.write(cmd + "\n")
         self.process.stdin.flush()
         
-        output_lines = []
+        output_buffer = ""
         start_time = time.time()
         
         while time.time() - start_time < timeout:
-            line = self.process.stdout.readline()
-            if not line:
+            chunk = self.process.stdout.read(1)
+            if not chunk:
                 break
-            output_lines.append(line)
+            output_buffer += chunk
             
-            # Test if line matches terminal prompt readiness
-            if re.search(prompt_regex, line):
+            # Test trailing line against prompt regex
+            lines = output_buffer.splitlines()
+            last_line = lines[-1] if lines else output_buffer
+            if re.search(prompt_regex, last_line):
                 break
                 
-        output_str = "".join(output_lines)
-        return 0, output_str, ""
+        return 0, output_buffer, ""
 
     def read_file(self, remote_path: str) -> str:
         """
@@ -169,7 +170,8 @@ class RemoteSession:
         self.connect()
         logger.info(f"Reading remote file: {remote_path}")
         
-        quoted_path = shlex.quote(remote_path)
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
         
         # csh multi-line if statement to check path status
@@ -256,20 +258,13 @@ class RemoteSession:
         logger.info(f"Writing remote file: {remote_path}")
         
         b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        eof_marker = f"__WRITE_EOF_{os.urandom(8).hex()}__"
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         
-        # csh script to run python to decode and write file
-        py_script = f"""import base64
-open({repr(remote_path)}, "wb").write(base64.b64decode(b"{b64_content}"))
-"""
-        cmd = f"python << {eof_marker}\n{py_script}\n{eof_marker}\n"
+        # Single-line base64 decode command
+        cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
         self.process.stdin.write(cmd)
-        self.process.stdin.flush()
-        
-        # Check command
-        check_cmd = f"echo '{sentinel}:'$status\n"
-        self.process.stdin.write(check_cmd)
         self.process.stdin.flush()
         
         exit_code = 0

@@ -1,3 +1,4 @@
+import os
 import shlex
 import time
 import logging
@@ -14,6 +15,72 @@ class VirtuosoClient:
         self.session = session
         self.pid = None
         self.workdir = None
+        self.interactive_active = False
+        self.interactive_workdir = None
+
+    def start_standalone(self, work_dir: str = "~/Desktop/cmos65") -> str:
+        """
+        Navigates to work_dir in the dedicated standalone terminal session.
+        """
+        self.session.connect()
+        target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
+        self.interactive_workdir = target_dir
+        
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        cmd = f"cd {safe_dir}"
+        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        
+        if exit_code != 0:
+            return f"Failed to navigate to standalone workspace {target_dir}: {stderr or stdout}"
+
+        self.interactive_active = True
+        return f"Virtuoso standalone terminal session initialized in {target_dir}."
+
+    def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
+        return self.start_standalone(work_dir=work_dir)
+
+    def run_standalone(self, command: str = "", work_dir: str = "") -> str:
+        """
+        Executes a command directly on the dedicated standalone terminal session using execute_command.
+        """
+        self.session.connect()
+        
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.interactive_workdir or "~/Desktop/cmos65"
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        self.session.execute_command(f"cd {safe_dir}")
+
+        if not command.strip():
+            return "Error: 'command' argument is required for action='standalone'."
+
+        clean_skill = self._clean_skill_command(command)
+        exit_code, stdout, stderr = self.session.execute_command(clean_skill)
+
+        output = []
+        output.append(f"[Standalone Terminal Execution]: {clean_skill}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr}")
+
+        return "\n".join(output)
+
+    def run_interactive(self, command: str = "", work_dir: str = "") -> str:
+        return self.run_standalone(command=command, work_dir=work_dir)
+
+    def stop_standalone(self) -> str:
+        """
+        Stops and closes the standalone terminal session cleanly.
+        """
+        if not self.interactive_active:
+            return "No standalone terminal session is currently active."
+
+        self.interactive_active = False
+        self.interactive_workdir = None
+        return "Standalone terminal session closed."
+
+    def stop_interactive(self) -> str:
+        return self.stop_standalone()
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """
@@ -36,7 +103,6 @@ class VirtuosoClient:
         self.session.connect()
         self.workdir = work_dir
         
-        # Future development: This will handle full agentic flow (e.g., virtuoso -nograph and automated code development later on)
         safe_dir = f"$HOME{work_dir[1:]}" if work_dir.startswith("~") else shlex.quote(work_dir)
         cmd = f"cd {safe_dir}"
         exit_code, stdout, stderr = self.session.execute_command(cmd)
@@ -46,9 +112,9 @@ class VirtuosoClient:
 
         return f"Virtuoso initialization complete in {work_dir}."
 
-    def run(self, skill_code: str, timeout: float = 10.0) -> str:
+    def assisted_run(self, skill_code: str, timeout: float = 10.0) -> str:
         """
-        Executes a SKILL command in Virtuoso via FIFO pipe and polls mcp_output.txt for output.
+        Executes a SKILL command in Human+AI assisted mode via IPC pipe and polls mcp_output.txt for output.
         """
         self.session.connect()
         if self.workdir:
@@ -58,7 +124,7 @@ class VirtuosoClient:
         clean_skill = self._clean_skill_command(skill_code)
         if not clean_skill:
             return "Error: Empty SKILL command after removing comments."
-            
+
         output_file = "mcp_output.txt"
         
         # Clear mcp_output.txt before sending command
@@ -92,6 +158,9 @@ class VirtuosoClient:
             pass
             
         return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}."
+
+    def run(self, skill_code: str, timeout: float = 10.0) -> str:
+        return self.assisted_run(skill_code=skill_code, timeout=timeout)
 
     def exit(self) -> str:
         """

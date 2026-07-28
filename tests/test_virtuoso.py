@@ -46,6 +46,27 @@ async def run_virtuoso_test():
                         print(content)
                 print("--------------------------------------")
 
+                print("\nTesting virtuoso action='start_standalone'...")
+                interact_start = await session.call_tool(
+                    name="virtuoso",
+                    arguments={"action": "start_standalone", "work_dir": "~/Desktop/cmos65"}
+                )
+                print(f"Start Standalone Response:\n{interact_start.content[0].text if interact_start.content else ''}")
+
+                print("\nTesting virtuoso action='standalone' with SKILL command...")
+                interact_run = await session.call_tool(
+                    name="virtuoso",
+                    arguments={"action": "standalone", "command": "plus(2 3)"}
+                )
+                print(f"Standalone Response:\n{interact_run.content[0].text if interact_run.content else ''}")
+
+                print("\nTesting virtuoso action='stop_standalone'...")
+                interact_stop = await session.call_tool(
+                    name="virtuoso",
+                    arguments={"action": "stop_standalone"}
+                )
+                print(f"Stop Standalone Response:\n{interact_stop.content[0].text if interact_stop.content else ''}")
+
     except Exception as e:
         print(f"\nERROR: Virtuoso test failed: {e}", file=sys.stderr)
         sys.exit(1)
