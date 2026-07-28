@@ -1,3 +1,5 @@
+import re
+import time
 import os
 import json
 import logging
@@ -130,6 +132,35 @@ class RemoteSession:
         stdout_str = "".join(output_lines)
         # Stderr is merged into stdout for the terminal timeline, so we return empty stderr
         return exit_code, stdout_str, ""
+
+    def execute_interactive_stream(self, cmd: str, prompt_regex: str = r"(%|>|\$|eldo>)\s*$", timeout: float = 10.0) -> tuple[int, str, str]:
+        """
+        Sends a command to the persistent interactive SSH session and streams stdout line-by-line in real-time,
+        detecting prompt readiness (matching prompt_regex) or line completion.
+        Returns: (exit_status, stdout_string, stderr_string)
+        """
+        self.connect()
+        logger.debug(f"Sending interactive stream command: {cmd}")
+        
+        # Write command line to SSH stdin
+        self.process.stdin.write(cmd + "\n")
+        self.process.stdin.flush()
+        
+        output_lines = []
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            line = self.process.stdout.readline()
+            if not line:
+                break
+            output_lines.append(line)
+            
+            # Test if line matches terminal prompt readiness
+            if re.search(prompt_regex, line):
+                break
+                
+        output_str = "".join(output_lines)
+        return 0, output_str, ""
 
     def read_file(self, remote_path: str) -> str:
         """
