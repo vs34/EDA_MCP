@@ -12,20 +12,21 @@ class EldoClient:
     """
     def initialize(self, work_dir: str = "~/Desktop/eldo") -> str:
         """
-        Navigates to work_dir (default: ~/Desktop/eldo) and sets working directory for Eldo.
+        Navigates to work_dir (default: ~/Desktop/eldo), sets working directory for Eldo,
+        and creates interctive.fifo FIFO pipe and intective_out.txt file.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/eldo"
         self.workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        cmd = f"cd {safe_dir}"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
+        init_cmd = f"mkdir -p {safe_dir} && cd {safe_dir} && rm -f interctive.fifo && mkfifo interctive.fifo && touch intective_out.txt"
+        exit_code, stdout, stderr = self.session.execute_command(init_cmd)
         
         if exit_code != 0:
             return f"Failed to initialize Eldo working directory at {target_dir} (Exit code {exit_code}): {stdout}"
 
-        return f"Eldo session initialized in {target_dir}."
+        return f"Eldo session initialized in {target_dir}. Created interctive.fifo and intective_out.txt."
 
     def run_script(self, script_path: str = "", work_dir: str = "") -> str:
         """
