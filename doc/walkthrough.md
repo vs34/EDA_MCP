@@ -1,6 +1,6 @@
-# Walkthrough: Modular Virtuoso MCP Tool Implementation
+# Walkthrough: Modular Virtuoso & Eldo MCP Tool Architecture
 
-We have refactored the EDA_MCP server into a highly modular and maintainable architecture.
+We have implemented a highly modular, state-isolated, and scalable architecture for the EDA_MCP server.
 
 ---
 
@@ -10,51 +10,60 @@ We have refactored the EDA_MCP server into a highly modular and maintainable arc
                                   ┌───────────────────────────┐
                                   │         server.py         │
                                   │ (FastMCP: remote_control, │
-                                  │         virtuoso)         │
+                                  │      virtuoso, eldo)      │
                                   └──────────────┬────────────┘
                                                  │
-                        ┌────────────────────────┴────────────────────────┐
-                        ▼                                                 ▼
-          ┌───────────────────────────┐                     ┌───────────────────────────┐
-          │      remote_session       │                     │    virtuoso_client.py     │
-          │(config_remote_control.json│                     │   (VirtuosoClient Class)  │
-          │   isolated SSH session)   │                     └─────────────┬─────────────┘
-          └───────────────────────────┘                                   │
-                                                                          ▼
-                                                            ┌───────────────────────────┐
-                                                            │     virtuoso_session      │
-                                                            │   (config_virtuoso.json   │
-                                                            │   isolated SSH session)   │
-                                                            └───────────────────────────┘
+          ┌──────────────────────────────────────┼──────────────────────────────────────┐
+          ▼                                      ▼                                      ▼
+┌───────────────────────────┐          ┌───────────────────────────┐          ┌───────────────────────────┐
+│      remote_session       │          │    virtuoso_client.py     │          │      eldo_client.py       │
+│(config_remote_control.json│          │   (VirtuosoClient Class)  │          │    (EldoClient Class)     │
+│   isolated SSH session)   │          └─────────────┬─────────────┘          └─────────────┬─────────────┘
+└───────────────────────────┘                        │                                      │
+                                                     ▼                                      ▼
+                                       ┌───────────────────────────┐          ┌───────────────────────────┐
+                                       │     virtuoso_session      │          │       eldo_session        │
+                                       │   (config_virtuoso.json   │          │    (config_eldo.json      │
+                                       │   isolated SSH session)   │          │   isolated SSH session)   │
+                                       └───────────────────────────┘          └───────────────────────────┘
 ```
 
 ### 1. Low-Level SSH Transport Backbone ([ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py))
-Contains standard SSH primitives:
+Contains persistent SSH shellPrimitives:
 - `connect()`
 - `execute_command(command: str)`
 - `read_file(remote_path: str)`
 - `write_file(remote_path: str, content: str)`
 - `load_config()`: Automatically resolves tool-specific config files in [config/](file:///Users/vs/function/EDA_MCP/config) with fallback searching.
 
-### 2. High-Level Virtuoso Client ([virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py))
+### 2. Cadence Virtuoso Client ([virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py))
 Encapsulates `VirtuosoClient` class bound to `virtuoso_session`:
 - `initialize(work_dir)`: Navigates to working directory and starts Virtuoso.
 - `run(skill_code, timeout)`: Pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
 - `exit()`: Gracefully exits Virtuoso via SKILL FIFO command.
-- `_clean_skill_command()`: Strips line/inline `;;` comments and formats single line string.
 
-### 3. FastMCP Server Entrypoint ([server.py](file:///Users/vs/function/EDA_MCP/server.py))
+### 3. Siemens Eldo Client ([eldo_client.py](file:///Users/vs/function/EDA_MCP/eldo_client.py))
+Encapsulates `EldoClient` class bound to `eldo_session`:
+- `initialize(work_dir)`: Navigates to project directory, creates `interctive.fifo` named pipe and `intective_out.txt` output file.
+- `start_interactive(netlist_file)`: Launches background pipe keeper (`tail -f /dev/null > interctive.fifo &`) and spawns background interactive Eldo (`eldo <netlist.cir> -inter < interctive.fifo >& intective_out.txt &`) with PID tracking.
+- `run_interactive(command)`: Checks PID status (`kill -0 <pid>`), sends commands into `interctive.fifo`, clears log, and reads output from `intective_out.txt`.
+- `stop_interactive()`: Terminates background Eldo PID (`kill -9 <pid>`).
+- `run_script(script_path)`: Executes batch Eldo simulation (`eldo <script_path> >& mcp_run.log`), auto-truncating output to `tail -100` if log exceeds 100 lines.
+- `read_extract()`: Auto-detects and reads the latest `.extract` measurement summary file.
+
+### 4. FastMCP Server Entrypoint ([server.py](file:///Users/vs/function/EDA_MCP/server.py))
 Instantiates isolated sessions:
 ```python
 remote_session = RemoteSession(config_path="config/config_remote_control.json")
 virtuoso_session = RemoteSession(config_path="config/config_virtuoso.json")
-virtuoso_client = VirtuosoClient(session=virtuoso_session)
+eldo_session = RemoteSession(config_path="config/config_eldo.json")
 ```
-And registers two unified `@mcp.tool()` definitions:
-1. `remote_control(action, command="", path="", content="")`: Dispatches `run_command`, `read_file`, and `write_file` actions on `remote_session`.
-2. `virtuoso(action, command="", work_dir="~/Desktop/cmos65")`: Dispatches `initialize`, `run`, and `exit` actions on `virtuoso_session`.
+And registers three unified `@mcp.tool()` definitions:
+1. `remote_control(action, command="", path="", content="")`
+2. `virtuoso(action, command="", work_dir="~/Desktop/cmos65")`
+3. `eldo(action, command="", work_dir="~/Desktop/eldo")`
 
 ---
 
 ## Verification
-- `python3 -m py_compile ssh_client.py virtuoso_client.py server.py tests/test_mcp_client.py` executed cleanly with **0 syntax errors**.
+- `python3 -m py_compile server.py ssh_client.py virtuoso_client.py eldo_client.py tests/test_eldo.py` executed cleanly with **0 syntax errors**.
