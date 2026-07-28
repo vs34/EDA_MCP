@@ -1,3 +1,4 @@
+import os
 import shlex
 import time
 import logging
@@ -19,25 +20,41 @@ class VirtuosoClient:
 
     def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir and initializes the interactive Virtuoso session.
+        Navigates to work_dir and launches virtuoso -nograph in the foreground of the dedicated terminal session.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
         self.interactive_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        cmd = f"cd {safe_dir} && if ( -f MCP_initalize.sh ) sh MCP_initalize.sh &"
-        exit_code, stdout, stderr = self.session.execute_command(cmd)
         
-        if exit_code != 0:
-            return f"Failed to start interactive Virtuoso in {target_dir}: {stderr or stdout}"
+        # Navigate to safe_dir and launch virtuoso -nograph in foreground
+        init_cmd = f"cd {safe_dir} && virtuoso -nograph\n"
+        self.session.process.stdin.write(init_cmd)
+        self.session.process.stdin.flush()
+        
+        # Send a sentinel print statement to detect when Virtuoso -nograph initialization is complete
+        sentinel = "__VIRTUOSO_INIT_READY__"
+        self.session.process.stdin.write(f'println("{sentinel}")\n')
+        self.session.process.stdin.flush()
+        
+        start_time = time.time()
+        output_lines = []
+        
+        while time.time() - start_time < 15.0:
+            line = self.session.process.stdout.readline()
+            if not line:
+                break
+            output_lines.append(line)
+            if sentinel in line:
+                break
 
         self.interactive_active = True
-        return f"Virtuoso interactive session initialized in {target_dir}."
+        return f"Foreground Virtuoso interactive session (virtuoso -nograph) initialized in {target_dir}."
 
     def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Executes a SKILL statement in the dedicated interactive Virtuoso session.
+        Executes a SKILL statement directly in the foreground virtuoso -nograph terminal session.
         """
         self.session.connect()
         
@@ -47,60 +64,56 @@ class VirtuosoClient:
             if "Failed" in init_res:
                 return init_res
 
-        if self.interactive_workdir:
-            safe_dir = f"$HOME{self.interactive_workdir[1:]}" if self.interactive_workdir.startswith("~") else shlex.quote(self.interactive_workdir)
-            self.session.execute_command(f"cd {safe_dir}")
-
         clean_skill = self._clean_skill_command(command)
         if not clean_skill:
             return "Error: Empty SKILL command provided for interactive Virtuoso session."
 
-        output_file = "mcp_output.txt"
-        self.session.execute_command(f"rm -f {output_file} && touch {output_file}")
+        sentinel = f"__SKILL_DONE_{os.urandom(4).hex()}__"
         
-        fifo_write_cmd = f"echo {shlex.quote(clean_skill)} > MCP.command"
-        exit_code, out, stderr = self.session.execute_command(fifo_write_cmd)
+        # Send SKILL command followed by a sentinel print to Virtuoso's stdin
+        exec_str = f'{clean_skill}\nprintln("{sentinel}")\n'
+        self.session.process.stdin.write(exec_str)
+        self.session.process.stdin.flush()
 
-        if exit_code != 0:
-            return f"Failed to send command to Virtuoso FIFO pipe: {out or stderr}"
-
-        # Polling loop: wait for RESULT: marker in mcp_output.txt
+        # Read lines from Virtuoso stdout until sentinel is found
         start_time = time.time()
-        poll_interval = 0.3
+        output_lines = []
         
         while time.time() - start_time < timeout:
-            try:
-                content = self.session.read_file(output_file)
-                if content and "RESULT:" in content:
-                    return content
-            except Exception:
-                pass
-            time.sleep(poll_interval)
-            
-        try:
-            current_content = self.session.read_file(output_file)
-            if current_content.strip():
-                return f"[Timeout Warning: RESULT marker not detected within {timeout}s]\n{current_content}"
-        except Exception:
-            pass
-            
-        return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}."
+            line = self.session.process.stdout.readline()
+            if not line:
+                self.interactive_active = False
+                return f"Interactive Virtuoso session closed unexpectedly.\nPartial Output:\n" + "".join(output_lines)
+            if sentinel in line:
+                break
+            output_lines.append(line)
+
+        output_str = "".join(output_lines).strip()
+        output = []
+        output.append(f"[Interactive Virtuoso (virtuoso -nograph)]: {clean_skill}")
+        if output_str:
+            output.append(f"\n--- OUTPUT ---\n{output_str}")
+        else:
+            output.append("\n(Command executed cleanly with no stdout returned)")
+
+        return "\n".join(output)
 
     def stop_interactive(self) -> str:
         """
-        Stops and closes the interactive Virtuoso session cleanly.
+        Stops and closes the interactive Virtuoso session cleanly by sending exit() to Virtuoso.
         """
         if not self.interactive_active:
             return "No interactive Virtuoso session is currently active."
 
         try:
-            self.session.execute_command("exit()")
+            self.session.process.stdin.write("exit()\n")
+            self.session.process.stdin.flush()
         except Exception:
             pass
 
         self.interactive_active = False
         self.interactive_workdir = None
-        return "Interactive Virtuoso session terminated."
+        return "Interactive Virtuoso session (virtuoso -nograph) terminated cleanly."
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """
