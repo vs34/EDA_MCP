@@ -6,6 +6,7 @@ import logging
 import shlex
 import subprocess
 import base64
+import select
 
 logger = logging.getLogger("eda_mcp.ssh_client")
 
@@ -64,8 +65,20 @@ class RemoteSession:
             self.process.stdin.write(init_cmd)
             self.process.stdin.flush()
             
-            # Read stdout until the initialization is complete
+            # Read stdout until the initialization is complete with timeout
+            start_time = time.time()
+            init_timeout = 30.0
             while True:
+                elapsed = time.time() - start_time
+                if elapsed > init_timeout:
+                    raise TimeoutError(f"SSH initialization timed out after {init_timeout}s.")
+                
+                r, _, _ = select.select([self.process.stdout], [], [], 1.0)
+                if not r:
+                    if self.process.poll() is not None:
+                        raise RuntimeError("SSH process terminated during initialization.")
+                    continue
+
                 line = self.process.stdout.readline()
                 if not line:
                     raise RuntimeError("SSH connection lost during shell initialization.")
@@ -95,7 +108,7 @@ class RemoteSession:
             self.process = None
         logger.info("SSH connection closed.")
 
-    def execute_command(self, cmd: str) -> tuple[int, str, str]:
+    def execute_command(self, cmd: str, timeout: float = 60.0) -> tuple[int, str, str]:
         """
         Executes a command on the remote host in the persistent shell session.
         Keeps directory state (cd) and environment variables across calls.
@@ -108,13 +121,32 @@ class RemoteSession:
         full_cmd = f"{cmd}; echo '{sentinel}:'$status\n"
         logger.debug(f"Sending command: {cmd}")
         
-        self.process.stdin.write(full_cmd)
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(full_cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write command to SSH session: {e}")
         
-        # Read lines from stdout until we see the sentinel
+        # Read lines from stdout until we see the sentinel or time out
         output_lines = []
         exit_code = 0
+        start_time = time.time()
+        
         while True:
+            elapsed = time.time() - start_time
+            remaining = timeout - elapsed
+            if remaining <= 0:
+                self.close() # Reset the contaminated session!
+                raise TimeoutError(f"Command execution timed out after {timeout} seconds. The SSH session has been reset.")
+
+            r, _, _ = select.select([self.process.stdout], [], [], min(remaining, 1.0))
+            if not r:
+                if self.process.poll() is not None:
+                    self.close()
+                    raise RuntimeError("SSH process terminated unexpectedly during command execution.")
+                continue
+
             line = self.process.stdout.readline()
             if not line:
                 self.close()
@@ -130,7 +162,6 @@ class RemoteSession:
             output_lines.append(line)
             
         stdout_str = "".join(output_lines)
-        # Stderr is merged into stdout for the terminal timeline, so we return empty stderr
         return exit_code, stdout_str, ""
 
     def execute_interactive_stream(self, cmd: str, prompt_regex: str = r"(%|>|\$|eldo>)\s*$", timeout: float = 10.0) -> tuple[int, str, str]:
@@ -142,16 +173,33 @@ class RemoteSession:
         self.connect()
         logger.debug(f"Sending interactive stream command: {cmd}")
         
-        # Write command line to SSH stdin
-        self.process.stdin.write(cmd + "\n")
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(cmd + "\n")
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write interactive command to SSH session: {e}")
         
         output_buffer = ""
         start_time = time.time()
         
-        while time.time() - start_time < timeout:
+        while True:
+            elapsed = time.time() - start_time
+            remaining = timeout - elapsed
+            if remaining <= 0:
+                logger.warning(f"Interactive stream timed out after {timeout}s waiting for prompt matching '{prompt_regex}'")
+                break
+
+            r, _, _ = select.select([self.process.stdout], [], [], min(remaining, 0.5))
+            if not r:
+                if self.process.poll() is not None:
+                    self.close()
+                    raise RuntimeError("SSH process terminated unexpectedly during interactive stream.")
+                continue
+
             chunk = self.process.stdout.read(1)
             if not chunk:
+                self.close()
                 break
             output_buffer += chunk
             
