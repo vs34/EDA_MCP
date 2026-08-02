@@ -157,12 +157,12 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
         return f"Error in virtuoso tool: {str(e)}"
 
 @mcp.tool()
-def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Desktop/eldo", timeout: float = 30.0) -> str:
+def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str = "~/Desktop/eldo", timeout: float = 30.0) -> str:
     """
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
     Args:
-        action: The operation to perform ('initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', or 'run_terminal_command')
+        action: The operation to perform ('run_terminal_command', 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
         command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', or shell command when action='run_terminal_command'
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
