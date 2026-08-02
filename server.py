@@ -60,7 +60,7 @@ virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_sessio
 eldo_client = EldoClient(session=eldo_session)
 
 @mcp.tool()
-def remote_control(action: str, command: str = "", path: str = "", content: str = "") -> str:
+def remote_control(action: str, command: str = "", path: str = "", content: str = "", timeout: float = 60.0) -> str:
     """
     Execute shell commands and perform file operations on the remote EDA server.
     
@@ -69,8 +69,9 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         command: Shell command to execute when action='run_command'
         path: Remote file path when action='read_file' or action='write_file'
         content: Text content to write when action='write_file'
+        timeout: Maximum wait time in seconds for execution (default: 60.0)
     """
-    logger.info(f"[TOOL CALL] remote_control: action={action!r}, command={command!r}, path={path!r}, content_len={len(content)}")
+    logger.info(f"[TOOL CALL] remote_control: action={action!r}, command={command!r}, path={path!r}, content_len={len(content)}, timeout={timeout}")
     start_time = time.time()
     act = action.lower().strip()
     
@@ -78,7 +79,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         if act in ("run_command", "run_remote_command", "run", "exec", "execute"):
             if not command.strip():
                 return "Error: 'command' argument is required when action='run_command'."
-            exit_code, stdout, stderr = remote_session.execute_command(command)
+            exit_code, stdout, stderr = remote_session.execute_command(command, timeout=timeout)
             output = []
             output.append(f"Exit Status: {exit_code}")
             if stdout.strip():
@@ -90,12 +91,12 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         elif act in ("read_file", "read_remote_file", "read"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='read_file'."
-            res = remote_session.read_file(path)
+            res = remote_session.read_file(path, timeout=timeout)
             
         elif act in ("write_file", "write_remote_file", "write"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='write_file'."
-            res = remote_session.write_file(path, content)
+            res = remote_session.write_file(path, content, timeout=timeout)
             
         else:
             res = f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."
@@ -110,7 +111,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         return f"Error in remote_control tool: {str(e)}"
 
 @mcp.tool()
-def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65") -> str:
+def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65", timeout: float = 30.0) -> str:
     """
     Control and interact with Cadence Virtuoso.
     
@@ -118,8 +119,9 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         action: The operation to perform ('initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'exit')
         command: SKILL code/command to execute when action='assisted_run' or action='standalone'
         work_dir: Working directory when action='initialize' or action='start_standalone'
+        timeout: Maximum wait time in seconds for execution/response (default: 30.0)
     """
-    logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}")
+    logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
     try:
         act = action.lower().strip()
@@ -129,9 +131,9 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
             if not command.strip():
                 res = "Error: 'command' argument is required when action='assisted_run'."
             else:
-                res = virtuoso_client.assisted_run(skill_code=command)
+                res = virtuoso_client.assisted_run(skill_code=command, timeout=timeout)
         elif act in ("standalone", "run_standalone", "run_interactive", "run_inter", "interactive", "inter"):
-            res = virtuoso_interactive_client.run_standalone(command=command, work_dir=work_dir)
+            res = virtuoso_interactive_client.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
         elif act in ("start_standalone", "start_interactive", "start_inter", "start"):
             res = virtuoso_interactive_client.start_standalone(work_dir=work_dir)
         elif act in ("stop_standalone", "stop_interactive", "stop_inter", "stop", "exit_interactive"):
@@ -150,7 +152,7 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65")
         return f"Error in virtuoso tool: {str(e)}"
 
 @mcp.tool()
-def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Desktop/eldo") -> str:
+def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Desktop/eldo", timeout: float = 30.0) -> str:
     """
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
@@ -158,8 +160,9 @@ def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Deskt
         action: The operation to perform ('initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
         command: Netlist or script path when action='run_script'/'start_interactive', or command when action='run_interactive'
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
+        timeout: Maximum wait time in seconds for execution/response (default: 30.0)
     """
-    logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, work_dir={work_dir!r}")
+    logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
     try:
         act = action.lower().strip()
@@ -168,7 +171,7 @@ def eldo(action: str = "run_script", command: str = "", work_dir: str = "~/Deskt
         elif act in ("start_interactive", "start_inter", "start"):
             res = eldo_client.start_interactive(netlist_file=command, work_dir=work_dir)
         elif act in ("run_interactive", "run_inter", "interactive", "inter"):
-            res = eldo_client.run_interactive(command=command, work_dir=work_dir)
+            res = eldo_client.run_interactive(command=command, work_dir=work_dir, timeout=timeout)
         elif act in ("stop_interactive", "stop_inter", "stop", "exit_interactive", "exit"):
             res = eldo_client.stop_interactive(work_dir=work_dir)
         elif act in ("run_script", "script"):
