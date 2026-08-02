@@ -140,3 +140,23 @@ class EldoClient:
             return "\n".join(output)
         except Exception as e:
             return f"Error reading extracted measurement file '{extract_file}': {str(e)}"
+
+    def run_terminal_command(self, command: str, work_dir: str = "", timeout: float = 60.0) -> str:
+        """
+        Executes a terminal/shell command in the dedicated Eldo SSH terminal session.
+        Shares working directory and persistent shell environment with Eldo simulation execution.
+        """
+        self.session.connect()
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+        self.session.execute_command(f"cd {safe_dir}")
+            
+        exit_code, stdout, stderr = self.session.execute_command(command, timeout=timeout)
+        output = []
+        output.append(f"[Eldo Terminal Command]: {command}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout.strip()}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr.strip()}")
+        return "\n".join(output)

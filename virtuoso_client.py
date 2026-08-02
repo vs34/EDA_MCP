@@ -166,6 +166,27 @@ class VirtuosoClient:
     def run(self, skill_code: str, timeout: float = 10.0) -> str:
         return self.assisted_run(skill_code=skill_code, timeout=timeout)
 
+    def run_terminal_command(self, command: str, work_dir: str = "", timeout: float = 60.0) -> str:
+        """
+        Executes a terminal/shell command in the dedicated Virtuoso SSH terminal session.
+        Shares working directory and persistent shell environment with Virtuoso assisted mode.
+        """
+        self.session.connect()
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir
+        if target_dir:
+            safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+            self.session.execute_command(f"cd {safe_dir}")
+            
+        exit_code, stdout, stderr = self.session.execute_command(command, timeout=timeout)
+        output = []
+        output.append(f"[Virtuoso Terminal Command]: {command}")
+        output.append(f"Exit Status: {exit_code}")
+        if stdout.strip():
+            output.append(f"\n--- STDOUT ---\n{stdout.strip()}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr.strip()}")
+        return "\n".join(output)
+
     def exit(self) -> str:
         """
         Gracefully terminates Virtuoso session by sending SKILL exit command first,
@@ -184,18 +205,4 @@ class VirtuosoClient:
             output.append(f"Failed to send exit() command: {e}")
             
         time.sleep(2)
-        
-        # if self.pid:
-        #     check_cmd = f"ps -p {self.pid}"
-        #     exit_code, out, _ = self.session.execute_command(check_cmd)
-        #     if exit_code == 0 and str(self.pid) in out:
-        #         output.append(f"Virtuoso (PID {self.pid}) is still alive. Sending kill -9...")
-        #         self.session.execute_command(f"kill -9 {self.pid}")
-        #         output.append(f"Killed Virtuoso PID {self.pid}.")
-        #     else:
-        #         output.append(f"Virtuoso (PID {self.pid}) has cleanly exited.")
-        #     self.pid = None
-        # else:
-        #     output.append("No recorded Virtuoso PID to kill.")
-            
         return "\n".join(output)
