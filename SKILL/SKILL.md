@@ -19,7 +19,8 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 - **Use `run_terminal_command` for Tool-Specific Shell Execution:**
   - Use `virtuoso(action="run_terminal_command", command="...")` to run shell commands in the **exact same terminal and environment** where Virtuoso operates.
   - Use `eldo(action="run_terminal_command", command="...")` to run shell commands in the **exact same terminal and environment** where Eldo simulations run.
-- **AVOID using `remote_control` for Tool Tasks:** Do NOT use `remote_control` to inspect files or run commands for Virtuoso or Eldo. `remote_control` runs in an isolated shell and does not share working directory state (`cd`), environment variables, or output pipe context with the dedicated tool terminals.
+- **Use `remote_control` for File I/O Operations:** Always use `remote_control(action="read_file", path="...")` and `remote_control(action="write_file", path="...", content="...")` when reading or writing files on the remote EDA server. Avoid using raw shell commands (`cat`, `echo`, `vi`) via terminal commands for file I/O.
+- **AVOID using `remote_control` for Tool Execution:** Do NOT use `remote_control(action="run_command")` for running Virtuoso or Eldo shell tasks. `remote_control` runs in a separate general SSH shell and does not share working directory state (`cd`) or environment variables with the dedicated tool terminals.
 
 ### Library Scope
 - All user cellviews, test structures, schematics, and layouts created or managed through `eda-mcp` MUST be placed in the **`MCP`** library unless explicitly instructed otherwise by the user.
