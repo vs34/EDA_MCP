@@ -11,6 +11,16 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 
 ## 1. Core Operating Guidelines
 
+### Dedicated Tool Terminal Sessions & Execution Rules
+- **Isolated Terminal Instances:** The `eda-mcp` server manages separate, dedicated persistent SSH terminal sessions per tool:
+  - **Virtuoso Session:** Dedicated SSH shell for Cadence Virtuoso (`virtuoso_session`).
+  - **Eldo Session:** Dedicated SSH shell for Siemens Eldo simulator (`eldo_session`).
+  - **Remote Control Session:** Separate general-purpose SSH shell (`remote_session`).
+- **Use `run_terminal_command` for Tool-Specific Shell Execution:**
+  - Use `virtuoso(action="run_terminal_command", command="...")` to run shell commands in the **exact same terminal and environment** where Virtuoso operates.
+  - Use `eldo(action="run_terminal_command", command="...")` to run shell commands in the **exact same terminal and environment** where Eldo simulations run.
+- **AVOID using `remote_control` for Tool Tasks:** Do NOT use `remote_control` to inspect files or run commands for Virtuoso or Eldo. `remote_control` runs in an isolated shell and does not share working directory state (`cd`), environment variables, or output pipe context with the dedicated tool terminals.
+
 ### Library Scope
 - All user cellviews, test structures, schematics, and layouts created or managed through `eda-mcp` MUST be placed in the **`MCP`** library unless explicitly instructed otherwise by the user.
 
@@ -21,7 +31,7 @@ This skill provides operational patterns, conventions, and SKILL code templates 
   - Default working directory containing environment scripts: `~/Desktop/cmos65`.
 
 ### Timeout Management
-- SKILL execution calls have a short execution timeout window (10–30s).
+- SKILL execution calls have a configurable execution timeout window (default 30s).
 - Keep SKILL commands modular and short. Avoid unhandled blocking loops or modal dialog prompts.
 
 ---
