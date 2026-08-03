@@ -1,0 +1,5 @@
+{
+  "ssh_host": "eda-uni",
+  "ssh_config_path": "~/.ssh/config",
+  "env_setup_cmd": "source ~/Desktop/cmos65/.cshrc_cmos065"
+}
