@@ -47,12 +47,41 @@ class TestWorkBoardClient(unittest.TestCase):
             workboard_name="inv_tb"
         )
         self.assertIn("Successfully added", res_add)
+        self.assertIn("Synced at local Git commit", res_add)
+
         wb_dir = os.path.join(self.test_dir, "inv_tb")
         local_file = os.path.join(wb_dir, "netlists/inv.cir")
         self.assertTrue(os.path.exists(local_file))
 
         res_status = self.client.status(workboard_name="inv_tb")
-        self.assertIn("netlists/inv.cir -> ~/Desktop/eldo/inv.cir [IN_SYNC]", res_status)
+        self.assertIn("netlists/inv.cir -> ~/Desktop/eldo/inv.cir", res_status)
+        self.assertIn("Last Synced Baseline: Commit", res_status)
+        self.assertIn("CLEAN (synced at commit", res_status)
+
+    def test_diff_identical_advances_baseline(self):
+        self.client.add(
+            remote_path="~/Desktop/eldo/inv.cir",
+            local_path="netlists/inv.cir",
+            workboard_name="inv_tb"
+        )
+        # Test diff on identical file
+        diff_res = self.client.diff(local_path="netlists/inv.cir", workboard_name="inv_tb")
+        self.assertIn("No diff detected", diff_res)
+        self.assertIn("Advanced sync baseline in .workboard.json to commit", diff_res)
+
+    def test_diff_different_shows_unified_diff(self):
+        self.client.add(
+            remote_path="~/Desktop/eldo/inv.cir",
+            local_path="netlists/inv.cir",
+            workboard_name="inv_tb"
+        )
+        # Modify remote mock file
+        self.session.files["~/Desktop/eldo/inv.cir"] = ".param W=1.2u L=65n\nM0 vout vin vdd vdd psvtgp\n"
+        
+        diff_res = self.client.diff(local_path="netlists/inv.cir", workboard_name="inv_tb")
+        self.assertIn("Unified Local vs Remote Diff", diff_res)
+        self.assertIn("-.param W=1u L=65n", diff_res)
+        self.assertIn("+.param W=1.2u L=65n", diff_res)
 
     def test_binary_file_transfer(self):
         res_add = self.client.add(

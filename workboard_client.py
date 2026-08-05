@@ -5,6 +5,7 @@ import logging
 import subprocess
 import shlex
 import time
+import difflib
 from typing import Dict, Any, Optional, Tuple, List
 from ssh_client import RemoteSession
 
@@ -13,7 +14,7 @@ logger = logging.getLogger("eda_mcp.workboard_client")
 class WorkBoardClient:
     """
     WorkBoard Client Engine managing Local-Remote Git-backed Workspaces, 
-    File Registry Sync (.workboard.json), and Local Version Control.
+    File Registry Sync (.workboard.json), and Commit-Baseline Version Control.
     """
     def __init__(self, session: Optional[RemoteSession] = None, base_workboard_dir: str = "./workboard"):
         self.session = session or RemoteSession()
@@ -106,6 +107,13 @@ class WorkBoardClient:
             logger.error(f"Git command failed in {workboard_dir}: {e}")
             return -1, "", str(e)
 
+    def _get_current_head_commit(self, workboard_dir: str) -> str:
+        """Returns current local Git HEAD short commit SHA or 'UNKNOWN'."""
+        ret, stdout, stderr = self._git_cmd(workboard_dir, ["rev-parse", "--short", "HEAD"])
+        if ret == 0 and stdout.strip():
+            return stdout.strip()
+        return "UNKNOWN"
+
     def _calculate_checksum(self, filepath: str) -> str:
         """Calculates SHA-256 checksum of a local file."""
         if not os.path.exists(filepath) or os.path.isdir(filepath):
@@ -158,7 +166,7 @@ class WorkBoardClient:
     def add(self, remote_path: str, local_path: str = "", workboard_name: str = "", timeout: float = 60.0) -> str:
         """
         Fetches a file from remote EDA server via binary-safe SSH transfer, saves it to local WorkBoard,
-        updates .workboard.json registry, and commits to local Git.
+        commits to local Git, and records commit SHA & timestamp baseline in .workboard.json.
         """
         if not remote_path.strip():
             return "Error: 'remote_path' is required for add action."
@@ -182,28 +190,36 @@ class WorkBoardClient:
                 f.write(raw_bytes)
 
             checksum = self._calculate_checksum(target_local_path)
+            now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            # Update registry manifest
+            # Stage file and initial manifest placeholder
+            self._git_cmd(wb_dir, ["add", "-f", rel_local])
+            self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Add: {remote_path} -> {rel_local}"])
+            commit_sha = self._get_current_head_commit(wb_dir)
+
+            # Update registry manifest with sync commit baseline
             registry["files"][rel_local] = {
                 "remote_path": remote_path,
                 "local_checksum": checksum,
-                "sync_status": "IN_SYNC",
+                "last_sync_commit": commit_sha,
+                "last_sync_time": now_iso,
                 "is_directory": False
             }
             self._save_registry(wb_dir, registry)
+            self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
+            self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
-            # Local Git Add & Commit (using -f to allow explicit tracking of files matched by .gitignore)
-            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
-            self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Add: {remote_path} -> {rel_local}"])
-
-            return f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' (Checksum: {checksum[:8]}). Committed to local Git."
+            return (
+                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}'.\n"
+                f"Synced at local Git commit {commit_sha} ({now_iso}). Checksum: {checksum[:8]}."
+            )
         except Exception as e:
             return f"Failed to add '{remote_path}' to WorkBoard '{wb_name}': {str(e)}"
 
     def pull(self, local_path: str, workboard_name: str = "", timeout: float = 60.0) -> str:
         """
         Re-fetches latest version of an added file from remote server to update local WorkBoard,
-        and commits update to local Git repo.
+        commits to local Git, and advances sync commit baseline in .workboard.json.
         """
         if not local_path.strip():
             return "Error: 'local_path' is required for pull action."
@@ -229,21 +245,30 @@ class WorkBoardClient:
                 f.write(raw_bytes)
 
             checksum = self._calculate_checksum(target_local_path)
-            registry["files"][rel_local]["local_checksum"] = checksum
-            registry["files"][rel_local]["sync_status"] = "IN_SYNC"
-            self._save_registry(wb_dir, registry)
+            now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
+            self._git_cmd(wb_dir, ["add", "-f", rel_local])
             self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Pull Update: {rel_local}"])
+            commit_sha = self._get_current_head_commit(wb_dir)
 
-            return f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}'. Committed to local Git."
+            registry["files"][rel_local]["local_checksum"] = checksum
+            registry["files"][rel_local]["last_sync_commit"] = commit_sha
+            registry["files"][rel_local]["last_sync_time"] = now_iso
+            self._save_registry(wb_dir, registry)
+            self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
+            self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
+
+            return (
+                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}'.\n"
+                f"Advanced sync baseline to commit {commit_sha} ({now_iso})."
+            )
         except Exception as e:
             return f"Failed to pull '{local_path}': {str(e)}"
 
     def push(self, local_path: str, workboard_name: str = "", message: str = "Agent sync", timeout: float = 60.0) -> str:
         """
         Uploads local edits from WorkBoard back to mapped remote server location over SSH,
-        and commits change to local Git repo.
+        commits to local Git, and advances sync commit baseline in .workboard.json.
         """
         if not local_path.strip():
             return "Error: 'local_path' is required for push action."
@@ -275,35 +300,31 @@ class WorkBoardClient:
             self.session.write_file_bytes(remote_dest, raw_bytes, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
-            registry["files"][rel_local]["local_checksum"] = checksum
-            registry["files"][rel_local]["sync_status"] = "IN_SYNC"
-            self._save_registry(wb_dir, registry)
+            now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
+            self._git_cmd(wb_dir, ["add", "-f", rel_local])
             self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Push: {rel_local} -> {remote_dest} ({message})"])
+            commit_sha = self._get_current_head_commit(wb_dir)
 
-            return f"Successfully pushed '{rel_local}' to remote '{remote_dest}'. Local Git commit created."
+            registry["files"][rel_local]["local_checksum"] = checksum
+            registry["files"][rel_local]["last_sync_commit"] = commit_sha
+            registry["files"][rel_local]["last_sync_time"] = now_iso
+            self._save_registry(wb_dir, registry)
+            self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
+            self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
+
+            return (
+                f"Successfully pushed '{rel_local}' to remote '{remote_dest}'.\n"
+                f"Committed locally and advanced sync baseline to commit {commit_sha} ({now_iso})."
+            )
         except Exception as e:
             return f"Failed to push '{local_path}' to remote: {str(e)}"
 
-    def diff(self, local_path: str = "", workboard_name: str = "") -> str:
+    def diff(self, local_path: str = "", workboard_name: str = "", timeout: float = 60.0) -> str:
         """
-        Generates unified line-by-line diff between local WorkBoard file and Git baseline.
-        """
-        wb_name, err = self._resolve_workboard_name(workboard_name)
-        if err:
-            return err
-
-        wb_dir = self._get_workboard_dir(wb_name)
-        target = local_path.strip() if local_path else "."
-        ret, stdout, stderr = self._git_cmd(wb_dir, ["diff", target])
-        if stdout.strip():
-            return f"--- WorkBoard '{wb_name}' Diff ({target}) ---\n{stdout.strip()}"
-        return f"No local diff detected for '{target}' in WorkBoard '{wb_name}'."
-
-    def status(self, workboard_name: str = "") -> str:
-        """
-        Reports status of tracked files in the WorkBoard.
+        Fetches live remote server file over SSH and compares line-by-line with local file.
+        Auto-Update Rule: If local and remote files are identical, automatically updates .workboard.json
+        with the latest local Git HEAD commit and timestamp, advancing the sync baseline!
         """
         wb_name, err = self._resolve_workboard_name(workboard_name)
         if err:
@@ -311,29 +332,116 @@ class WorkBoardClient:
 
         wb_dir = self._get_workboard_dir(wb_name)
         registry = self._load_registry(wb_dir, wb_name)
-        ret, stdout, stderr = self._git_cmd(wb_dir, ["status", "--short"])
+
+        rel_local = local_path.strip()
+
+        # If specific local_path provided and registered
+        if rel_local and rel_local in registry.get("files", {}):
+            file_meta = registry["files"][rel_local]
+            remote_path = file_meta["remote_path"]
+            target_local_path = os.path.join(wb_dir, rel_local)
+
+            if not os.path.exists(target_local_path):
+                return f"Error: Local file not found: {target_local_path}"
+
+            try:
+                # Fetch remote bytes over SSH
+                remote_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
+                with open(target_local_path, "rb") as f:
+                    local_bytes = f.read()
+
+                # Case 1: Local and remote files are 100% identical!
+                if local_bytes == remote_bytes:
+                    current_head = self._get_current_head_commit(wb_dir)
+                    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+                    # Advance sync commit baseline in registry
+                    registry["files"][rel_local]["last_sync_commit"] = current_head
+                    registry["files"][rel_local]["last_sync_time"] = now_iso
+                    registry["files"][rel_local]["local_checksum"] = self._calculate_checksum(target_local_path)
+                    self._save_registry(wb_dir, registry)
+                    self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
+                    self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Diff: Verified sync baseline for {rel_local} at {current_head}"])
+
+                    return (
+                        f"✓ No diff detected for '{rel_local}'. Local and live remote server files are IDENTICAL.\n"
+                        f"Advanced sync baseline in .workboard.json to commit {current_head} ({now_iso})."
+                    )
+
+                # Case 2: Files differ! Compute line-by-line unified diff
+                local_str = local_bytes.decode("utf-8", errors="replace").splitlines(keepends=True)
+                remote_str = remote_bytes.decode("utf-8", errors="replace").splitlines(keepends=True)
+
+                diff_lines = list(difflib.unified_diff(
+                    local_str,
+                    remote_str,
+                    fromfile=f"local:{rel_local}",
+                    tofile=f"remote:{remote_path}"
+                ))
+
+                if diff_lines:
+                    return f"--- Unified Local vs Remote Diff ({rel_local}) ---\n" + "".join(diff_lines)
+                else:
+                    return f"No visual diff lines for '{rel_local}'."
+
+            except Exception as e:
+                return f"Failed to check remote diff for '{rel_local}': {str(e)}"
+
+        # Default local Git diff if local_path is omitted or not registered
+        target = rel_local if rel_local else "."
+        ret, stdout, stderr = self._git_cmd(wb_dir, ["diff", target])
+        if stdout.strip():
+            return f"--- Local Git Diff ({target}) ---\n{stdout.strip()}"
+        return f"No local uncommitted Git diff for '{target}' in WorkBoard '{wb_name}'."
+
+    def status(self, workboard_name: str = "") -> str:
+        """
+        Reports file-wise status of all tracked files in the WorkBoard, detailing
+        mapped remote paths, sync commit baselines, and local Git states.
+        """
+        wb_name, err = self._resolve_workboard_name(workboard_name)
+        if err:
+            return err
+
+        wb_dir = self._get_workboard_dir(wb_name)
+        registry = self._load_registry(wb_dir, wb_name)
+        ret, git_status_out, stderr = self._git_cmd(wb_dir, ["status", "--short"])
 
         output = []
         output.append(f"WorkBoard Name: {wb_name}")
         output.append(f"Local Root: {wb_dir}")
         output.append(f"Active Memory State: {'(Active)' if self.active_workboard == wb_name else ''}")
-        output.append(f"Last Synced: {registry.get('last_synced', 'Never')}")
-        output.append("\n--- Local Git Status ---")
-        output.append(stdout.strip() if stdout.strip() else "Working tree clean.")
+        output.append(f"Last Registry Sync: {registry.get('last_synced', 'Never')}")
+        
+        output.append("\n--- Local Git Repository Status ---")
+        output.append(git_status_out.strip() if git_status_out.strip() else "Working tree clean.")
 
-        output.append("\n--- Registered Files ---")
+        output.append("\n--- Registered Files (Synced Commit Baseline) ---")
         files_dict = registry.get("files", {})
         if not files_dict:
-            output.append("No files registered yet.")
+            output.append("No files registered yet in this WorkBoard.")
         else:
             for rel, meta in files_dict.items():
                 local_file = os.path.join(wb_dir, rel)
                 current_checksum = self._calculate_checksum(local_file)
                 stored_checksum = meta.get("local_checksum", "")
-                status_label = "IN_SYNC"
-                if current_checksum != stored_checksum:
-                    status_label = "LOCAL_MODIFIED"
+                
+                sync_commit = meta.get("last_sync_commit", "UNKNOWN")
+                sync_time = meta.get("last_sync_time", "Unknown time")
+                remote_path = meta.get("remote_path", "Unmapped")
 
-                output.append(f"  • {rel} -> {meta.get('remote_path')} [{status_label}]")
+                if not os.path.exists(local_file):
+                    local_state = "LOCAL_MISSING"
+                elif current_checksum != stored_checksum:
+                    local_state = "LOCAL_MODIFIED (since last sync)"
+                else:
+                    local_state = f"CLEAN (synced at commit {sync_commit})"
+
+                output.append(
+                    f"  • {rel} -> {remote_path}\n"
+                    f"    - Last Synced Baseline: Commit {sync_commit} ({sync_time})\n"
+                    f"    - Local File State: {local_state}\n"
+                    f"    - Note: Server state may vary; run action='diff' to verify live remote server file."
+                )
 
         return "\n".join(output)
