@@ -128,3 +128,26 @@ dbSave(cv)
 ### Simulation Setup (ADE L / Spectre)
 - **Spectre Corner Models:** `/usr/local/cmos065_536/.../DATA/SPECTRE/CORNERS/svtgp.scs` (`tt` corner).
 - Launch ADE L session: `sevStartSession(?lib "MCP" ?cell "<cellName>" ?view "schematic")`.
+
+---
+
+## 5. WorkBoard Local-Remote Sync Guidelines (`workboard`)
+
+The `workboard` tool manages isolated local Git repositories (`./workboard/<name>/`) mapped to remote EDA server paths:
+
+### Action Usage Patterns & Best Practices
+- **`initialize(workboard_name="...", local_dir="./workboard")`**:
+  - Creates clean local workspace `./workboard/<workboard_name>/` and runs `git init`. Sets active memory workspace. Does NOT pull remote files on init.
+- **`add(remote_path="...", local_path="...")`**:
+  - Downloads file/folder from remote EDA server over SSH using binary-safe transfer (`read_file_bytes`).
+  - Saves to local WorkBoard path, records `last_sync_commit` baseline SHA and timestamp in `.workboard.json`, and commits to local Git.
+- **`pull(local_path="...")`**:
+  - Re-fetches latest version of an added file from remote server to update local WorkBoard, commits to local Git, and advances `last_sync_commit` baseline.
+- **`push(local_path="...", message="...")`**:
+  - Uploads local file edits back to mapped remote server path over SSH, commits to local Git, and advances `last_sync_commit` baseline.
+- **`diff(local_path="...")`**:
+  - Fetches live remote server file over SSH and compares line-by-line with local file.
+  - **Auto-Advance Feature**: If local and remote files are **100% identical**, `diff` automatically advances `last_sync_commit` in `.workboard.json` to the current local Git HEAD commit! If files differ, returns unified line-by-line diff.
+- **`status()`**:
+  - Reports file-wise summary showing mapped remote path, last synced commit baseline SHA ($C_{\text{sync}}$) & timestamp, and local Git state.
+
