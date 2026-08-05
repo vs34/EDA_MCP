@@ -7,6 +7,7 @@ import shlex
 import subprocess
 import base64
 import select
+from typing import Tuple, List
 
 logger = logging.getLogger("eda_mcp.ssh_client")
 
@@ -297,6 +298,39 @@ class RemoteSession:
             # Fallback to output lines if base64 decoding fails unexpectedly
             logger.warning(f"Base64 decoding failed for {remote_path}, returning raw lines: {e}")
             return "".join(output_lines)
+
+    def _read_until_sentinel(self, sentinel: str, timeout: float = 30.0) -> Tuple[List[str], str]:
+        """
+        Reads stdout line-by-line from persistent SSH session until sentinel token is encountered.
+        Returns: (output_lines, result_status_code)
+        """
+        start_time = time.time()
+        output_lines = []
+        result_status = "0"
+
+        while True:
+            if time.time() - start_time > timeout:
+                self.close()
+                raise TimeoutError(f"Operation timed out after {timeout} seconds reading SSH stream.")
+
+            rlist, _, _ = select.select([self.process.stdout], [], [], 0.5)
+            if not rlist:
+                continue
+
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost while reading stdout stream.")
+
+            if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    result_status = parts[-1]
+                break
+
+            output_lines.append(line)
+
+        return output_lines, result_status
 
     def read_file_bytes(self, remote_path: str, timeout: float = 30.0) -> bytes:
         """
