@@ -219,3 +219,6 @@ def workboard(
    * Handle remote paths starting with `~` properly before issuing SSH commands (e.g. `quoted_path = f"$HOME{shlex.quote(target_path[1:])}"`).
 5. **Safety Guard on `push`**:
    * Verify that `local_path` is registered in `.workboard.json` before performing a `push`. If an unregistered file is pushed, prompt the agent to run `add` first so remote target destinations are explicitly tracked.
+6. **Binary vs. Text File Transfer Handling (`download_file` / `upload_file`)**:
+   * Standard string-based `read_file()` and `write_file()` perform UTF-8 string conversions with `errors='replace'`, which permanently corrupts raw binary waveform data (`.tr0`, `.wdb`, `.vcd.gz`).
+   * WorkBoard file transfer methods (`download_file` and `upload_file`) MUST decode base64 directly to raw bytes and write to local disk using `open(path, "wb")` mode (or use native `scp`), ensuring 100% data preservation for binary waveforms.

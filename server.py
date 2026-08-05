@@ -7,6 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from ssh_client import RemoteSession
 from virtuoso_client import VirtuosoClient
 from eldo_client import EldoClient
+from workboard_client import WorkBoardClient
 
 # Get absolute path to base dir and setup temp logging folder
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +59,7 @@ eldo_session = RemoteSession(config_path=eldo_config)
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
 virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
 eldo_client = EldoClient(session=eldo_session)
+workboard_client = WorkBoardClient(session=remote_session)
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "", timeout: float = 60.0) -> str:
@@ -198,6 +200,54 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
         duration = time.time() - start_time
         logger.error(f"[TOOL ERROR] eldo (action={action}) failed in {duration:.2f}s: {e}")
         return f"Error in eldo tool: {str(e)}"
+
+@mcp.tool()
+def workboard(
+    action: str = "status",
+    workboard_name: str = "",
+    remote_path: str = "",
+    local_path: str = "",
+    message: str = "Agent sync",
+    recursive: bool = False,
+    timeout: float = 60.0
+) -> str:
+    """
+    Git-backed WorkBoard tool for local-remote file synchronization and version control.
+    
+    Actions:
+      - 'initialize': Create a new local WorkBoard workspace and initialize a local Git repository.
+      - 'add': Fetch a file/folder from remote server path and add it to a specific WorkBoard at local_path.
+      - 'pull': Re-fetch latest remote server version of an added file to update the local WorkBoard.
+      - 'push': Upload local edits from WorkBoard back to mapped remote server location and commit locally.
+      - 'diff': Display unified diff between local WorkBoard file and remote server version.
+      - 'status': List all tracked files and their status for a specific WorkBoard.
+    """
+    logger.info(f"[TOOL CALL] workboard: action={action!r}, workboard_name={workboard_name!r}, remote_path={remote_path!r}, local_path={local_path!r}")
+    start_time = time.time()
+    try:
+        act = action.lower().strip()
+        if act == "initialize":
+            res = workboard_client.initialize(workboard_name=workboard_name or "default")
+        elif act in ("add", "add_file"):
+            res = workboard_client.add(remote_path=remote_path, local_path=local_path, workboard_name=workboard_name, timeout=timeout)
+        elif act == "pull":
+            res = workboard_client.pull(local_path=local_path, workboard_name=workboard_name, timeout=timeout)
+        elif act == "push":
+            res = workboard_client.push(local_path=local_path, workboard_name=workboard_name, message=message, timeout=timeout)
+        elif act == "diff":
+            res = workboard_client.diff(local_path=local_path, workboard_name=workboard_name)
+        elif act == "status":
+            res = workboard_client.status(workboard_name=workboard_name)
+        else:
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'pull', 'push', 'diff', 'status'."
+
+        duration = time.time() - start_time
+        logger.info(f"[TOOL RESULT] workboard (action={act}) finished in {duration:.2f}s")
+        return res
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"[TOOL ERROR] workboard (action={action}) failed in {duration:.2f}s: {e}")
+        return f"Error in workboard tool: {str(e)}"
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)
