@@ -192,8 +192,8 @@ class WorkBoardClient:
             }
             self._save_registry(wb_dir, registry)
 
-            # Local Git Add & Commit
-            self._git_cmd(wb_dir, ["add", rel_local, ".workboard.json"])
+            # Local Git Add & Commit (using -f to allow explicit tracking of files matched by .gitignore)
+            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
             self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Add: {remote_path} -> {rel_local}"])
 
             return f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' (Checksum: {checksum[:8]}). Committed to local Git."
@@ -233,7 +233,7 @@ class WorkBoardClient:
             registry["files"][rel_local]["sync_status"] = "IN_SYNC"
             self._save_registry(wb_dir, registry)
 
-            self._git_cmd(wb_dir, ["add", rel_local, ".workboard.json"])
+            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
             self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Pull Update: {rel_local}"])
 
             return f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}'. Committed to local Git."
@@ -279,7 +279,7 @@ class WorkBoardClient:
             registry["files"][rel_local]["sync_status"] = "IN_SYNC"
             self._save_registry(wb_dir, registry)
 
-            self._git_cmd(wb_dir, ["add", rel_local, ".workboard.json"])
+            self._git_cmd(wb_dir, ["add", "-f", rel_local, ".workboard.json"])
             self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Push: {rel_local} -> {remote_dest} ({message})"])
 
             return f"Successfully pushed '{rel_local}' to remote '{remote_dest}'. Local Git commit created."
