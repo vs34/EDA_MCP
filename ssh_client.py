@@ -223,16 +223,8 @@ class RemoteSession:
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
         
-        # csh multi-line if statement to check path status
-        cmd = (
-            f"if ( -d {quoted_path} ) then\n"
-            f"  echo '{sentinel}:is_dir'\n"
-            f"else if ( -e {quoted_path} ) then\n"
-            f"  base64 {quoted_path}; echo '{sentinel}:'$status\n"
-            f"else\n"
-            f"  echo '{sentinel}:404'\n"
-            f"endif\n"
-        )
+        # Single-line csh command to prevent parser stalls
+        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
         self.process.stdin.write(cmd)
         self.process.stdin.flush()
@@ -344,15 +336,8 @@ class RemoteSession:
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
         
-        cmd = (
-            f"if ( -d {quoted_path} ) then\n"
-            f"  echo '{sentinel}:is_dir'\n"
-            f"else if ( -e {quoted_path} ) then\n"
-            f"  base64 {quoted_path}; echo '{sentinel}:'$status\n"
-            f"else\n"
-            f"  echo '{sentinel}:404'\n"
-            f"endif\n"
-        )
+        # Single-line csh command to prevent parser stalls
+        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
         try:
             self.process.stdin.write(cmd)
