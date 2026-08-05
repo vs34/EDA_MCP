@@ -39,7 +39,7 @@ The `workboard` tool manages isolated local workspaces backed by local Git repos
 * **WorkBoard Selection**:
   * If `workboard_name` is omitted and only **one** WorkBoard exists, it automatically uses that active WorkBoard.
   * If **multiple** WorkBoards exist, `workboard_name` specifies the target workspace.
-* **Path Mapping**: Downloads the remote file to the relative `local_path` inside the WorkBoard (auto-creating subdirectories), records the remote-to-local path mapping in `.workboard.json`, and commits the file into the local Git repo (`git add & git commit`).
+* **Path Mapping**: Downloads the remote file to the relative `local_path` inside the WorkBoard (auto-creating subdirectories), records the remote-to-local path mapping in `.workboard.json`, and commits the file into the local Git repo (`git add <filename> & git commit`).
 
 #### 3. `pull(local_path, workboard_name)`
 * **Behavior**: Re-fetches the latest version of an already-added file/directory from the remote EDA server to update the local WorkBoard file, committing the update into the local Git repo.
@@ -78,7 +78,6 @@ The `workboard` tool manages isolated local workspaces backed by local Git repos
 │   │                                                                          │   │
 │   │  ├── workboard_1 (e.g., ./workboard/inverter_tb/)                        │   │
 │   │  │   ├── .git/                      (Local Git Repository)               │   │
-│   │  │   ├── .gitignore                 (Ignores *.tr0, *.wdb)               │   │
 │   │  │   ├── .workboard.json            (Remote-to-Local File Registry)      │   │
 │   │  │   └── netlists/inv_tb.cir        (Synced Netlist)                     │   │
 │   │  │                                                                       │   │
@@ -179,7 +178,7 @@ def workboard(
              │                                    │◄── Returns file content ────────────┤
              │                                    │ Saves to netlists/inv.cir           │
              │                                    │ Records mapping in .workboard.json  │
-             │                                    │ Runs 'git add & git commit'         │
+             │                                    │ Runs 'git add <filename> & commit'  │
              │                                    │                                     │
  3. Local Edit (Agent modifies netlist)           │                                     │
              │ Edits netlists/inv.cir locally     │                                     │
@@ -202,6 +201,21 @@ def workboard(
 
 ## 7. Edge Cases & Safeguards
 
-1. **Multi-WorkBoard Disambiguation**: If `workboard_name` is not specified when multiple WorkBoards exist, the system returns an informative error listing available WorkBoards to prompt selection.
-2. **Ignored Binaries**: Large binary files (`*.tr0`, `*.wdb`) are ignored by default in local `.gitignore` to keep local Git history lightweight.
+1. **Multi-WorkBoard Disambiguation**: If `workboard_name` is not specified when multiple WorkBoards exist, the system defaults to the active WorkBoard memory reference or returns an informative error listing available WorkBoards to prompt selection.
+2. **Explicit Tracking**: `workboard_client` executes `git add <filename>` specifically for tracked files in `.workboard.json`, avoiding untracked temporary files or `.gitignore` dependencies.
 3. **Local Rollback**: If an agent edit causes remote simulation failure, the user or agent can run `git checkout -- <file>` inside the local WorkBoard to restore the last clean netlist instantly.
+
+---
+
+## 8. Implementation Tips
+
+1. **Zero-Dependency Git Integration (`subprocess`)**:
+   * Use Python's built-in `subprocess.run(["git", ...], cwd=workboard_dir)` to interface with Git locally instead of adding external package dependencies (`GitPython`).
+2. **Explicit `git add <filename>`**:
+   * Always run `git add <local_path>` specifically for files registered in `.workboard.json`. Avoid blanket `git add .` calls to ensure unadded binary outputs or temporary scratch files are never staged.
+3. **Active WorkBoard State Memory**:
+   * Store `self.active_workboard` in memory inside `EDA_MCP`. When `workboard_name` is omitted by the agent, automatically target the active WorkBoard so the agent doesn't need to specify the name repeatedly in multi-turn conversations.
+4. **Remote `~` Path Expansion**:
+   * Handle remote paths starting with `~` properly before issuing SSH commands (e.g. `quoted_path = f"$HOME{shlex.quote(target_path[1:])}"`).
+5. **Safety Guard on `push`**:
+   * Verify that `local_path` is registered in `.workboard.json` before performing a `push`. If an unregistered file is pushed, prompt the agent to run `add` first so remote target destinations are explicitly tracked.
