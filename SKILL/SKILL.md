@@ -151,3 +151,13 @@ The `workboard` tool manages isolated local Git repositories (`./workboard/<name
 - **`status()`**:
   - Reports file-wise summary showing mapped remote path, last synced commit baseline SHA ($C_{\text{sync}}$) & timestamp, and local Git state.
 
+### Native Git Integration & Navigation Rules
+- **Built on Git Backend:** The `workboard` tool is powered by an underlying local Git repository (`./workboard/<name>/`). Every sync action (`add`, `pull`, `push`, `diff`) automatically executes `git add`, `git commit`, and manages `last_sync_commit` baselines.
+- **Use Native Git Commands for History & Navigation:**
+  - `workboard` is designed to be used **hand-in-hand with native Git commands**.
+  - You may run native Git terminal commands inside `./workboard/<name>/` for advanced file navigation, version inspection, and rollbacks:
+    - `git log -n 10 --oneline -- <local_path>`: Inspect exact commit history for a specific file.
+    - `git show <commit_sha>:<local_path>`: View exact file content at a past sync baseline.
+    - `git checkout <commit_sha> -- <local_path>`: Roll back a file to any past verified sync commit.
+    - `git diff <commit_sha_1> <commit_sha_2> -- <local_path>`: Compare changes across historical sync baselines.
+
