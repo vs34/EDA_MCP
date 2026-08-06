@@ -325,39 +325,6 @@ class RemoteSession:
 
         return output_lines, result_status
 
-    def read_file_bytes(self, remote_path: str, timeout: float = 30.0) -> bytes:
-        """
-        Reads a remote file as raw bytes (without UTF-8 string conversion), 
-        preserving binary integrity for waveform data (.tr0, .wdb, .vcd).
-        """
-        self.connect()
-        logger.info(f"Reading remote file bytes: {remote_path}")
-        
-        target_path = remote_path.strip()
-        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
-        sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
-        
-        # Single-line csh command to prevent parser stalls
-        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
-        
-        try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
-        except Exception as e:
-            self.close()
-            raise RuntimeError(f"Failed to write read command to SSH session: {e}")
-        
-        output_lines, result_status = self._read_until_sentinel(sentinel, timeout=timeout)
-            
-        if result_status == "404":
-            raise FileNotFoundError(f"File not found: {remote_path}")
-        elif result_status == "is_dir":
-            raise IsADirectoryError(f"Path is a directory: {remote_path}")
-            
-        b64_data = "".join(output_lines)
-        b64_clean = "".join(c for c in b64_data if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r")
-        return base64.b64decode(b64_clean.encode('ascii'))
-
     def write_file(self, remote_path: str, content: str, timeout: float = 30.0):
         """
         Writes content to a remote file.
@@ -366,35 +333,6 @@ class RemoteSession:
         logger.info(f"Writing remote file: {remote_path}")
         
         b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
-        target_path = remote_path.strip()
-        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
-        
-        cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
-        try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
-        except Exception as e:
-            self.close()
-            raise RuntimeError(f"Failed to write file command to SSH session: {e}")
-        
-        _, status_str = self._read_until_sentinel(sentinel, timeout=timeout)
-        try:
-            exit_code = int(status_str)
-        except ValueError:
-            exit_code = 0
-                
-        if exit_code != 0:
-            raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
-
-    def write_file_bytes(self, remote_path: str, content: bytes, timeout: float = 30.0):
-        """
-        Writes raw bytes to a remote file over SSH using base64 encoding.
-        """
-        self.connect()
-        logger.info(f"Writing remote file bytes: {remote_path}")
-        
-        b64_content = base64.b64encode(content).decode('ascii')
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
         target_path = remote_path.strip()
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
