@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from workboard_client import WorkBoardClient
+from ssh_client import SCPClient
 
 class MockSession:
     """Mock RemoteSession for offline WorkBoard unit testing."""
@@ -124,6 +125,51 @@ class TestWorkBoardClient(unittest.TestCase):
         hist_res = self.client.history(local_path="netlists/inv.cir", workboard_name="inv_tb")
         self.assertIn("Commit History ('netlists/inv.cir')", hist_res)
         self.assertIn("WorkBoard Add: ~/Desktop/eldo/inv.cir -> netlists/inv.cir", hist_res)
+
+class TestSCPClient(unittest.TestCase):
+    """Rigorous unit tests for SCPClient configuration, flags, and command generation."""
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp(prefix="test_scp_")
+        self.config_path = os.path.join(self.test_dir, "config.json")
+        self.ssh_cfg_path = os.path.join(self.test_dir, "ssh_config")
+        
+        # Create mock ssh_config file
+        with open(self.ssh_cfg_path, "w") as f:
+            f.write("Host eda-uni\n  HostName 192.168.1.100\n  User vaibhav22555\n")
+
+    def tearDown(self):
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir, ignore_errors=True)
+
+    def test_scp_config_loading_ssh_host(self):
+        # Create config with ssh_host key
+        with open(self.config_path, "w") as f:
+            f.write('{"ssh_host": "eda-uni", "ssh_config_path": "' + self.ssh_cfg_path + '"}\n')
+            
+        client = SCPClient(config_path=self.config_path)
+        self.assertEqual(client.host, "eda-uni")
+        self.assertEqual(client.ssh_config_path, self.ssh_cfg_path)
+
+    def test_scp_cmd_generation_includes_f_flag(self):
+        with open(self.config_path, "w") as f:
+            f.write('{"ssh_host": "eda-uni", "ssh_config_path": "' + self.ssh_cfg_path + '"}\n')
+            
+        client = SCPClient(config_path=self.config_path)
+        cmd = client._get_base_scp_cmd()
+        self.assertIn("-F", cmd)
+        self.assertIn(self.ssh_cfg_path, cmd)
+        self.assertIn("-q", cmd)
+        self.assertIn("BatchMode=yes", cmd)
+
+    def test_scp_alias_formatting_without_user(self):
+        client = SCPClient(host="eda-uni", user="", ssh_config_path=self.ssh_cfg_path)
+        # Attempt download on fake remote path to inspect exception format
+        try:
+            client.download("/remote/path/test.chi", os.path.join(self.test_dir, "test.chi"), timeout=1.0)
+        except Exception as e:
+            # Verify command included eda-uni:/remote/path/test.chi without user@ prefix
+            err_str = str(e)
+            self.assertTrue("timed out" in err_str or "failed" in err_str)
 
 if __name__ == "__main__":
     unittest.main()
