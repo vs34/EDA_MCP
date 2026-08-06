@@ -190,15 +190,8 @@ class WorkBoardClient:
         os.makedirs(os.path.dirname(target_local_path), exist_ok=True)
 
         try:
-            transfer_mode = "via SSH Subshell (<0.3s)"
-            try:
-                raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
-                with open(target_local_path, "wb") as f:
-                    f.write(raw_bytes)
-            except Exception as subshell_err:
-                logger.info(f"Subshell add transfer failed ({subshell_err}), falling back to SCP...")
-                self.scp_client.download(remote_path, target_local_path, timeout=timeout)
-                transfer_mode = "via SCP Fallback"
+            transfer_mode = "via SCP"
+            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -251,15 +244,8 @@ class WorkBoardClient:
         target_local_path = os.path.join(wb_dir, rel_local)
 
         try:
-            transfer_mode = "via SSH Subshell (<0.3s)"
-            try:
-                raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
-                with open(target_local_path, "wb") as f:
-                    f.write(raw_bytes)
-            except Exception as subshell_err:
-                logger.info(f"Subshell pull transfer failed ({subshell_err}), falling back to SCP...")
-                self.scp_client.download(remote_path, target_local_path, timeout=timeout)
-                transfer_mode = "via SCP Fallback"
+            transfer_mode = "via SCP"
+            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -310,15 +296,8 @@ class WorkBoardClient:
         remote_dest = file_meta["remote_path"]
 
         try:
-            transfer_mode = "via SSH Subshell (<0.3s)"
-            try:
-                with open(target_local_path, "rb") as f:
-                    raw_bytes = f.read()
-                self.session.write_file_bytes(remote_dest, raw_bytes, timeout=timeout)
-            except Exception as subshell_err:
-                logger.info(f"Subshell push transfer failed ({subshell_err}), falling back to SCP...")
-                self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
-                transfer_mode = "via SCP Fallback"
+            transfer_mode = "via SCP"
+            self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -366,11 +345,7 @@ class WorkBoardClient:
                 return f"Error: Local file not found: {target_local_path}"
 
             try:
-                try:
-                    remote_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
-                except Exception as subshell_err:
-                    logger.info(f"Subshell diff fetch failed ({subshell_err}), falling back to SCP...")
-                    remote_bytes = self.scp_client.read_bytes(remote_path, timeout=timeout)
+                remote_bytes = self.scp_client.read_bytes(remote_path, timeout=timeout)
                 with open(target_local_path, "rb") as f:
                     local_bytes = f.read()
 
