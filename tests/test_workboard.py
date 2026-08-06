@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 from workboard_client import WorkBoardClient
-from ssh_client import SCPClient
+from scp_client import SCPClient
 
 class MockSession:
     """Mock RemoteSession for offline WorkBoard unit testing."""

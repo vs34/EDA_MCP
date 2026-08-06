@@ -7,7 +7,8 @@ import shlex
 import time
 import difflib
 from typing import Dict, Any, Optional, Tuple, List
-from ssh_client import RemoteSession, SCPClient
+from ssh_client import RemoteSession
+from scp_client import SCPClient
 
 logger = logging.getLogger("eda_mcp.workboard_client")
 
