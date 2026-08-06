@@ -115,5 +115,15 @@ class TestWorkBoardClient(unittest.TestCase):
             content = f.read()
         self.assertEqual(content, b"\x00\x01\x02\x03\x04WAVEFORM_BINARY_DATA\x00\x01")
 
+    def test_history(self):
+        self.client.add(
+            remote_path="~/Desktop/eldo/inv.cir",
+            local_path="netlists/inv.cir",
+            workboard_name="inv_tb"
+        )
+        hist_res = self.client.history(local_path="netlists/inv.cir", workboard_name="inv_tb")
+        self.assertIn("Commit History ('netlists/inv.cir')", hist_res)
+        self.assertIn("WorkBoard Add: ~/Desktop/eldo/inv.cir -> netlists/inv.cir", hist_res)
+
 if __name__ == "__main__":
     unittest.main()

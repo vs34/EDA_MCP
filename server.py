@@ -221,6 +221,7 @@ def workboard(
       - 'push': Upload local edits from WorkBoard back to mapped remote server location and commit locally.
       - 'diff': Display unified diff between local WorkBoard file and remote server version.
       - 'status': List all tracked files and their status for a specific WorkBoard.
+      - 'history': Display local Git commit history for a specific file or workspace.
     """
     logger.info(f"[TOOL CALL] workboard: action={action!r}, workboard_name={workboard_name!r}, remote_path={remote_path!r}, local_path={local_path!r}")
     start_time = time.time()
@@ -238,8 +239,10 @@ def workboard(
             res = workboard_client.diff(local_path=local_path, workboard_name=workboard_name)
         elif act == "status":
             res = workboard_client.status(workboard_name=workboard_name)
+        elif act in ("history", "log"):
+            res = workboard_client.history(local_path=local_path, workboard_name=workboard_name)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'pull', 'push', 'diff', 'status'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'pull', 'push', 'diff', 'status', 'history'."
 
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] workboard (action={act}) finished in {duration:.2f}s")

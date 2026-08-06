@@ -444,3 +444,25 @@ class WorkBoardClient:
                 )
 
         return "\n".join(output)
+
+    def history(self, local_path: str = "", workboard_name: str = "", limit: int = 10) -> str:
+        """
+        Displays Git commit history for a specific file or the entire WorkBoard repository.
+        """
+        wb_name, err = self._resolve_workboard_name(workboard_name)
+        if err:
+            return err
+
+        wb_dir = self._get_workboard_dir(wb_name)
+        rel_local = local_path.strip()
+        git_args = ["log", f"-n{limit}", "--pretty=format:%h - %an, %ar : %s"]
+        if rel_local:
+            git_args.extend(["--", rel_local])
+
+        ret, stdout, stderr = self._git_cmd(wb_dir, git_args)
+        if ret == 0 and stdout.strip():
+            target_desc = f"'{rel_local}'" if rel_local else "Workspace"
+            header = f"--- WorkBoard '{wb_name}' Commit History ({target_desc}) ---"
+            return f"{header}\n{stdout.strip()}"
+        return f"No commit history found for '{rel_local if rel_local else 'workspace'}' in WorkBoard '{wb_name}'."
+
