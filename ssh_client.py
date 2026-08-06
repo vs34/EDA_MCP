@@ -215,7 +215,8 @@ class RemoteSession:
 
     def read_file(self, remote_path: str, timeout: float = 60.0) -> str:
         """
-        Reads a file from the remote server.
+        Reads a file from the remote server over the persistent SSH session 
+        with non-blocking timeout handling via _read_until_sentinel().
         """
         self.connect()
         logger.info(f"Reading remote file: {remote_path}")
@@ -227,23 +228,14 @@ class RemoteSession:
         # Single-line csh command to prevent parser stalls
         cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
-        self.process.stdin.write(cmd)
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write read command to SSH session: {e}")
         
-        output_lines = []
-        result_status = "0"
-        
-        while True:
-            line = self.process.stdout.readline()
-            if not line:
-                self.close()
-                raise RuntimeError("SSH connection lost during file read.")
-            if sentinel in line:
-                parts = line.strip().split(":")
-                if len(parts) > 1:
-                    result_status = parts[-1]
-                break
-            output_lines.append(line)
+        output_lines, result_status = self._read_until_sentinel(sentinel, timeout=timeout)
             
         if result_status == "404":
             raise FileNotFoundError(f"File not found: {remote_path}")
@@ -254,25 +246,18 @@ class RemoteSession:
         if result_status != "0":
             cat_sentinel = f"__CAT_FINISHED_{os.urandom(4).hex()}__"
             cat_cmd = f"cat {quoted_path}; echo '{cat_sentinel}:'$status\n"
-            self.process.stdin.write(cat_cmd)
-            self.process.stdin.flush()
+            try:
+                self.process.stdin.write(cat_cmd)
+                self.process.stdin.flush()
+            except Exception as e:
+                self.close()
+                raise RuntimeError(f"Failed to write fallback read command to SSH session: {e}")
             
-            cat_lines = []
-            cat_exit_code = 0
-            while True:
-                line = self.process.stdout.readline()
-                if not line:
-                    self.close()
-                    raise RuntimeError("SSH connection lost during fallback file read.")
-                if cat_sentinel in line:
-                    parts = line.strip().split(":")
-                    if len(parts) > 1:
-                        try:
-                            cat_exit_code = int(parts[-1])
-                        except ValueError:
-                            cat_exit_code = 0
-                    break
-                cat_lines.append(line)
+            cat_lines, cat_status = self._read_until_sentinel(cat_sentinel, timeout=timeout)
+            try:
+                cat_exit_code = int(cat_status)
+            except ValueError:
+                cat_exit_code = 0
                 
             if cat_exit_code != 0:
                 err_msg = "".join(cat_lines).strip()
