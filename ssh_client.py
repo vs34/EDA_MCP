@@ -213,7 +213,7 @@ class RemoteSession:
                 
         return 0, output_buffer, ""
 
-    def read_file(self, remote_path: str) -> str:
+    def read_file(self, remote_path: str, timeout: float = 60.0) -> str:
         """
         Reads a file from the remote server.
         """
