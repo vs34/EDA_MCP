@@ -354,6 +354,60 @@ class RemoteSession:
         if exit_code != 0:
             raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
 
+    def read_file_bytes(self, remote_path: str, timeout: float = 30.0) -> bytes:
+        """
+        Reads remote file raw bytes over persistent SSH session (Base64 fallback).
+        """
+        self.connect()
+        logger.info(f"Reading remote file bytes via subshell fallback: {remote_path}")
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
+        sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
+        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
+        
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write read command to SSH session: {e}")
+            
+        output_lines, result_status = self._read_until_sentinel(sentinel, timeout=timeout)
+        if result_status == "404":
+            raise FileNotFoundError(f"File not found: {remote_path}")
+        elif result_status == "is_dir":
+            raise IsADirectoryError(f"Path is a directory: {remote_path}")
+            
+        b64_data = "".join(output_lines)
+        b64_clean = "".join(c for c in b64_data if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r")
+        return base64.b64decode(b64_clean.encode('ascii'))
+
+    def write_file_bytes(self, remote_path: str, content: bytes, timeout: float = 30.0):
+        """
+        Writes raw bytes to remote file over persistent SSH session (Base64 fallback).
+        """
+        self.connect()
+        logger.info(f"Writing remote file bytes via subshell fallback: {remote_path}")
+        b64_content = base64.b64encode(content).decode('ascii')
+        sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
+        cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write file command to SSH session: {e}")
+            
+        _, status_str = self._read_until_sentinel(sentinel, timeout=timeout)
+        try:
+            exit_code = int(status_str)
+        except ValueError:
+            exit_code = 0
+        if exit_code != 0:
+            raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
+
     def __enter__(self):
         self.connect()
         return self
@@ -372,13 +426,15 @@ class SCPClient:
         host: str = "", 
         user: str = "", 
         port: int = 22, 
-        key_filename: Optional[str] = None
+        key_filename: Optional[str] = None,
+        ssh_config_path: Optional[str] = None
     ):
         self.config_path = config_path
         self.host = host
         self.user = user
         self.port = port
         self.key_filename = key_filename
+        self.ssh_config_path = ssh_config_path
         self.load_config()
 
     def load_config(self):
@@ -408,6 +464,7 @@ class SCPClient:
                     self.user = config.get("ssh_user") or config.get("user") or self.user or ""
                     self.port = int(config.get("port", self.port or 22))
                     self.key_filename = config.get("key_filename", self.key_filename)
+                    self.ssh_config_path = config.get("ssh_config_path", self.ssh_config_path)
             except Exception as e:
                 logger.error(f"Failed to load SSH config in SCPClient from {target_path}: {e}")
 
@@ -417,6 +474,13 @@ class SCPClient:
     def _get_base_scp_cmd(self) -> List[str]:
         """Constructs base SCP command options."""
         cmd = ["scp", "-q", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no"]
+        
+        # Pass explicit SSH config file path if specified or available (~/.ssh/config)
+        cfg_path = self.ssh_config_path or "~/.ssh/config"
+        expanded_cfg = os.path.expanduser(cfg_path)
+        if os.path.exists(expanded_cfg):
+            cmd.extend(["-F", expanded_cfg])
+
         if self.port and self.port != 22:
             cmd.extend(["-P", str(self.port)])
         if self.key_filename and os.path.exists(self.key_filename):

@@ -190,8 +190,15 @@ class WorkBoardClient:
         os.makedirs(os.path.dirname(target_local_path), exist_ok=True)
 
         try:
-            # Direct binary file/directory download via SCP
-            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
+            transfer_mode = "via SCP"
+            try:
+                self.scp_client.download(remote_path, target_local_path, timeout=timeout)
+            except Exception as scp_err:
+                logger.warning(f"SCP download failed/timed out ({scp_err}). Falling back to SSH subshell transfer...")
+                raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
+                with open(target_local_path, "wb") as f:
+                    f.write(raw_bytes)
+                transfer_mode = "via SSH Subshell Fallback"
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -214,7 +221,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' via SCP.\n"
+                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' ({transfer_mode}).\n"
                 f"Synced at local Git commit {commit_sha} ({now_iso}). Checksum: {checksum[:8]}."
             )
         except Exception as e:
@@ -244,7 +251,15 @@ class WorkBoardClient:
         target_local_path = os.path.join(wb_dir, rel_local)
 
         try:
-            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
+            transfer_mode = "via SCP"
+            try:
+                self.scp_client.download(remote_path, target_local_path, timeout=timeout)
+            except Exception as scp_err:
+                logger.warning(f"SCP pull failed/timed out ({scp_err}). Falling back to SSH subshell transfer...")
+                raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
+                with open(target_local_path, "wb") as f:
+                    f.write(raw_bytes)
+                transfer_mode = "via SSH Subshell Fallback"
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -261,7 +276,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}' via SCP.\n"
+                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}' ({transfer_mode}).\n"
                 f"Advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -295,8 +310,15 @@ class WorkBoardClient:
         remote_dest = file_meta["remote_path"]
 
         try:
-            # Direct binary file/directory upload via SCP
-            self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
+            transfer_mode = "via SCP"
+            try:
+                self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
+            except Exception as scp_err:
+                logger.warning(f"SCP push failed/timed out ({scp_err}). Falling back to SSH subshell transfer...")
+                with open(target_local_path, "rb") as f:
+                    raw_bytes = f.read()
+                self.session.write_file_bytes(remote_dest, raw_bytes, timeout=timeout)
+                transfer_mode = "via SSH Subshell Fallback"
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -313,7 +335,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pushed '{rel_local}' to remote '{remote_dest}' via SCP.\n"
+                f"Successfully pushed '{rel_local}' to remote '{remote_dest}' ({transfer_mode}).\n"
                 f"Committed locally and advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -344,8 +366,11 @@ class WorkBoardClient:
                 return f"Error: Local file not found: {target_local_path}"
 
             try:
-                # Fetch remote bytes via SCP
-                remote_bytes = self.scp_client.read_bytes(remote_path, timeout=timeout)
+                try:
+                    remote_bytes = self.scp_client.read_bytes(remote_path, timeout=timeout)
+                except Exception as scp_err:
+                    logger.warning(f"SCP diff fetch failed ({scp_err}). Falling back to SSH subshell transfer...")
+                    remote_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
                 with open(target_local_path, "rb") as f:
                     local_bytes = f.read()
 
