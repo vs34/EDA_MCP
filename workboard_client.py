@@ -7,7 +7,7 @@ import shlex
 import time
 import difflib
 from typing import Dict, Any, Optional, Tuple, List
-from ssh_client import RemoteSession
+from ssh_client import RemoteSession, SCPClient
 
 logger = logging.getLogger("eda_mcp.workboard_client")
 
@@ -16,8 +16,14 @@ class WorkBoardClient:
     WorkBoard Client Engine managing Local-Remote Git-backed Workspaces, 
     File Registry Sync (.workboard.json), and Commit-Baseline Version Control.
     """
-    def __init__(self, session: Optional[RemoteSession] = None, base_workboard_dir: str = "./workboard"):
+    def __init__(
+        self, 
+        session: Optional[RemoteSession] = None, 
+        scp_client: Optional[SCPClient] = None,
+        base_workboard_dir: str = "./workboard"
+    ):
         self.session = session or RemoteSession()
+        self.scp_client = scp_client or SCPClient(config_path=self.session.config_path)
         self.base_workboard_dir = os.path.abspath(base_workboard_dir)
         self.active_workboard: Optional[str] = None
         os.makedirs(self.base_workboard_dir, exist_ok=True)
@@ -184,10 +190,8 @@ class WorkBoardClient:
         os.makedirs(os.path.dirname(target_local_path), exist_ok=True)
 
         try:
-            # Binary-safe download using read_file_bytes
-            raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
-            with open(target_local_path, "wb") as f:
-                f.write(raw_bytes)
+            # Direct binary file/directory download via SCP
+            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -203,14 +207,14 @@ class WorkBoardClient:
                 "local_checksum": checksum,
                 "last_sync_commit": commit_sha,
                 "last_sync_time": now_iso,
-                "is_directory": False
+                "is_directory": os.path.isdir(target_local_path)
             }
             self._save_registry(wb_dir, registry)
             self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}'.\n"
+                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' via SCP.\n"
                 f"Synced at local Git commit {commit_sha} ({now_iso}). Checksum: {checksum[:8]}."
             )
         except Exception as e:
@@ -240,9 +244,7 @@ class WorkBoardClient:
         target_local_path = os.path.join(wb_dir, rel_local)
 
         try:
-            raw_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
-            with open(target_local_path, "wb") as f:
-                f.write(raw_bytes)
+            self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -259,7 +261,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}'.\n"
+                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}' via SCP.\n"
                 f"Advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -293,11 +295,8 @@ class WorkBoardClient:
         remote_dest = file_meta["remote_path"]
 
         try:
-            with open(target_local_path, "rb") as f:
-                raw_bytes = f.read()
-
-            # Binary-safe upload using write_file_bytes
-            self.session.write_file_bytes(remote_dest, raw_bytes, timeout=timeout)
+            # Direct binary file/directory upload via SCP
+            self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
             now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -314,7 +313,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pushed '{rel_local}' to remote '{remote_dest}'.\n"
+                f"Successfully pushed '{rel_local}' to remote '{remote_dest}' via SCP.\n"
                 f"Committed locally and advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -345,8 +344,8 @@ class WorkBoardClient:
                 return f"Error: Local file not found: {target_local_path}"
 
             try:
-                # Fetch remote bytes over SSH
-                remote_bytes = self.session.read_file_bytes(remote_path, timeout=timeout)
+                # Fetch remote bytes via SCP
+                remote_bytes = self.scp_client.read_bytes(remote_path, timeout=timeout)
                 with open(target_local_path, "rb") as f:
                     local_bytes = f.read()
 

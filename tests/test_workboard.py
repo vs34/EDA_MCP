@@ -7,27 +7,46 @@ from workboard_client import WorkBoardClient
 class MockSession:
     """Mock RemoteSession for offline WorkBoard unit testing."""
     def __init__(self):
+        self.config_path = "config.json"
         self.files = {
             "~/Desktop/eldo/inv.cir": ".param W=1u L=65n\nM0 vout vin vdd vdd psvtgp\n",
             "/tmp/wave.tr0": b"\x00\x01\x02\x03\x04WAVEFORM_BINARY_DATA\x00\x01"
         }
 
-    def read_file_bytes(self, remote_path, timeout=30.0):
+class MockSCPClient:
+    """Mock SCPClient for offline unit testing."""
+    def __init__(self):
+        self.files = {
+            "~/Desktop/eldo/inv.cir": b".param W=1u L=65n\nM0 vout vin vdd vdd psvtgp\n",
+            "/tmp/wave.tr0": b"\x00\x01\x02\x03\x04WAVEFORM_BINARY_DATA\x00\x01"
+        }
+
+    def download(self, remote_path, local_path, timeout=60.0):
         val = self.files.get(remote_path)
         if val is None:
             raise FileNotFoundError(f"Remote file not found: {remote_path}")
-        if isinstance(val, str):
-            return val.encode('utf-8')
-        return val
+        os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
+        with open(local_path, "wb") as f:
+            f.write(val)
+        return "Downloaded via MockSCP"
 
-    def write_file_bytes(self, remote_path, content, timeout=30.0):
-        self.files[remote_path] = content
+    def upload(self, local_path, remote_path, timeout=60.0):
+        with open(local_path, "rb") as f:
+            self.files[remote_path] = f.read()
+        return "Uploaded via MockSCP"
+
+    def read_bytes(self, remote_path, timeout=30.0):
+        val = self.files.get(remote_path)
+        if val is None:
+            raise FileNotFoundError(f"Remote file not found: {remote_path}")
+        return val
 
 class TestWorkBoardClient(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp(prefix="test_workboard_")
         self.session = MockSession()
-        self.client = WorkBoardClient(session=self.session, base_workboard_dir=self.test_dir)
+        self.scp = MockSCPClient()
+        self.client = WorkBoardClient(session=self.session, scp_client=self.scp, base_workboard_dir=self.test_dir)
 
     def tearDown(self):
         if os.path.exists(self.test_dir):
@@ -76,7 +95,7 @@ class TestWorkBoardClient(unittest.TestCase):
             workboard_name="inv_tb"
         )
         # Modify remote mock file
-        self.session.files["~/Desktop/eldo/inv.cir"] = ".param W=1.2u L=65n\nM0 vout vin vdd vdd psvtgp\n"
+        self.scp.files["~/Desktop/eldo/inv.cir"] = b".param W=1.2u L=65n\nM0 vout vin vdd vdd psvtgp\n"
         
         diff_res = self.client.diff(local_path="netlists/inv.cir", workboard_name="inv_tb")
         self.assertIn("Unified Local vs Remote Diff", diff_res)
