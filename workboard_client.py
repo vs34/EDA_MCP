@@ -100,7 +100,7 @@ class WorkBoardClient:
     def _git_cmd(self, workboard_dir: str, args: List[str]) -> Tuple[int, str, str]:
         """Executes a local git command inside workboard_dir using subprocess."""
         try:
-            cmd = ["git", "-c", "user.name=WorkBoard Agent", "-c", "user.email=agent@workboard.local"] + args
+            cmd = ["git", "-c", "user.name=WorkBoard MCP", "-c", "user.email=mcp@workboard.local"] + args
             res = subprocess.run(
                 cmd,
                 cwd=workboard_dir,
