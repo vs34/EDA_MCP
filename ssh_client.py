@@ -383,24 +383,36 @@ class SCPClient:
 
     def load_config(self):
         """Loads SSH credentials from config file if not provided directly."""
-        if self.host and self.user:
+        if self.host:
             return
 
         target_path = self.config_path
-        if not os.path.isabs(target_path):
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            target_path = os.path.join(base_dir, self.config_path)
+        if not os.path.exists(target_path):
+            dir_name = os.path.dirname(os.path.abspath(target_path))
+            fallback_candidates = [
+                os.path.join(dir_name, "config.json"),
+                os.path.join(os.path.dirname(dir_name), "config", "config.json"),
+                os.path.join(os.path.dirname(dir_name), "config_remote_control.json"),
+                os.path.join(os.path.dirname(dir_name), "config", "config_remote_control.json"),
+            ]
+            for fb in fallback_candidates:
+                if os.path.exists(fb):
+                    target_path = fb
+                    break
 
         if os.path.exists(target_path):
             try:
                 with open(target_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
-                    self.host = config.get("host", self.host)
-                    self.user = config.get("user", self.user)
-                    self.port = int(config.get("port", self.port))
+                    self.host = config.get("ssh_host") or config.get("host") or self.host or "eda-uni"
+                    self.user = config.get("ssh_user") or config.get("user") or self.user or ""
+                    self.port = int(config.get("port", self.port or 22))
                     self.key_filename = config.get("key_filename", self.key_filename)
             except Exception as e:
                 logger.error(f"Failed to load SSH config in SCPClient from {target_path}: {e}")
+
+        if not self.host:
+            self.host = "eda-uni"
 
     def _get_base_scp_cmd(self) -> List[str]:
         """Constructs base SCP command options."""
@@ -416,13 +428,13 @@ class SCPClient:
         Downloads a remote file OR directory (-r) via SCP directly to local_path.
         Bypasses terminal shell parsing and Base64 size expansion.
         """
-        if not self.host or not self.user:
-            raise ValueError("SCPClient not configured: missing host or user credentials.")
+        if not self.host:
+            raise ValueError("SCPClient not configured: missing host or ssh_host credentials.")
 
         os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
 
         remote_target = remote_path.strip()
-        quoted_remote = f"{self.user}@{self.host}:{remote_target}"
+        quoted_remote = f"{self.user}@{self.host}:{remote_target}" if self.user else f"{self.host}:{remote_target}"
 
         cmd = self._get_base_scp_cmd() + ["-r", quoted_remote, local_path]
         logger.info(f"SCP Downloading: {remote_target} -> {local_path}")
@@ -440,14 +452,14 @@ class SCPClient:
         """
         Uploads a local file OR directory (-r) via SCP directly to remote_path.
         """
-        if not self.host or not self.user:
-            raise ValueError("SCPClient not configured: missing host or user credentials.")
+        if not self.host:
+            raise ValueError("SCPClient not configured: missing host or ssh_host credentials.")
 
         if not os.path.exists(local_path):
             raise FileNotFoundError(f"Local path does not exist for SCP upload: {local_path}")
 
         remote_target = remote_path.strip()
-        quoted_remote = f"{self.user}@{self.host}:{remote_target}"
+        quoted_remote = f"{self.user}@{self.host}:{remote_target}" if self.user else f"{self.host}:{remote_target}"
 
         cmd = self._get_base_scp_cmd() + ["-r", local_path, quoted_remote]
         logger.info(f"SCP Uploading: {local_path} -> {remote_target}")
