@@ -25,11 +25,34 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 ### Library Scope
 - All user cellviews, test structures, schematics, and layouts created or managed through `eda-mcp` MUST be placed in the **`MCP`** library unless explicitly instructed otherwise by the user.
 
-### Tool Initialization
-- Before executing SKILL code with `virtuoso(action="run", ...)`:
-  - Verify Virtuoso is initialized.
-  - If not initialized or if session timed out, run `virtuoso(action="initialize", work_dir="~/Desktop/cmos65")`.
-  - Default working directory containing environment scripts: `~/Desktop/cmos65`.
+### Tool Initialization & Execution Modes
+- **Standalone Mode (`start_standalone` / `standalone`):**
+  - Uses non-graphical Virtuoso (`virtuoso -nograph`). Recommended for batch SKILL scripts, CDF parameter updates, and netlist extractions. Bypasses GUI modal dialogs and avoids 10s execution timeouts.
+- **Assisted Run Mode (`assisted_run`):**
+  - Used for interacting directly with the active graphical Cadence Virtuoso editor window.
+- **Before executing SKILL code:**
+  - Verify Virtuoso is initialized. If timed out, run `virtuoso(action="initialize", work_dir="~/Desktop/cmos65")`.
+
+### Explicit `cds.lib` Technology Resolution
+- If Virtuoso emits `DB-270172` (`Failed to open cellview cmos065/psvtgp/symbol`), ensure `cds.lib` includes explicit absolute library paths:
+  ```text
+  DEFINE analogLib /cadence/IC618/tools/dfII/etc/cdslib/artist/analogLib
+  DEFINE basic     /cadence/IC618/tools/dfII/etc/cdslib/basic
+  DEFINE cmos065   /usr/local/cmos065_536/DK_cmos065lpgp_7m4x0y2z_2V51V8@5.3.6/DATA/LIB/lib/OpenAccess/cmos065
+  DEFINE MCP       /home/vaibhav22555/Desktop/cmos65/MCP
+  ```
+
+### SKILL File Stream Flushing Rule (`drain` + `close`)
+- When writing netlists or text files via SKILL `outfile(...)`, **always** execute `drain(fileId)` before `close(fileId)`. This forces Cadence to flush RAM buffers to the server disk instantly and prevents empty (0-byte) netlist files.
+
+### Eldo Simulator Integration & Netlist Rules
+- **Circuit Title Line:** Line 1 of an Eldo `.cir` netlist MUST be an explicit title line (Eldo treats Line 1 as a title comment).
+- **Level-1 Model Fallback:** If full BSIM4 SSIM model decks are unlinked, use Eldo-compatible MOS model cards:
+  ```spice
+  .MODEL nsvtgp NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
+  .MODEL psvtgp PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
+  ```
+- **Interactive Simulation:** Initialize `eldo`, run `start_interactive(command="...")`, send `run`, then `step` via `run_interactive` to complete DC/transient sweeps.
 
 ### Timeout Management
 - SKILL execution calls have a configurable execution timeout window (default 30s).
