@@ -1,0 +1,7 @@
+{
+  "ssh_host": "eda-uni",
+  "ssh_user": "",
+  "ssh_config_path": "~/.ssh/config",
+  "port": 22,
+  "key_filename": ""
+}

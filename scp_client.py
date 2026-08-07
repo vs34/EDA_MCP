@@ -14,7 +14,7 @@ class SCPClient:
     """
     def __init__(
         self, 
-        config_path: str = "config.json", 
+        config_path: str = "config/config_scp.json", 
         host: str = "", 
         user: str = "", 
         port: int = 22, 
@@ -38,6 +38,9 @@ class SCPClient:
         if not os.path.exists(target_path):
             dir_name = os.path.dirname(os.path.abspath(target_path))
             fallback_candidates = [
+                os.path.join(dir_name, "config", "config_scp.json"),
+                os.path.join(dir_name, "config_scp.json"),
+                os.path.join(os.path.dirname(dir_name), "config", "config_scp.json"),
                 os.path.join(dir_name, "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config", "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config_remote_control.json"),

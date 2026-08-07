@@ -24,7 +24,7 @@ class WorkBoardClient:
         base_workboard_dir: str = "./workboard"
     ):
         self.session = session or RemoteSession()
-        self.scp_client = scp_client or SCPClient(config_path=self.session.config_path)
+        self.scp_client = scp_client or SCPClient()
         self.base_workboard_dir = os.path.abspath(base_workboard_dir)
         self.active_workboard: Optional[str] = None
         os.makedirs(self.base_workboard_dir, exist_ok=True)
