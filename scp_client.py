@@ -65,7 +65,7 @@ class SCPClient:
 
     def _get_base_scp_cmd(self) -> List[str]:
         """Constructs base SCP command options."""
-        cmd = ["scp", "-q", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no"]
+        cmd = ["scp", "-O", "-q", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no"]
         
         # Pass explicit SSH config file path if specified or available (~/.ssh/config)
         cfg_path = self.ssh_config_path or "~/.ssh/config"
