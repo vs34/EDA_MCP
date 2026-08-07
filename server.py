@@ -98,7 +98,8 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
         elif act in ("write_file", "write_remote_file", "write"):
             if not path.strip():
                 return "Error: 'path' argument is required when action='write_file'."
-            res = remote_session.write_file(path, content, timeout=timeout)
+            write_res = remote_session.write_file(path, content, timeout=timeout)
+            res = write_res or f"Successfully wrote {len(content)} bytes to remote file '{path}'."
             
         else:
             res = f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."

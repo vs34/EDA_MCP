@@ -311,7 +311,7 @@ class RemoteSession:
 
         return output_lines, result_status
 
-    def write_file(self, remote_path: str, content: str, timeout: float = 30.0):
+    def write_file(self, remote_path: str, content: str, timeout: float = 30.0) -> str:
         """
         Writes content to a remote file.
         """
@@ -339,6 +339,8 @@ class RemoteSession:
                 
         if exit_code != 0:
             raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
+
+        return f"Successfully wrote {len(content)} bytes to remote file '{remote_path}'."
 
     def read_file_bytes(self, remote_path: str, timeout: float = 30.0) -> bytes:
         """
