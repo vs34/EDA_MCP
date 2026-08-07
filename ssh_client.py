@@ -7,11 +7,13 @@ import shlex
 import subprocess
 import base64
 import select
+import tempfile
+from typing import Tuple, List, Optional
 
 logger = logging.getLogger("eda_mcp.ssh_client")
 
 class RemoteSession:
-    def __init__(self, config_path="config.json"):
+    def __init__(self, config_path="config/config.json"):
         self.config_path = config_path
         self.process = None
         self.load_config()
@@ -21,6 +23,7 @@ class RemoteSession:
         if not os.path.exists(target_path):
             dir_name = os.path.dirname(os.path.abspath(target_path))
             fallback_candidates = [
+                os.path.join(dir_name, "config", "config.json"),
                 os.path.join(dir_name, "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config", "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config.json"),
@@ -211,9 +214,10 @@ class RemoteSession:
                 
         return 0, output_buffer, ""
 
-    def read_file(self, remote_path: str) -> str:
+    def read_file(self, remote_path: str, timeout: float = 60.0) -> str:
         """
-        Reads a file from the remote server.
+        Reads a file from the remote server over the persistent SSH session 
+        with non-blocking timeout handling via _read_until_sentinel().
         """
         self.connect()
         logger.info(f"Reading remote file: {remote_path}")
@@ -222,34 +226,17 @@ class RemoteSession:
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
         
-        # csh multi-line if statement to check path status
-        cmd = (
-            f"if ( -d {quoted_path} ) then\n"
-            f"  echo '{sentinel}:is_dir'\n"
-            f"else if ( -e {quoted_path} ) then\n"
-            f"  base64 {quoted_path}; echo '{sentinel}:'$status\n"
-            f"else\n"
-            f"  echo '{sentinel}:404'\n"
-            f"endif\n"
-        )
+        # Single-line csh command to prevent parser stalls
+        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
-        self.process.stdin.write(cmd)
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write read command to SSH session: {e}")
         
-        output_lines = []
-        result_status = "0"
-        
-        while True:
-            line = self.process.stdout.readline()
-            if not line:
-                self.close()
-                raise RuntimeError("SSH connection lost during file read.")
-            if sentinel in line:
-                parts = line.strip().split(":")
-                if len(parts) > 1:
-                    result_status = parts[-1]
-                break
-            output_lines.append(line)
+        output_lines, result_status = self._read_until_sentinel(sentinel, timeout=timeout)
             
         if result_status == "404":
             raise FileNotFoundError(f"File not found: {remote_path}")
@@ -260,25 +247,18 @@ class RemoteSession:
         if result_status != "0":
             cat_sentinel = f"__CAT_FINISHED_{os.urandom(4).hex()}__"
             cat_cmd = f"cat {quoted_path}; echo '{cat_sentinel}:'$status\n"
-            self.process.stdin.write(cat_cmd)
-            self.process.stdin.flush()
+            try:
+                self.process.stdin.write(cat_cmd)
+                self.process.stdin.flush()
+            except Exception as e:
+                self.close()
+                raise RuntimeError(f"Failed to write fallback read command to SSH session: {e}")
             
-            cat_lines = []
-            cat_exit_code = 0
-            while True:
-                line = self.process.stdout.readline()
-                if not line:
-                    self.close()
-                    raise RuntimeError("SSH connection lost during fallback file read.")
-                if cat_sentinel in line:
-                    parts = line.strip().split(":")
-                    if len(parts) > 1:
-                        try:
-                            cat_exit_code = int(parts[-1])
-                        except ValueError:
-                            cat_exit_code = 0
-                    break
-                cat_lines.append(line)
+            cat_lines, cat_status = self._read_until_sentinel(cat_sentinel, timeout=timeout)
+            try:
+                cat_exit_code = int(cat_status)
+            except ValueError:
+                cat_exit_code = 0
                 
             if cat_exit_code != 0:
                 err_msg = "".join(cat_lines).strip()
@@ -298,7 +278,40 @@ class RemoteSession:
             logger.warning(f"Base64 decoding failed for {remote_path}, returning raw lines: {e}")
             return "".join(output_lines)
 
-    def write_file(self, remote_path: str, content: str):
+    def _read_until_sentinel(self, sentinel: str, timeout: float = 30.0) -> Tuple[List[str], str]:
+        """
+        Reads stdout line-by-line from persistent SSH session until sentinel token is encountered.
+        Returns: (output_lines, result_status_code)
+        """
+        start_time = time.time()
+        output_lines = []
+        result_status = "0"
+
+        while True:
+            if time.time() - start_time > timeout:
+                self.close()
+                raise TimeoutError(f"Operation timed out after {timeout} seconds reading SSH stream.")
+
+            rlist, _, _ = select.select([self.process.stdout], [], [], 0.5)
+            if not rlist:
+                continue
+
+            line = self.process.stdout.readline()
+            if not line:
+                self.close()
+                raise RuntimeError("SSH connection lost while reading stdout stream.")
+
+            if sentinel in line:
+                parts = line.strip().split(":")
+                if len(parts) > 1:
+                    result_status = parts[-1]
+                break
+
+            output_lines.append(line)
+
+        return output_lines, result_status
+
+    def write_file(self, remote_path: str, content: str, timeout: float = 30.0) -> str:
         """
         Writes content to a remote file.
         """
@@ -310,26 +323,76 @@ class RemoteSession:
         target_path = remote_path.strip()
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         
-        # Single-line base64 decode command
         cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
-        self.process.stdin.write(cmd)
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write file command to SSH session: {e}")
         
-        exit_code = 0
-        while True:
-            line = self.process.stdout.readline()
-            if not line:
-                self.close()
-                raise RuntimeError("SSH connection lost during file write.")
-            if sentinel in line:
-                parts = line.strip().split(":")
-                if len(parts) > 1:
-                    try:
-                        exit_code = int(parts[-1])
-                    except ValueError:
-                        exit_code = 0
-                break
+        _, status_str = self._read_until_sentinel(sentinel, timeout=timeout)
+        try:
+            exit_code = int(status_str)
+        except ValueError:
+            exit_code = 0
                 
+        if exit_code != 0:
+            raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
+
+        return f"Successfully wrote {len(content)} bytes to remote file '{remote_path}'."
+
+    def read_file_bytes(self, remote_path: str, timeout: float = 30.0) -> bytes:
+        """
+        Reads remote file raw bytes over persistent SSH session (Base64 fallback).
+        """
+        self.connect()
+        logger.info(f"Reading remote file bytes via subshell fallback: {remote_path}")
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
+        sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
+        cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
+        
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write read command to SSH session: {e}")
+            
+        output_lines, result_status = self._read_until_sentinel(sentinel, timeout=timeout)
+        if result_status == "404":
+            raise FileNotFoundError(f"File not found: {remote_path}")
+        elif result_status == "is_dir":
+            raise IsADirectoryError(f"Path is a directory: {remote_path}")
+            
+        b64_data = "".join(output_lines)
+        b64_clean = "".join(c for c in b64_data if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r")
+        return base64.b64decode(b64_clean.encode('ascii'))
+
+    def write_file_bytes(self, remote_path: str, content: bytes, timeout: float = 30.0):
+        """
+        Writes raw bytes to remote file over persistent SSH session (Base64 fallback).
+        """
+        self.connect()
+        logger.info(f"Writing remote file bytes via subshell fallback: {remote_path}")
+        b64_content = base64.b64encode(content).decode('ascii')
+        sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
+        target_path = remote_path.strip()
+        quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
+        cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
+        try:
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            self.close()
+            raise RuntimeError(f"Failed to write file command to SSH session: {e}")
+            
+        _, status_str = self._read_until_sentinel(sentinel, timeout=timeout)
+        try:
+            exit_code = int(status_str)
+        except ValueError:
+            exit_code = 0
         if exit_code != 0:
             raise RuntimeError(f"Failed to write file {remote_path} (exit status: {exit_code})")
 
@@ -339,3 +402,4 @@ class RemoteSession:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+

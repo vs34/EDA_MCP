@@ -25,11 +25,34 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 ### Library Scope
 - All user cellviews, test structures, schematics, and layouts created or managed through `eda-mcp` MUST be placed in the **`MCP`** library unless explicitly instructed otherwise by the user.
 
-### Tool Initialization
-- Before executing SKILL code with `virtuoso(action="run", ...)`:
-  - Verify Virtuoso is initialized.
-  - If not initialized or if session timed out, run `virtuoso(action="initialize", work_dir="~/Desktop/cmos65")`.
-  - Default working directory containing environment scripts: `~/Desktop/cmos65`.
+### Tool Initialization & Execution Modes
+- **Standalone Mode (`start_standalone` / `standalone`):**
+  - Uses non-graphical Virtuoso (`virtuoso -nograph`). Recommended for batch SKILL scripts, CDF parameter updates, and netlist extractions. Bypasses GUI modal dialogs and avoids 10s execution timeouts.
+- **Assisted Run Mode (`assisted_run`):**
+  - Used for interacting directly with the active graphical Cadence Virtuoso editor window.
+- **Before executing SKILL code:**
+  - Verify Virtuoso is initialized. If timed out, run `virtuoso(action="initialize", work_dir="~/Desktop/cmos65")`.
+
+### Explicit `cds.lib` Technology Resolution
+- If Virtuoso emits `DB-270172` (`Failed to open cellview cmos065/psvtgp/symbol`), ensure `cds.lib` includes explicit absolute library paths:
+  ```text
+  DEFINE analogLib /cadence/IC618/tools/dfII/etc/cdslib/artist/analogLib
+  DEFINE basic     /cadence/IC618/tools/dfII/etc/cdslib/basic
+  DEFINE cmos065   /usr/local/cmos065_536/DK_cmos065lpgp_7m4x0y2z_2V51V8@5.3.6/DATA/LIB/lib/OpenAccess/cmos065
+  DEFINE MCP       /home/vaibhav22555/Desktop/cmos65/MCP
+  ```
+
+### SKILL File Stream Flushing Rule (`drain` + `close`)
+- When writing netlists or text files via SKILL `outfile(...)`, **always** execute `drain(fileId)` before `close(fileId)`. This forces Cadence to flush RAM buffers to the server disk instantly and prevents empty (0-byte) netlist files.
+
+### Eldo Simulator Integration & Netlist Rules
+- **Circuit Title Line:** Line 1 of an Eldo `.cir` netlist MUST be an explicit title line (Eldo treats Line 1 as a title comment).
+- **Level-1 Model Fallback:** If full BSIM4 SSIM model decks are unlinked, use Eldo-compatible MOS model cards:
+  ```spice
+  .MODEL nsvtgp NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
+  .MODEL psvtgp PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
+  ```
+- **Interactive Simulation:** Initialize `eldo`, run `start_interactive(command="...")`, send `run`, then `step` via `run_interactive` to complete DC/transient sweeps.
 
 ### Timeout Management
 - SKILL execution calls have a configurable execution timeout window (default 30s).
@@ -128,3 +151,36 @@ dbSave(cv)
 ### Simulation Setup (ADE L / Spectre)
 - **Spectre Corner Models:** `/usr/local/cmos065_536/.../DATA/SPECTRE/CORNERS/svtgp.scs` (`tt` corner).
 - Launch ADE L session: `sevStartSession(?lib "MCP" ?cell "<cellName>" ?view "schematic")`.
+
+---
+
+## 5. WorkBoard Local-Remote Sync Guidelines (`workboard`)
+
+The `workboard` tool manages isolated local Git repositories (`./workboard/<name>/`) mapped to remote EDA server paths:
+
+### Action Usage Patterns & Best Practices
+- **`initialize(workboard_name="...", local_dir="./workboard")`**:
+  - Creates clean local workspace `./workboard/<workboard_name>/` and runs `git init`. Sets active memory workspace. Does NOT pull remote files on init.
+- **`add(remote_path="...", local_path="...")`**:
+  - Downloads file/folder from remote EDA server over SSH using binary-safe transfer (`read_file_bytes`).
+  - Saves to local WorkBoard path, records `last_sync_commit` baseline SHA and timestamp in `.workboard.json`, and commits to local Git.
+- **`pull(local_path="...")`**:
+  - Re-fetches latest version of an added file from remote server to update local WorkBoard, commits to local Git, and advances `last_sync_commit` baseline.
+- **`push(local_path="...", message="...")`**:
+  - Uploads local file edits back to mapped remote server path over SSH, commits to local Git, and advances `last_sync_commit` baseline.
+- **`diff(local_path="...")`**:
+  - Fetches live remote server file over SSH and compares line-by-line with local file.
+  - **Auto-Advance Feature**: If local and remote files are **100% identical**, `diff` automatically advances `last_sync_commit` in `.workboard.json` to the current local Git HEAD commit! If files differ, returns unified line-by-line diff.
+- **`status()`**:
+  - Reports file-wise summary showing mapped remote path, last synced commit baseline SHA ($C_{\text{sync}}$) & timestamp, and local Git state.
+
+### Native Git Integration & Navigation Rules
+- **Built on Git Backend:** The `workboard` tool is powered by an underlying local Git repository (`./workboard/<name>/`). Every sync action (`add`, `pull`, `push`, `diff`) automatically executes `git add`, `git commit`, and manages `last_sync_commit` baselines.
+- **Use Native Git Commands for History & Navigation:**
+  - `workboard` is designed to be used **hand-in-hand with native Git commands**.
+  - You may run native Git terminal commands inside `./workboard/<name>/` for advanced file navigation, version inspection, and rollbacks:
+    - `git log -n 10 --oneline -- <local_path>`: Inspect exact commit history for a specific file.
+    - `git show <commit_sha>:<local_path>`: View exact file content at a past sync baseline.
+    - `git checkout <commit_sha> -- <local_path>`: Roll back a file to any past verified sync commit.
+    - `git diff <commit_sha_1> <commit_sha_2> -- <local_path>`: Compare changes across historical sync baselines.
+

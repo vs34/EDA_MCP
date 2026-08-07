@@ -27,13 +27,13 @@ class EldoClient:
         self.workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
-        init_cmd = f"mkdir -p {safe_dir} && cd {safe_dir} && rm -f interctive.fifo && mkfifo interctive.fifo && touch intective_out.txt"
+        init_cmd = f"mkdir -p {safe_dir} && cd {safe_dir}"
         exit_code, stdout, stderr = self.session.execute_command(init_cmd)
         
         if exit_code != 0:
             return f"Failed to initialize Eldo working directory at {target_dir} (Exit code {exit_code}): {stdout}"
 
-        return f"Eldo session initialized in {target_dir}. Created interctive.fifo and intective_out.txt."
+        return f"Eldo session initialized in {target_dir}."
 
     def is_interactive_running(self) -> bool:
         """
