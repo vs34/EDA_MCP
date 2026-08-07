@@ -5,15 +5,6 @@ import tempfile
 from workboard_client import WorkBoardClient
 from scp_client import SCPClient
 
-class MockSession:
-    """Mock RemoteSession for offline WorkBoard unit testing."""
-    def __init__(self):
-        self.config_path = "config.json"
-        self.files = {
-            "~/Desktop/eldo/inv.cir": ".param W=1u L=65n\nM0 vout vin vdd vdd psvtgp\n",
-            "/tmp/wave.tr0": b"\x00\x01\x02\x03\x04WAVEFORM_BINARY_DATA\x00\x01"
-        }
-
 class MockSCPClient:
     """Mock SCPClient for offline unit testing."""
     def __init__(self):
@@ -45,9 +36,8 @@ class MockSCPClient:
 class TestWorkBoardClient(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp(prefix="test_workboard_")
-        self.session = MockSession()
         self.scp = MockSCPClient()
-        self.client = WorkBoardClient(session=self.session, scp_client=self.scp, base_workboard_dir=self.test_dir)
+        self.client = WorkBoardClient(scp_client=self.scp, base_workboard_dir=self.test_dir)
 
     def tearDown(self):
         if os.path.exists(self.test_dir):

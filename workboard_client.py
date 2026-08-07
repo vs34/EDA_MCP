@@ -17,7 +17,6 @@ class WorkBoardClient:
     """
     def __init__(
         self, 
-        session: Any = None, 
         scp_client: Optional[SCPClient] = None,
         base_workboard_dir: str = "./workboard"
     ):
