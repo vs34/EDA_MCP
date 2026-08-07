@@ -9,7 +9,6 @@ import base64
 import select
 import tempfile
 from typing import Tuple, List, Optional
-from scp_client import SCPClient
 
 logger = logging.getLogger("eda_mcp.ssh_client")
 
