@@ -210,6 +210,7 @@ def workboard(
     local_path: str = "",
     message: str = "Agent sync",
     recursive: bool = False,
+    overwrite: bool = False,
     timeout: float = 60.0
 ) -> str:
     """
@@ -234,6 +235,22 @@ def workboard(
         elif act in ("add", "add_file"):
             res = workboard_client.add(remote_path=remote_path, local_path=local_path, workboard_name=workboard_name, timeout=timeout)
         elif act in ("export", "export_file"):
+            if not local_path.strip():
+                return "Error: 'local_path' is required for export action."
+
+            # Check if remote file exists using remote_session.execute_command
+            wb_name, _ = workboard_client._resolve_workboard_name(workboard_name)
+            wb_dir = workboard_client._get_workboard_dir(wb_name)
+            registry = workboard_client._load_registry(wb_dir, wb_name)
+            target_remote = remote_path.strip() or registry.get("files", {}).get(local_path.strip(), {}).get("remote_path", "")
+
+            if target_remote and not overwrite:
+                quoted_remote = f"$HOME{shlex.quote(target_remote[1:])}" if target_remote.startswith("~") else shlex.quote(target_remote)
+                check_cmd = f"test -e {quoted_remote}"
+                exit_code, _, _ = remote_session.execute_command(check_cmd, timeout=timeout)
+                if exit_code == 0:
+                    return f"Error: File at remote path '{target_remote}' already exists on the server. Set overwrite=True to overwrite it."
+
             res = workboard_client.export(local_path=local_path, remote_path=remote_path, workboard_name=workboard_name, message=message, timeout=timeout)
         elif act == "pull":
             res = workboard_client.pull(local_path=local_path, workboard_name=workboard_name, timeout=timeout)
