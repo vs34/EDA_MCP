@@ -3,7 +3,6 @@ import json
 import hashlib
 import logging
 import subprocess
-import shlex
 import time
 import difflib
 from typing import Dict, Any, Optional, Tuple, List
@@ -116,7 +115,7 @@ class WorkBoardClient:
 
     def _get_current_head_commit(self, workboard_dir: str) -> str:
         """Returns current local Git HEAD short commit SHA or 'UNKNOWN'."""
-        ret, stdout, stderr = self._git_cmd(workboard_dir, ["rev-parse", "--short", "HEAD"])
+        ret, stdout, _ = self._git_cmd(workboard_dir, ["rev-parse", "--short", "HEAD"])
         if ret == 0 and stdout.strip():
             return stdout.strip()
         return "UNKNOWN"
@@ -172,7 +171,7 @@ class WorkBoardClient:
 
     def add(self, remote_path: str, local_path: str = "", workboard_name: str = "", timeout: float = 60.0) -> str:
         """
-        Fetches a file from remote EDA server via binary-safe SSH transfer, saves it to local WorkBoard,
+        Fetches a file from remote EDA server via SCP, saves it to local WorkBoard,
         commits to local Git, and records commit SHA & timestamp baseline in .workboard.json.
         """
         if not remote_path.strip():
@@ -191,7 +190,6 @@ class WorkBoardClient:
         os.makedirs(os.path.dirname(target_local_path), exist_ok=True)
 
         try:
-            transfer_mode = "via SCP"
             self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
@@ -215,7 +213,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}' ({transfer_mode}).\n"
+                f"Successfully added '{remote_path}' to WorkBoard '{wb_name}' at '{rel_local}'.\n"
                 f"Synced at local Git commit {commit_sha} ({now_iso}). Checksum: {checksum[:8]}."
             )
         except Exception as e:
@@ -245,7 +243,6 @@ class WorkBoardClient:
         target_local_path = os.path.join(wb_dir, rel_local)
 
         try:
-            transfer_mode = "via SCP"
             self.scp_client.download(remote_path, target_local_path, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
@@ -263,7 +260,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}' ({transfer_mode}).\n"
+                f"Successfully pulled latest '{remote_path}' to '{rel_local}' in WorkBoard '{wb_name}'.\n"
                 f"Advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -297,7 +294,6 @@ class WorkBoardClient:
         remote_dest = file_meta["remote_path"]
 
         try:
-            transfer_mode = "via SCP"
             self.scp_client.upload(target_local_path, remote_dest, timeout=timeout)
 
             checksum = self._calculate_checksum(target_local_path)
@@ -315,7 +311,7 @@ class WorkBoardClient:
             self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
 
             return (
-                f"Successfully pushed '{rel_local}' to remote '{remote_dest}' ({transfer_mode}).\n"
+                f"Successfully pushed '{rel_local}' to remote '{remote_dest}'.\n"
                 f"Committed locally and advanced sync baseline to commit {commit_sha} ({now_iso})."
             )
         except Exception as e:
@@ -389,7 +385,7 @@ class WorkBoardClient:
 
         # Default local Git diff if local_path is omitted or not registered
         target = rel_local if rel_local else "."
-        ret, stdout, stderr = self._git_cmd(wb_dir, ["diff", target])
+        _, stdout, _ = self._git_cmd(wb_dir, ["diff", target])
         if stdout.strip():
             return f"--- Local Git Diff ({target}) ---\n{stdout.strip()}"
         return f"No local uncommitted Git diff for '{target}' in WorkBoard '{wb_name}'."
@@ -405,7 +401,7 @@ class WorkBoardClient:
 
         wb_dir = self._get_workboard_dir(wb_name)
         registry = self._load_registry(wb_dir, wb_name)
-        ret, git_status_out, stderr = self._git_cmd(wb_dir, ["status", "--short"])
+        _, git_status_out, _ = self._git_cmd(wb_dir, ["status", "--short"])
 
         output = []
         output.append(f"WorkBoard Name: {wb_name}")
@@ -460,7 +456,7 @@ class WorkBoardClient:
         if rel_local:
             git_args.extend(["--", rel_local])
 
-        ret, stdout, stderr = self._git_cmd(wb_dir, git_args)
+        ret, stdout, _ = self._git_cmd(wb_dir, git_args)
         if ret == 0 and stdout.strip():
             target_desc = f"'{rel_local}'" if rel_local else "Workspace"
             header = f"--- WorkBoard '{wb_name}' Commit History ({target_desc}) ---"
