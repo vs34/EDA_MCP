@@ -59,7 +59,7 @@ eldo_session = RemoteSession(config_path=eldo_config)
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
 virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
 eldo_client = EldoClient(session=eldo_session)
-workboard_client = WorkBoardClient(session=remote_session)
+workboard_client = WorkBoardClient()
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "", timeout: float = 60.0) -> str:

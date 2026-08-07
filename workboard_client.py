@@ -6,7 +6,6 @@ import subprocess
 import time
 import difflib
 from typing import Dict, Any, Optional, Tuple, List
-from ssh_client import RemoteSession
 from scp_client import SCPClient
 
 logger = logging.getLogger("eda_mcp.workboard_client")
@@ -18,11 +17,10 @@ class WorkBoardClient:
     """
     def __init__(
         self, 
-        session: Optional[RemoteSession] = None, 
+        session: Any = None, 
         scp_client: Optional[SCPClient] = None,
         base_workboard_dir: str = "./workboard"
     ):
-        self.session = session or RemoteSession()
         self.scp_client = scp_client or SCPClient()
         self.base_workboard_dir = os.path.abspath(base_workboard_dir)
         self.active_workboard: Optional[str] = None
