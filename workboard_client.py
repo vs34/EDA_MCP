@@ -216,6 +216,62 @@ class WorkBoardClient:
         except Exception as e:
             return f"Failed to add '{remote_path}' to WorkBoard '{wb_name}': {str(e)}"
 
+    def export(self, local_path: str, remote_path: str = "", workboard_name: str = "", message: str = "WorkBoard Export", timeout: float = 60.0) -> str:
+        """
+        Uploads a local file from the WorkBoard workspace to a specified remote server location via SCP,
+        registers the local-to-remote mapping in .workboard.json, and commits to local Git.
+        """
+        if not local_path.strip():
+            return "Error: 'local_path' is required for export action."
+
+        wb_name, err = self._resolve_workboard_name(workboard_name)
+        if err:
+            return err
+
+        wb_dir = self._get_workboard_dir(wb_name)
+        self.initialize(workboard_name=wb_name, local_dir=self.base_workboard_dir)
+        registry = self._load_registry(wb_dir, wb_name)
+
+        rel_local = local_path.strip()
+        target_local_path = os.path.join(wb_dir, rel_local)
+
+        if not os.path.exists(target_local_path):
+            return f"Error: Local file not found: {target_local_path}"
+
+        target_remote = remote_path.strip() or registry.get("files", {}).get(rel_local, {}).get("remote_path", "")
+        if not target_remote:
+            return f"Error: 'remote_path' is required for exporting '{rel_local}' to the remote server."
+
+        try:
+            self.scp_client.upload(target_local_path, target_remote, timeout=timeout)
+
+            checksum = self._calculate_checksum(target_local_path)
+            now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            # Stage file and commit locally
+            self._git_cmd(wb_dir, ["add", "-f", rel_local])
+            self._git_cmd(wb_dir, ["commit", "-m", f"WorkBoard Export: {rel_local} -> {target_remote} ({message})"])
+            commit_sha = self._get_current_head_commit(wb_dir)
+
+            # Update registry manifest with sync commit baseline
+            registry["files"][rel_local] = {
+                "remote_path": target_remote,
+                "local_checksum": checksum,
+                "last_sync_commit": commit_sha,
+                "last_sync_time": now_iso,
+                "is_directory": os.path.isdir(target_local_path)
+            }
+            self._save_registry(wb_dir, registry)
+            self._git_cmd(wb_dir, ["add", "-f", ".workboard.json"])
+            self._git_cmd(wb_dir, ["commit", "--amend", "--no-edit"])
+
+            return (
+                f"Successfully exported '{rel_local}' to remote '{target_remote}' in WorkBoard '{wb_name}'.\n"
+                f"Synced at local Git commit {commit_sha} ({now_iso}). Checksum: {checksum[:8]}."
+            )
+        except Exception as e:
+            return f"Failed to export '{rel_local}' to remote '{target_remote}': {str(e)}"
+
     def pull(self, local_path: str, workboard_name: str = "", timeout: float = 60.0) -> str:
         """
         Re-fetches latest version of an added file from remote server to update local WorkBoard,

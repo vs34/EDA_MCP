@@ -54,5 +54,19 @@ def run_workboard_online_test():
     print(f"Time taken: {t_pull:.3f}s")
     print(res)
 
+    # 6. Export
+    export_local = "test_export_netlist.cir"
+    export_remote = "/home/vaibhav22555/Desktop/eldo/test_export_netlist.cir"
+    wb_dir = wb_client._get_workboard_dir(wb_name)
+    with open(os.path.join(wb_dir, export_local), "w") as f:
+        f.write("* WorkBoard Online Export Test\n.PARAM R1=100 C1=1p\n.END\n")
+
+    print("\n6️⃣ ACTION: export")
+    t0 = time.time()
+    res = wb_client.export(local_path=export_local, remote_path=export_remote, workboard_name=wb_name)
+    t_export = time.time() - t0
+    print(f"Time taken: {t_export:.3f}s")
+    print(res)
+
 if __name__ == "__main__":
     run_workboard_online_test()

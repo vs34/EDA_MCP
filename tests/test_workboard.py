@@ -50,6 +50,22 @@ class TestWorkBoardClient(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(wb_dir, ".git")))
         self.assertTrue(os.path.exists(os.path.join(wb_dir, ".workboard.json")))
 
+    def test_export(self):
+        self.client.initialize(workboard_name="inv_tb")
+        wb_dir = os.path.join(self.test_dir, "inv_tb")
+        local_file = os.path.join(wb_dir, "exported_inv.cir")
+        os.makedirs(os.path.dirname(local_file), exist_ok=True)
+        with open(local_file, "w") as f:
+            f.write(".param W=2u L=65n\n")
+
+        res_export = self.client.export(
+            local_path="exported_inv.cir",
+            remote_path="/tmp/exported_inv.cir",
+            workboard_name="inv_tb"
+        )
+        self.assertIn("Successfully exported", res_export)
+        self.assertIn("/tmp/exported_inv.cir", self.scp.files)
+
     def test_add_and_status(self):
         res_add = self.client.add(
             remote_path="~/Desktop/eldo/inv.cir",

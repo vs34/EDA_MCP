@@ -218,6 +218,7 @@ def workboard(
     Actions:
       - 'initialize': Create a new local WorkBoard workspace and initialize a local Git repository.
       - 'add': Fetch a file/folder from remote server path and add it to a specific WorkBoard at local_path.
+      - 'export': Upload a local WorkBoard file/folder to a specified remote server location and register tracking.
       - 'pull': Re-fetch latest remote server version of an added file to update the local WorkBoard.
       - 'push': Upload local edits from WorkBoard back to mapped remote server location and commit locally.
       - 'diff': Display unified diff between local WorkBoard file and remote server version.
@@ -232,6 +233,8 @@ def workboard(
             res = workboard_client.initialize(workboard_name=workboard_name or "default")
         elif act in ("add", "add_file"):
             res = workboard_client.add(remote_path=remote_path, local_path=local_path, workboard_name=workboard_name, timeout=timeout)
+        elif act in ("export", "export_file"):
+            res = workboard_client.export(local_path=local_path, remote_path=remote_path, workboard_name=workboard_name, message=message, timeout=timeout)
         elif act == "pull":
             res = workboard_client.pull(local_path=local_path, workboard_name=workboard_name, timeout=timeout)
         elif act == "push":
@@ -243,7 +246,7 @@ def workboard(
         elif act in ("history", "log"):
             res = workboard_client.history(local_path=local_path, workboard_name=workboard_name)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'pull', 'push', 'diff', 'status', 'history'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'export', 'pull', 'push', 'diff', 'status', 'history'."
 
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] workboard (action={act}) finished in {duration:.2f}s")
