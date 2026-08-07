@@ -51,6 +51,9 @@ Example configuration (`config/config_eldo.json`):
 }
 ```
 
+> **Performance Tip**: Enable SSH Connection Multiplexing (`ControlMaster auto`, `ControlPersist 15m`) in your local `~/.ssh/config` for optimal sub-10ms execution and file sync speeds.
+
+
 ---
 
 ## 🔌 Configuring with AI Clients
