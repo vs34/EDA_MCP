@@ -13,7 +13,7 @@ from typing import Tuple, List, Optional
 logger = logging.getLogger("eda_mcp.ssh_client")
 
 class RemoteSession:
-    def __init__(self, config_path="config.json"):
+    def __init__(self, config_path="config/config.json"):
         self.config_path = config_path
         self.process = None
         self.load_config()
@@ -23,6 +23,7 @@ class RemoteSession:
         if not os.path.exists(target_path):
             dir_name = os.path.dirname(os.path.abspath(target_path))
             fallback_candidates = [
+                os.path.join(dir_name, "config", "config.json"),
                 os.path.join(dir_name, "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config", "config.json"),
                 os.path.join(os.path.dirname(dir_name), "config.json"),
