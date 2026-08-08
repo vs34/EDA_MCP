@@ -1,31 +1,64 @@
-# EDA_MCP Server
+# 🔌 EDA_MCP Server
 
-A Model Context Protocol (MCP) server that bridges your local AI tools (like Claude Desktop, Cursor, Windsurf) to a remote EDA server over SSH. It automatically sources your CAD shell setup scripts (e.g. `/cadence/cshrc` or `/mentor2020/ams.cshrc`) inside persistent `csh` execution environments and enables remote shell control, Cadence Virtuoso SKILL execution, and Siemens Eldo simulation control.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Protocol: FastMCP](https://img.shields.io/badge/Protocol-FastMCP-purple.svg)](https://modelcontextprotocol.io/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+
+> **Bridge local AI Agents (Cursor, Windsurf, Claude Desktop, Antigravity) directly to remote Linux EDA clusters over SSH.**
+
+`EDA_MCP` empowers AI agents to manage remote IC design tools (Cadence Virtuoso, Siemens Eldo), execute SKILL & simulation decks, and synchronize workspace files locally using a **Git-backed WorkBoard architecture** with sub-10ms connection speeds over SSH multiplexing.
+
+---
+
+## 🏛️ Architecture: Local Control Plane + Remote Execution Engine
+
+```
+┌──────────────────────────────────────────────────────────┐                      ┌──────────────────────────┐
+│              LOCAL SYSTEM (Your Machine)                 │                      │    REMOTE EDA SERVER     │
+│                                                          │                      │                          │
+│  ┌────────────────────────────────────────────────────┐  │      SSH Tunnel      │  • Cadence Virtuoso      │
+│  │               EDA_MCP (FastMCP Server)             │  ├─────────────────────►│  • Siemens Eldo          │
+│  │                                                    │  │  (Command & File IO) │  • Raw Remote Files      │
+│  │  • Remote Command Exec  • Local Git WorkBoard Sync │  │◄─────────────────────┤  • Netlists & Results    │
+│  └────────────────────────────────────────────────────┘  │                      └──────────────────────────┘
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🚀 Key Features & Tools
 
-### 1. Remote Control (`remote_control`)
-Unified remote shell execution and file management interface supporting:
-- **`action='run_command'`**: Stateful terminal command execution inside a sourced `csh` session.
-- **`action='read_file'`**: Reads file contents directly from the remote server.
-- **`action='write_file'`**: Creates or updates remote files (e.g. Tcl/SKILL scripts).
+### 1. 🗂️ WorkBoard (`workboard`)
+Git-backed local-remote workspace synchronization and version control:
+- **`initialize`**: Creates a new local WorkBoard workspace and initializes a local Git repo.
+- **`add`**: Fetches a remote file/folder from any server path to the local WorkBoard and records mapping.
+- **`pull`**: Re-fetches the latest version of an added file from the remote server to update the local copy.
+- **`push`**: Uploads local edits back to mapped remote server location and commits locally.
+- **`export`**: Saves a brand-new local file to a specified remote server location with overwrite protection (`overwrite=True`).
+- **`diff`**: Computes line-by-line unified diff between local WorkBoard file and live remote server file.
+- **`status`**: Reports tracked file statuses and local Git commit baselines.
+- **`history`**: Displays local Git commit log for workspace auditing.
 
-### 2. Cadence Virtuoso Control (`virtuoso`)
+### 2. 🎨 Cadence Virtuoso Control (`virtuoso`)
 Full Cadence Virtuoso lifecycle and SKILL command execution:
-- **`action='initialize'`**: Navigates to project workspace (`~/Desktop/cmos65`) and launches Virtuoso in the background (`virtuoso &`).
-- **`action='run'`**: Sends SKILL commands into Virtuoso via non-blocking FIFO pipe IPC (`MCP.command`) and polls `mcp_output.txt` for execution results.
-- **`action='exit'`**: Gracefully terminates Virtuoso using SKILL `exit()` and process SIGTERM/SIGKILL fallback.
+- **`initialize`**: Navigates to project workspace (`~/Desktop/cmos65`) and initializes environment.
+- **`run`**: Executes SKILL statements via non-blocking FIFO IPC (`MCP.command`) and polls results.
+- **`start_standalone` / `run_standalone`**: Interactive `virtuoso -nograph` REPL streaming session.
+- **`exit`**: Gracefully terminates Virtuoso processes.
 
-### 3. Siemens Eldo Control (`eldo`)
-Full Siemens/Mentor Graphics Eldo analog simulation control (`source /mentor2020/ams.cshrc`):
-- **`action='initialize'`**: Sets up project directory (defaults to `~/Desktop/eldo`), creates FIFO pipe (`interctive.fifo`), and output log (`intective_out.txt`).
-- **`action='start_interactive'`**: Spawns a persistent background Eldo interactive process (`eldo <netlist.cir> -inter < interctive.fifo >& intective_out.txt &`) with PID tracking.
-- **`action='run_interactive'`**: Checks PID status; sends commands into `interctive.fifo` and returns output from `intective_out.txt`. Prompts for `.cir` netlist if no interactive session is active.
-- **`action='stop_interactive'`**: Stops the background interactive Eldo process (`kill -9 <pid>`).
-- **`action='run_script'`**: Runs batch Eldo simulation (`eldo <script.cir> >& mcp_run.log`), returning execution status and log content (auto-truncating to `tail -100` if log exceeds 100 lines).
-- **`action='read_extract'`**: Auto-detects and reads the latest `.extract` measurement summary file.
+### 3. ⚡ Siemens Eldo Control (`eldo`)
+Siemens/Mentor Graphics Eldo analog simulation control:
+- **`initialize`**: Sets up project directory (`~/Desktop/eldo`) and interactive IPC pipes.
+- **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL.
+- **`run_script`**: Runs batch Eldo simulation (`eldo <script.cir>`) and truncates execution logs cleanly.
+- **`read_extract`**: Auto-detects and reads the latest `.extract` measurement summary file.
+
+### 4. 💻 Remote Control (`remote_control`)
+Unified remote shell execution inside persistent, sourced `csh` environments:
+- **`run_command`**: Stateful terminal execution maintaining working directory across calls.
+- **`read_file`**: Reads remote file contents directly over persistent SSH stdin/stdout.
+- **`write_file`**: Creates or updates remote files using Base64 streams.
 
 ---
 
@@ -37,22 +70,22 @@ pip3 install -r requirements.txt
 ```
 
 ### 2. Configuration (`config/`)
-Tool-specific configuration files reside in the `config/` directory (see `config/*.json.template`):
-- `config/config_remote_control.json`: Setup for `remote_control` tool.
-- `config/config_virtuoso.json`: Setup for `virtuoso` tool.
-- `config/config_eldo.json`: Setup for `eldo` tool (`env_setup_cmd`: `"source /mentor2020/ams.cshrc"`).
-
-Example configuration (`config/config_eldo.json`):
+Configure tool credentials in the `config/` directory (see `config/*.json.template`):
 ```json
 {
   "ssh_host": "eda-uni",
   "ssh_config_path": "~/.ssh/config",
-  "env_setup_cmd": "source /mentor2020/ams.cshrc"
+  "env_setup_cmd": "source /cadence/cshrc"
 }
 ```
 
-> **Performance Tip**: Enable SSH Connection Multiplexing (`ControlMaster auto`, `ControlPersist 15m`) in your local `~/.ssh/config` for optimal sub-10ms execution and file sync speeds.
-
+> ⚡ **Performance Tip (Sub-10ms Speeds)**: Enable SSH Connection Multiplexing in your local `~/.ssh/config` for instant command and file transfers:
+> ```sshconfig
+> Host eda-uni
+>     ControlMaster auto
+>     ControlPath ~/.ssh/control-%r@%h:%p
+>     ControlPersist 15m
+> ```
 
 ---
 
@@ -82,8 +115,15 @@ Add a new Stdio MCP Server:
 
 ## 🏗️ Architecture & Modules
 
-* `config/`: Stores tool-specific JSON configs (`config_remote_control.json`, `config_virtuoso.json`, `config_eldo.json`).
-* `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions and process sentinels.
-* `virtuoso_client.py`: High-level Cadence Virtuoso client encapsulating SKILL IPC pipe communication and response polling.
-* `eldo_client.py`: High-level Siemens Eldo simulation client with interactive FIFO pipe IPC, PID health checks, batch execution, and `.extract` reading.
-* `server.py`: FastMCP server registering `@mcp.tool()` definitions (`remote_control`, `virtuoso`, `eldo`).
+* `server.py`: FastMCP server registering tool definitions (`remote_control`, `virtuoso`, `eldo`, `workboard`).
+* `workboard_client.py`: WorkBoard client managing local Git repositories, `.workboard.json` registries, and unified diffs.
+* `scp_client.py`: High-speed binary/text transport engine leveraging OpenSSH multiplexing.
+* `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions.
+* `virtuoso_client.py`: Cadence Virtuoso client encapsulating SKILL IPC pipe communication and REPL streams.
+* `eldo_client.py`: Siemens Eldo simulation client with interactive REPL streaming and `.extract` reading.
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License**. See `LICENSE` for details.
