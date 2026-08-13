@@ -63,7 +63,8 @@ def _format_result_summary(res: str, max_len: int = 300) -> str:
     """Formats tool return result on a single line for clean, full lifecycle logging."""
     if not res:
         return "<empty>"
-    clean = " ".join(res.strip().splitlines())
+    lines = [line.strip() for line in res.strip().splitlines() if line.strip()]
+    clean = " || ".join(lines)
     if len(clean) > max_len:
         return f"{clean[:max_len]}... [{len(res)} bytes total]"
     return clean
