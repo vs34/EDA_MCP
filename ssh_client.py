@@ -58,19 +58,18 @@ class RemoteSession:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=0  # Unbuffered
+                bufsize=0  # Unbuffered raw binary streams
             )
             
             # Sourcing the CAD environment script on startup
             init_sentinel = "__CSH_INIT_DONE__"
             init_cmd = f"{self.env_setup_cmd}; echo '{init_sentinel}:'$status\n"
-            self.process.stdin.write(init_cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), init_cmd.encode('utf-8'))
             
             # Read stdout until the initialization is complete with timeout
             start_time = time.time()
             init_timeout = 30.0
+            init_buf = ""
             while True:
                 elapsed = time.time() - start_time
                 if elapsed > init_timeout:
@@ -82,10 +81,11 @@ class RemoteSession:
                         raise RuntimeError("SSH process terminated during initialization.")
                     continue
 
-                line = self.process.stdout.readline()
-                if not line:
+                raw = os.read(self.process.stdout.fileno(), 4096)
+                if not raw:
                     raise RuntimeError("SSH connection lost during shell initialization.")
-                if init_sentinel in line:
+                init_buf += raw.decode('utf-8', errors='replace')
+                if init_sentinel in init_buf:
                     break
                     
             logger.info("Persistent SSH shell session established and sourced successfully.")
@@ -99,8 +99,7 @@ class RemoteSession:
             logger.info("Closing persistent SSH session...")
             try:
                 # Send exit to csh
-                self.process.stdin.write("exit\n")
-                self.process.stdin.flush()
+                os.write(self.process.stdin.fileno(), b"exit\n")
                 self.process.terminate()
                 self.process.wait(timeout=2)
             except Exception:
@@ -125,44 +124,16 @@ class RemoteSession:
         logger.debug(f"Sending command: {cmd}")
         
         try:
-            self.process.stdin.write(full_cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), full_cmd.encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write command to SSH session: {e}")
         
-        # Read lines from stdout until we see the sentinel or time out
-        output_lines = []
-        exit_code = 0
-        start_time = time.time()
-        
-        while True:
-            elapsed = time.time() - start_time
-            remaining = timeout - elapsed
-            if remaining <= 0:
-                self.close() # Reset the contaminated session!
-                raise TimeoutError(f"Command execution timed out after {timeout} seconds. The SSH session has been reset.")
-
-            r, _, _ = select.select([self.process.stdout], [], [], min(remaining, 1.0))
-            if not r:
-                if self.process.poll() is not None:
-                    self.close()
-                    raise RuntimeError("SSH process terminated unexpectedly during command execution.")
-                continue
-
-            line = self.process.stdout.readline()
-            if not line:
-                self.close()
-                raise RuntimeError("SSH connection lost during command execution.")
-            if sentinel in line:
-                parts = line.strip().split(":")
-                if len(parts) > 1:
-                    try:
-                        exit_code = int(parts[1])
-                    except ValueError:
-                        exit_code = 0
-                break
-            output_lines.append(line)
+        output_lines, status_str = self._read_until_sentinel(sentinel, timeout=timeout)
+        try:
+            exit_code = int(status_str)
+        except ValueError:
+            exit_code = 0
             
         stdout_str = "".join(output_lines)
         return exit_code, stdout_str, ""
@@ -177,8 +148,7 @@ class RemoteSession:
         logger.debug(f"Sending interactive stream command: {cmd}")
         
         try:
-            self.process.stdin.write(cmd + "\n")
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), (cmd + "\n").encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write interactive command to SSH session: {e}")
@@ -200,11 +170,11 @@ class RemoteSession:
                     raise RuntimeError("SSH process terminated unexpectedly during interactive stream.")
                 continue
 
-            chunk = self.process.stdout.read(1)
-            if not chunk:
+            raw = os.read(self.process.stdout.fileno(), 4096)
+            if not raw:
                 self.close()
                 break
-            output_buffer += chunk
+            output_buffer += raw.decode('utf-8', errors='replace')
             
             # Test trailing line against prompt regex
             lines = output_buffer.splitlines()
@@ -230,8 +200,7 @@ class RemoteSession:
         cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
         try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), cmd.encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write read command to SSH session: {e}")
@@ -248,8 +217,7 @@ class RemoteSession:
             cat_sentinel = f"__CAT_FINISHED_{os.urandom(4).hex()}__"
             cat_cmd = f"cat {quoted_path}; echo '{cat_sentinel}:'$status\n"
             try:
-                self.process.stdin.write(cat_cmd)
-                self.process.stdin.flush()
+                os.write(self.process.stdin.fileno(), cat_cmd.encode('utf-8'))
             except Exception as e:
                 self.close()
                 raise RuntimeError(f"Failed to write fallback read command to SSH session: {e}")
@@ -280,11 +248,11 @@ class RemoteSession:
 
     def _read_until_sentinel(self, sentinel: str, timeout: float = 30.0) -> Tuple[List[str], str]:
         """
-        Reads stdout line-by-line from persistent SSH session until sentinel token is encountered.
+        Reads stdout from persistent SSH session until sentinel token is encountered.
         Returns: (output_lines, result_status_code)
         """
         start_time = time.time()
-        output_lines = []
+        buf = ""
         result_status = "0"
 
         while True:
@@ -294,22 +262,28 @@ class RemoteSession:
 
             rlist, _, _ = select.select([self.process.stdout], [], [], 0.5)
             if not rlist:
+                if self.process.poll() is not None:
+                    self.close()
+                    raise RuntimeError("SSH process terminated unexpectedly.")
                 continue
 
-            line = self.process.stdout.readline()
-            if not line:
+            raw = os.read(self.process.stdout.fileno(), 4096)
+            if not raw:
                 self.close()
                 raise RuntimeError("SSH connection lost while reading stdout stream.")
 
-            if sentinel in line:
-                parts = line.strip().split(":")
-                if len(parts) > 1:
-                    result_status = parts[-1]
-                break
-
-            output_lines.append(line)
-
-        return output_lines, result_status
+            buf += raw.decode('utf-8', errors='replace')
+            if sentinel in buf:
+                lines = buf.splitlines(keepends=True)
+                output_lines = []
+                for line in lines:
+                    if sentinel in line:
+                        parts = line.strip().split(":")
+                        if len(parts) > 1:
+                            result_status = parts[-1]
+                    else:
+                        output_lines.append(line)
+                return output_lines, result_status
 
     def write_file(self, remote_path: str, content: str, timeout: float = 30.0) -> str:
         """
@@ -325,8 +299,7 @@ class RemoteSession:
         
         cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
         try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), cmd.encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write file command to SSH session: {e}")
@@ -354,8 +327,7 @@ class RemoteSession:
         cmd = f"test -d {quoted_path} && echo '{sentinel}:is_dir' || (base64 {quoted_path}; echo '{sentinel}:'$status)\n"
         
         try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), cmd.encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write read command to SSH session: {e}")
@@ -382,8 +354,7 @@ class RemoteSession:
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         cmd = f"echo {shlex.quote(b64_content)} | base64 -d > {quoted_path}; echo '{sentinel}:'$status\n"
         try:
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
+            os.write(self.process.stdin.fileno(), cmd.encode('utf-8'))
         except Exception as e:
             self.close()
             raise RuntimeError(f"Failed to write file command to SSH session: {e}")

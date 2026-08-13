@@ -160,24 +160,26 @@ After placement and wiring, ensure every device has correct electrical parameter
 
 ---
 
-## Phase 6 — Check & Save
+## Phase 6 — Check & Save (Zero-Tolerance for Floating Nodes & Warnings)
 
 Validate the schematic before declaring it done.
 
 - [ ] **Run `schCheck(cv)`** to invoke the Virtuoso schematic checker. This catches:
-  - Floating terminals
+  - Floating terminals / floating gates
   - Short circuits
   - Missing connections
   - Name conflicts
-- [ ] **Read and address every warning and error** from `schCheck`. Don't ignore warnings — they often indicate real problems.
-- [ ] **Save the cellview** with `dbSave(cv)`.
+- [ ] **CRITICAL: NEVER IGNORE WARNINGS!** Virtuoso `schCheck` often reports floating gates, unattached terminals, or unconnected nets as *Warnings* (e.g., "0 errors, 15 warnings").
+- [ ] **Audit & Resolve Warnings:**
+  - Read both errors AND warnings from `schCheck` log output.
+  - If any warnings exist regarding floating gates, unconnected terminals, or unattached pins:
+    - **STOP.** Do NOT declare success or proceed to simulation.
+    - Fix the SKILL wiring script to wire every single gate and terminal properly.
+    - Re-run `schCheck(cv)` until **0 errors AND 0 warnings** regarding floating/unconnected nodes remain.
+- [ ] **Save the cellview** with `dbSave(cv)` only after verifying clean check output.
 - [ ] **Close the cellview** with `dbClose(cv)` when done (optional but clean).
-- [ ] **Report the final schematic to the user**, summarizing:
-  - The topology implemented
-  - Device count and sizing
-  - Pin list
-  - Any assumptions or trade-offs made
-  - Known limitations or areas for tuning
+- [ ] **Report the final schematic to the user**, confirming zero errors and zero floating node warnings.
+
 
 ---
 

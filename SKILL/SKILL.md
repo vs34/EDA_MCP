@@ -108,10 +108,14 @@ net_gnd = dbMakeNet(cv "gnd")
 dbCreateConnByName(net_vdd pInst "b")
 dbCreateConnByName(net_gnd nInst "b")
 
-;; Check & Save
+;; Check & Save (Zero-Tolerance for Floating Gates & Warnings)
+;; NEVER ignore schCheck warnings! Inspect warnings for floating gates or unconnected pins.
 schCheck(cv)
 dbSave(cv)
 ```
+
+> **CRITICAL RULE ON `schCheck` WARNINGS:** Virtuoso `schCheck(cv)` often flags floating gates, unattached terminals, or floating nets as *Warnings* (e.g., "0 errors, 15 warnings"). Agents **MUST NOT** ignore warnings. If any warning reports floating gates or unconnected pins, the SKILL script must be fixed and `schCheck` re-run until 0 floating node warnings remain before saving or running Eldo simulations.
+
 
 ### B. Layout Creation Pattern
 - **Layout Layers:**
