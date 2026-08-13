@@ -190,7 +190,7 @@ class RemoteSession:
         with non-blocking timeout handling via _read_until_sentinel().
         """
         self.connect()
-        logger.info(f"Reading remote file: {remote_path}")
+        logger.debug(f"Reading remote file: {remote_path}")
         
         target_path = remote_path.strip()
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
@@ -290,7 +290,7 @@ class RemoteSession:
         Writes content to a remote file.
         """
         self.connect()
-        logger.info(f"Writing remote file: {remote_path}")
+        logger.debug(f"Writing remote file: {remote_path}")
         
         b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
@@ -320,7 +320,7 @@ class RemoteSession:
         Reads remote file raw bytes over persistent SSH session (Base64 fallback).
         """
         self.connect()
-        logger.info(f"Reading remote file bytes via subshell fallback: {remote_path}")
+        logger.debug(f"Reading remote file bytes via subshell fallback: {remote_path}")
         target_path = remote_path.strip()
         quoted_path = f"$HOME{shlex.quote(target_path[1:])}" if target_path.startswith("~") else shlex.quote(target_path)
         sentinel = f"__READ_FINISHED_{os.urandom(4).hex()}__"
@@ -347,7 +347,7 @@ class RemoteSession:
         Writes raw bytes to remote file over persistent SSH session (Base64 fallback).
         """
         self.connect()
-        logger.info(f"Writing remote file bytes via subshell fallback: {remote_path}")
+        logger.debug(f"Writing remote file bytes via subshell fallback: {remote_path}")
         b64_content = base64.b64encode(content).decode('ascii')
         sentinel = f"__WRITE_FINISHED_{os.urandom(4).hex()}__"
         target_path = remote_path.strip()

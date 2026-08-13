@@ -59,7 +59,14 @@ eldo_session = RemoteSession(config_path=eldo_config)
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
 virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
 eldo_client = EldoClient(session=eldo_session)
-workboard_client = WorkBoardClient()
+def _format_result_summary(res: str, max_len: int = 300) -> str:
+    """Formats tool return result on a single line for clean, full lifecycle logging."""
+    if not res:
+        return "<empty>"
+    clean = " ".join(res.strip().splitlines())
+    if len(clean) > max_len:
+        return f"{clean[:max_len]}... [{len(res)} bytes total]"
+    return clean
 
 @mcp.tool()
 def remote_control(action: str, command: str = "", path: str = "", content: str = "", timeout: float = 60.0) -> str:
@@ -105,7 +112,7 @@ def remote_control(action: str, command: str = "", path: str = "", content: str 
             res = f"Error: Unknown action '{action}'. Valid actions are 'run_command', 'read_file', 'write_file'."
             
         duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s")
+        logger.info(f"[TOOL RESULT] remote_control (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
         return res
         
     except Exception as e:
@@ -152,7 +159,7 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
             res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit'."
         
         duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s")
+        logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
         return res
     except Exception as e:
         duration = time.time() - start_time
@@ -195,7 +202,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
             res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
         
         duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s")
+        logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
         return res
     except Exception as e:
         duration = time.time() - start_time
@@ -266,7 +273,7 @@ def workboard(
             res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'add', 'export', 'pull', 'push', 'diff', 'status', 'history'."
 
         duration = time.time() - start_time
-        logger.info(f"[TOOL RESULT] workboard (action={act}) finished in {duration:.2f}s")
+        logger.info(f"[TOOL RESULT] workboard (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
         return res
     except Exception as e:
         duration = time.time() - start_time
