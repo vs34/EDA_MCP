@@ -29,7 +29,24 @@ class TestIssueReporter(unittest.TestCase):
         self.assertIn("Retry polling before timing out", body)
 
     @patch("subprocess.run")
-    def test_create_issue_success(self, mock_run):
+    def test_ensure_label_exists_creates_missing_label(self, mock_run):
+        # Mock gh label list output without 'Claude'
+        mock_run.side_effect = [
+            MagicMock(stdout="bug\tdescription\t#d73a4a\nAntigravity\tdescription\t#5319e7\n", returncode=0), # list
+            MagicMock(stdout="", returncode=0) # create
+        ]
+
+        created = IssueReporter.ensure_label_exists("Claude")
+        self.assertTrue(created)
+        self.assertEqual(mock_run.call_count, 2)
+        
+        # Verify second call was gh label create Claude
+        create_args = mock_run.call_args_list[1][0][0]
+        self.assertEqual(create_args[:4], ["gh", "label", "create", "Claude"])
+
+    @patch.object(IssueReporter, "ensure_label_exists", return_value=True)
+    @patch("subprocess.run")
+    def test_create_issue_success(self, mock_run, mock_ensure_label):
         mock_run.return_value = MagicMock(
             stdout="https://github.com/vs34/EDA_MCP/issues/42\n",
             returncode=0
@@ -37,7 +54,7 @@ class TestIssueReporter(unittest.TestCase):
 
         result = IssueReporter.create_issue(
             title="Eldo timeout on file lock",
-            agent_name="Antigravity",
+            agent_name="Claude",
             session_id="test-session-123",
             domain_intent="Simulate inverter",
             tool_name="eldo",
@@ -47,6 +64,7 @@ class TestIssueReporter(unittest.TestCase):
         )
 
         self.assertIn("Successfully created GitHub issue: https://github.com/vs34/EDA_MCP/issues/42", result)
+        mock_ensure_label.assert_called_once_with("Claude", cwd=None)
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
         cmd = args[0]
@@ -57,6 +75,7 @@ class TestIssueReporter(unittest.TestCase):
         self.assertIn("Eldo timeout on file lock", cmd)
         self.assertIn("--label", cmd)
         self.assertIn("bug", cmd)
+        self.assertIn("Claude", cmd)
 
 if __name__ == "__main__":
     unittest.main()

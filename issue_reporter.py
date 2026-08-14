@@ -51,6 +51,41 @@ class IssueReporter:
         return "\n".join(body_parts)
 
     @classmethod
+    def ensure_label_exists(cls, label_name: str, cwd: Optional[str] = None) -> bool:
+        """Checks if a label exists in the GitHub repository, creating it via gh label create if missing."""
+        if not label_name or not label_name.strip():
+            return False
+
+        clean_label = label_name.strip()
+        try:
+            # Check existing labels via gh CLI
+            list_cmd = ["gh", "label", "list"]
+            res = subprocess.run(list_cmd, capture_output=True, text=True, check=True, cwd=cwd)
+            
+            existing_labels = []
+            for line in res.stdout.splitlines():
+                parts = line.split('\t')
+                if parts:
+                    existing_labels.append(parts[0].strip().lower())
+
+            if clean_label.lower() in existing_labels:
+                return True
+
+            # Label does not exist -> create it
+            description = f"Issues reported by {clean_label} AI Agent"
+            create_cmd = [
+                "gh", "label", "create", clean_label,
+                "--description", description,
+                "--color", "5319e7"
+            ]
+            subprocess.run(create_cmd, capture_output=True, text=True, check=True, cwd=cwd)
+            logger.info(f"Created new GitHub label: {clean_label}")
+            return True
+        except Exception as e:
+            logger.warning(f"Label check/create failed for {clean_label!r}: {e}")
+            return False
+
+    @classmethod
     def create_issue(
         cls,
         title: str,
@@ -65,7 +100,7 @@ class IssueReporter:
         cwd: Optional[str] = None
     ) -> str:
         """
-        Creates a GitHub issue via the gh CLI tool.
+        Creates a GitHub issue via the gh CLI tool with auto-created AI agent label.
         
         Returns:
             The URL of the created issue or an error message.
@@ -80,14 +115,28 @@ class IssueReporter:
             expected_behavior=expected_behavior
         )
 
+        # Collect unique labels to apply
+        labels_to_apply = []
+        if label and label.strip():
+            labels_to_apply.append(label.strip())
+        
+        if agent_name and agent_name.strip():
+            agent_label = agent_name.strip()
+            # Ensure the agent label exists in the repository (creates via gh if missing)
+            cls.ensure_label_exists(agent_label, cwd=cwd)
+            if agent_label.lower() not in [l.lower() for l in labels_to_apply]:
+                labels_to_apply.append(agent_label)
+
         cmd = [
             "gh", "issue", "create",
             "--title", title,
-            "--label", label,
             "--body", body
         ]
 
-        logger.info(f"Creating GitHub issue: title={title!r}, label={label!r}, agent={agent_name!r}")
+        for lbl in labels_to_apply:
+            cmd.extend(["--label", lbl])
+
+        logger.info(f"Creating GitHub issue: title={title!r}, labels={labels_to_apply!r}, agent={agent_name!r}")
 
         try:
             result = subprocess.run(
