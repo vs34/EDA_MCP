@@ -74,3 +74,11 @@ close(fp)
 ## 4. Local Tooling & Computation Authorization
 - Agents may freely use all local system tools (Python scripts, NumPy, SymPy, local scratch files, web research, math solvers) to compute transistor dimensions ($W/L$), gain-bandwidth product allocations, bias currents, node voltages, or netlist topologies locally before synthesizing SKILL scripts or launching remote EDA commands.
 
+---
+
+## 5. `assisted_run` Command Length & Error Trapping Spec
+- **Length Constraint**: Keep `assisted_run` SKILL `command` strings short and modular. For monolithic scripts, write to `.il` file and run `load("script.il")`, or use `action="standalone"`.
+- **Error Trapping (`errset`)**: Server `MCP_setup.il` automatically traps unhandled SKILL errors via `errset` and `unwindProtect` (preventing 30s timeouts). Agents may also use `errset(expr t)` inside SKILL commands to capture detailed diagnostic messages for self-healing.
+
+
+

@@ -1,5 +1,5 @@
 procedure( MCP_DataHandler(ipcId data)
-    let((p oldWo oldPo res)
+    let((p oldWo oldPo res errSuccess)
         ;; Prints debug info to Virtuoso CIW
         printf("[RUNNING]: %s\n" data)
 
@@ -8,11 +8,20 @@ procedure( MCP_DataHandler(ipcId data)
         oldWo = woport  oldPo = poport
         woport = p      poport = p
 
-        res = evalstring(data)
-        fprintf(p "RESULT: %L\n\n" res)
-
-        close(p)
-        woport = oldWo  poport = oldPo
+        unwindProtect(
+            progn(
+                errSuccess = errset(res = evalstring(data) t)
+                if( errSuccess then
+                    fprintf(p "RESULT: %L\n\n" res)
+                else
+                    fprintf(p "RESULT: ERROR (SKILL evaluation failed)\n\n")
+                )
+            )
+            progn(
+                close(p)
+                woport = oldWo  poport = oldPo
+            )
+        )
     )
 )
 

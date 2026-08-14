@@ -31,6 +31,8 @@
 5. **STREAM_FLUSH_RULE**: Every SKILL file stream (`outfile`) MUST execute `drain(fileId)` before `close(fileId)`.
 6. **ELDO_TITLE_RULE**: Line 1 of any `.cir` netlist is strictly treated by Eldo as a title comment line.
 7. **LOCAL_COMPUTATION_RULE**: Agents are fully authorized and encouraged to use local default capabilities, Python scripts, mathematical calculators, scratch scripts, and web research to perform transistor sizing ($W/L$), bias point calculations, schematic planning, and netlist formatting prior to remote execution.
+8. **ASSISTED_RUN_LENGTH_RULE**: For `virtuoso(action="assisted_run")`, the SKILL code in `command` MUST NOT be excessively long. Keep commands concise and modular for `assisted_run`. For complex/long SKILL scripts, save them to a file (`.il`) and invoke `load("script.il")`, or use standalone REPL mode (`action="standalone"`).
+9. **ERRSET_DEBUG_RULE**: Wrap complex SKILL expressions in `errset(expr t)` for detailed error diagnostics and instant failure logs.
 
 ---
 

@@ -18,7 +18,8 @@
           ▼
    Polling Loop (Interval: 0.3s, Timeout: 30.0s)
    read_file("mcp_output.txt") until "RESULT:" appears
-```
+> **Command Length & Error Handling Contract**: `assisted_run` SKILL commands are written directly to `MCP.command` FIFO via shell `echo` (keep short/concise; use `load("file.il")` for large scripts). Server-side [`MCP_setup.il`](file:///Users/vs/function/EDA_MCP/server_side/virtuoso/MCP_setup.il) wraps `evalstring` in `errset` and `unwindProtect` to catch SKILL exceptions, write `RESULT: ERROR ...`, and restore ports without timing out.
+
 
 ### Standalone REPL Mode
 - `start_standalone(work_dir)`: Sends `virtuoso -nograph` via `execute_interactive_stream()` matching `(>\s*$|\bCIW>\s*$)`.
