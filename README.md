@@ -59,6 +59,11 @@ Unified remote shell execution inside persistent, sourced `csh` environments:
 - **`read_file`**: Reads remote file contents directly over persistent SSH stdin/stdout.
 - **`write_file`**: Creates or updates remote files using Base64 streams.
 
+### 5. 🤖 Meta-Harness Issue Reporter (`report_issue`)
+Autonomous agent-to-agent issue reporting pipeline:
+- **`report_issue`**: Allows Agent A (Chip Design Consumer) to report tool bugs, feature requests, or tracebacks directly to GitHub with agent identity, session ID, and domain intent—without needing context of the underlying EDA_MCP Python codebase.
+
+
 ---
 
 ## 🛠️ Installation & Setup
@@ -114,7 +119,8 @@ Add a new Stdio MCP Server:
 
 ## 🏗️ Architecture & Modules
 
-* `server.py`: FastMCP server registering tool definitions (`remote_control`, `virtuoso`, `eldo`, `workboard`).
+* `server.py`: FastMCP server registering tool definitions (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
+* `issue_reporter.py`: Meta-Harness helper formatting structured GitHub issue bodies and invoking `gh` CLI.
 * `workboard_client.py`: WorkBoard client managing local Git repositories, `.workboard.json` registries, and unified diffs.
 * `scp_client.py`: High-speed binary/text transport engine leveraging OpenSSH multiplexing.
 * `ssh_client.py`: Low-level SSH transport backbone managing persistent `csh` shell sessions.

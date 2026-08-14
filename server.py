@@ -8,6 +8,7 @@ from ssh_client import RemoteSession
 from virtuoso_client import VirtuosoClient
 from eldo_client import EldoClient
 from workboard_client import WorkBoardClient
+from issue_reporter import IssueReporter
 
 # Get absolute path to base dir and setup temp logging folder
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -280,6 +281,46 @@ def workboard(
         duration = time.time() - start_time
         logger.error(f"[TOOL ERROR] workboard (action={action}) failed in {duration:.2f}s: {e}")
         return f"Error in workboard tool: {str(e)}"
+
+@mcp.tool()
+def report_issue(
+    title: str,
+    agent_name: str = "Antigravity",
+    session_id: str = "unknown",
+    domain_intent: str = "",
+    tool_name: str = "",
+    tool_action: str = "",
+    error_message: str = "",
+    expected_behavior: str = "",
+    label: str = "bug"
+) -> str:
+    """
+    Report an issue, bug, or feature request directly to GitHub for Agent B to fix.
+    
+    Args:
+        title: Concise title describing the problem or feature request.
+        agent_name: Name of the reporting agent ('Antigravity', 'Claude', etc.).
+        session_id: The conversation/session ID of the current agent turn.
+        domain_intent: High-level Chip Design task or context being performed.
+        tool_name: The MCP tool that encountered an error or needs enhancement (e.g. 'eldo', 'virtuoso').
+        tool_action: The action parameter invoked on the tool (e.g. 'run_script', 'pull').
+        error_message: The raw error output or trace returned by the tool.
+        expected_behavior: Optional expected behavior or user requirement.
+        label: GitHub issue label ('bug', 'enhancement', 'documentation', etc.).
+    """
+    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, tool={tool_name!r}, label={label!r}")
+    return IssueReporter.create_issue(
+        title=title,
+        agent_name=agent_name,
+        session_id=session_id,
+        domain_intent=domain_intent,
+        tool_name=tool_name,
+        tool_action=tool_action,
+        error_message=error_message,
+        expected_behavior=expected_behavior,
+        label=label,
+        cwd=base_dir
+    )
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)
