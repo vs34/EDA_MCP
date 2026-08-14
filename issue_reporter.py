@@ -24,18 +24,18 @@ class IssueReporter:
     ) -> str:
         """Formats a structured GitHub issue body tailored for Agent B consumption."""
         body_parts = [
-            f"> 🤖 **Reported by Agent:** {agent_name} (Chip Design Consumer)",
-            f"> 🆔 **Session ID:** `{session_id}`",
+            f"> **Reported by Agent:** {agent_name} (Chip Design Consumer)",
+            f"> **Session ID:** `{session_id}`",
             "---",
             "",
-            "### 🎨 Chip Design Intent",
+            "### Chip Design Intent",
             domain_intent.strip() or "No domain intent provided.",
             "",
-            "### 🛠️ MCP Tool Call Executed",
+            "### MCP Tool Call Executed",
             f"- **Tool:** `{tool_name}`",
             f"- **Action:** `{tool_action}`",
             "",
-            "### ❌ Observed Tool Error / Output",
+            "### Observed Tool Error / Output",
             "```text",
             error_message.strip() or "No error output provided.",
             "```"
@@ -44,7 +44,7 @@ class IssueReporter:
         if expected_behavior.strip():
             body_parts.extend([
                 "",
-                "### 🎯 Expected Behavior / Requirement",
+                "### Expected Behavior / Requirement",
                 expected_behavior.strip()
             ])
 

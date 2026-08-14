@@ -16,16 +16,16 @@ class TestIssueReporter(unittest.TestCase):
             expected_behavior="Retry polling before timing out"
         )
 
-        self.assertIn("> 🤖 **Reported by Agent:** Antigravity (Chip Design Consumer)", body)
-        self.assertIn("> 🆔 **Session ID:** `test-session-123`", body)
-        self.assertIn("### 🎨 Chip Design Intent", body)
+        self.assertIn("> **Reported by Agent:** Antigravity (Chip Design Consumer)", body)
+        self.assertIn("> **Session ID:** `test-session-123`", body)
+        self.assertIn("### Chip Design Intent", body)
         self.assertIn("Simulating 65nm CMOS inverter delay", body)
-        self.assertIn("### 🛠️ MCP Tool Call Executed", body)
+        self.assertIn("### MCP Tool Call Executed", body)
         self.assertIn("- **Tool:** `eldo`", body)
         self.assertIn("- **Action:** `run_script`", body)
-        self.assertIn("### ❌ Observed Tool Error / Output", body)
+        self.assertIn("### Observed Tool Error / Output", body)
         self.assertIn("Timeout waiting for output file lock", body)
-        self.assertIn("### 🎯 Expected Behavior / Requirement", body)
+        self.assertIn("### Expected Behavior / Requirement", body)
         self.assertIn("Retry polling before timing out", body)
 
     @patch("subprocess.run")

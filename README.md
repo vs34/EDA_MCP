@@ -59,7 +59,7 @@ Unified remote shell execution inside persistent, sourced `csh` environments:
 - **`read_file`**: Reads remote file contents directly over persistent SSH stdin/stdout.
 - **`write_file`**: Creates or updates remote files using Base64 streams.
 
-### 5. 🤖 Meta-Harness Issue Reporter (`report_issue`)
+### 5. Meta-Harness Issue Reporter (`report_issue`)
 Autonomous agent-to-agent issue reporting pipeline:
 - **`report_issue`**: Allows Agent A (Chip Design Consumer) to report tool bugs, feature requests, or tracebacks directly to GitHub with agent identity, session ID, and domain intent—without needing context of the underlying EDA_MCP Python codebase.
 
