@@ -27,3 +27,9 @@ Agent can execute terminal commands inside `./workboard/<name>/`:
 - Baseline state view: `git show <commit_sha>:<local_path>`
 - Revert file to baseline: `git checkout <commit_sha> -- <local_path>`
 - Diff baselines: `git diff <commit_sha_1> <commit_sha_2> -- <local_path>`
+
+---
+
+## 4. Local Tooling & Sizing Computation Authorization
+- Agents are fully authorized to use any local environment tools (Python scripts, math/symbolic packages, scratch scripts, local file generators, and web research) to calculate transistor aspect ratios ($W/L$), generate local SPICE netlists, draft schematic definitions, or evaluate circuit equations before invoking `workboard(action="export")` or `workboard(action="push")`.
+

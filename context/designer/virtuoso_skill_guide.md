@@ -68,3 +68,9 @@ fprintf(fp "Netlist Header\n")
 drain(fp) ;; MUST EXECUTE DRAIN BEFORE CLOSE
 close(fp)
 ```
+
+---
+
+## 4. Local Tooling & Computation Authorization
+- Agents may freely use all local system tools (Python scripts, NumPy, SymPy, local scratch files, web research, math solvers) to compute transistor dimensions ($W/L$), gain-bandwidth product allocations, bias currents, node voltages, or netlist topologies locally before synthesizing SKILL scripts or launching remote EDA commands.
+

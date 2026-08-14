@@ -30,6 +30,7 @@
 4. **SCHEMATIC_CHECK_POLICY**: Zero-tolerance for `schCheck` warnings. Floating gates or unattached pins must be fixed before saving or netlisting.
 5. **STREAM_FLUSH_RULE**: Every SKILL file stream (`outfile`) MUST execute `drain(fileId)` before `close(fileId)`.
 6. **ELDO_TITLE_RULE**: Line 1 of any `.cir` netlist is strictly treated by Eldo as a title comment line.
+7. **LOCAL_COMPUTATION_RULE**: Agents are fully authorized and encouraged to use local default capabilities, Python scripts, mathematical calculators, scratch scripts, and web research to perform transistor sizing ($W/L$), bias point calculations, schematic planning, and netlist formatting prior to remote execution.
 
 ---
 
