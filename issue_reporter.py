@@ -15,17 +15,13 @@ class IssueReporter:
     @staticmethod
     def format_issue_body(
         body: str = "",
-        agent_name: str = "unknown",
+        label: str = "bug",
+        agent_model: str = "",
         session_id: str = "unknown",
-        domain_intent: str = "",
-        tool_name: str = "",
-        tool_action: str = "",
-        error_message: str = "",
-        expected_behavior: str = "",
-        log_file: str = "",
-        agent_model: str = ""
+        agent_name: str = "unknown",
+        log_file: str = ""
     ) -> str:
-        """Formats a GitHub issue body tailored for Agent B consumption."""
+        """Formats a simple GitHub issue body with metadata banner."""
         clean_log = log_file.strip() if log_file else ""
         if clean_log:
             log_file_str = clean_log if ("temp/" in clean_log or "temp\\" in clean_log) else f"temp/{clean_log}"
@@ -43,35 +39,8 @@ class IssueReporter:
             ""
         ]
 
-        if body and body.strip():
-            # Full freeform Markdown provided by the agent (bug report or feature request)
-            return "\n".join(header_parts) + body.strip()
-        else:
-            # Fallback for structured legacy parameters
-            legacy_parts = list(header_parts)
-            legacy_parts.extend([
-                "### Chip Design Intent",
-                domain_intent.strip() or "No domain intent provided.",
-                "",
-                "### MCP Tool Call Executed",
-                f"- **Tool:** `{tool_name}`",
-                f"- **Action:** `{tool_action}`",
-                f"- **MCP Log File:** {log_line}",
-                "",
-                "### Observed Tool Error / Output",
-                "```text",
-                error_message.strip() or "No error output provided.",
-                "```"
-            ])
-
-            if expected_behavior.strip():
-                legacy_parts.extend([
-                    "",
-                    "### Expected Behavior / Requirement",
-                    expected_behavior.strip()
-                ])
-
-            return "\n".join(legacy_parts)
+        content = body.strip() if (body and body.strip()) else "No issue content provided."
+        return "\n".join(header_parts) + content
 
     @classmethod
     def ensure_label_exists(cls, label_name: str, cwd: Optional[str] = None) -> bool:
@@ -113,16 +82,11 @@ class IssueReporter:
         cls,
         title: str,
         body: str = "",
-        agent_name: str = "unknown",
-        session_id: str = "unknown",
-        domain_intent: str = "",
-        tool_name: str = "",
-        tool_action: str = "",
-        error_message: str = "",
-        expected_behavior: str = "",
-        log_file: str = "",
-        agent_model: str = "",
         label: str = "bug",
+        agent_model: str = "",
+        session_id: str = "unknown",
+        agent_name: str = "unknown",
+        log_file: str = "",
         cwd: Optional[str] = None
     ) -> str:
         """
@@ -133,15 +97,11 @@ class IssueReporter:
         """
         issue_body = cls.format_issue_body(
             body=body,
-            agent_name=agent_name,
+            label=label,
+            agent_model=agent_model,
             session_id=session_id,
-            domain_intent=domain_intent,
-            tool_name=tool_name,
-            tool_action=tool_action,
-            error_message=error_message,
-            expected_behavior=expected_behavior,
-            log_file=log_file,
-            agent_model=agent_model
+            agent_name=agent_name,
+            log_file=log_file
         )
 
         # Collect unique labels to apply
