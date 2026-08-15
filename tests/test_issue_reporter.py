@@ -8,6 +8,7 @@ class TestIssueReporter(unittest.TestCase):
     def test_format_issue_body(self):
         body = IssueReporter.format_issue_body(
             agent_name="Antigravity",
+            agent_model="gemini-3.6-flash",
             session_id="test-session-123",
             domain_intent="Simulating 65nm CMOS inverter delay",
             tool_name="eldo",
@@ -17,7 +18,7 @@ class TestIssueReporter(unittest.TestCase):
             log_file="eda_mcp_20260815_120000_999.log"
         )
 
-        self.assertIn("> **Reported by Agent:** Antigravity (Chip Design Consumer)", body)
+        self.assertIn("> **Reported by Agent:** Antigravity (`gemini-3.6-flash`) (Chip Design Consumer)", body)
         self.assertIn("> **Session ID:** `test-session-123`", body)
         self.assertIn("> **MCP Log File:** `temp/eda_mcp_20260815_120000_999.log` (created in `temp/` folder)", body)
         self.assertIn("### Chip Design Intent", body)

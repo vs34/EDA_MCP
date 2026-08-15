@@ -286,6 +286,7 @@ def workboard(
 def report_issue(
     title: str,
     agent_name: str = "Antigravity",
+    agent_model: str = "",
     session_id: str = "unknown",
     domain_intent: str = "",
     tool_name: str = "",
@@ -300,6 +301,7 @@ def report_issue(
     Args:
         title: Concise title describing the problem or feature request.
         agent_name: Name of the reporting agent ('Antigravity', 'Claude', etc.).
+        agent_model: Model name/version of the reporting agent (e.g. 'gemini-3.6-flash', 'claude-3-5-sonnet').
         session_id: The conversation/session ID of the current agent turn.
         domain_intent: High-level Chip Design task or context being performed.
         tool_name: The MCP tool that encountered an error or needs enhancement (e.g. 'eldo', 'virtuoso').
@@ -308,10 +310,11 @@ def report_issue(
         expected_behavior: Optional expected behavior or user requirement.
         label: GitHub issue label ('bug', 'enhancement', 'documentation', etc.).
     """
-    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, tool={tool_name!r}, log_file={log_filename!r}, label={label!r}")
+    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, model={agent_model!r}, tool={tool_name!r}, log_file={log_filename!r}, label={label!r}")
     return IssueReporter.create_issue(
         title=title,
         agent_name=agent_name,
+        agent_model=agent_model,
         session_id=session_id,
         domain_intent=domain_intent,
         tool_name=tool_name,
