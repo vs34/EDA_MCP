@@ -20,12 +20,21 @@ class IssueReporter:
         tool_name: str,
         tool_action: str,
         error_message: str,
-        expected_behavior: str = ""
+        expected_behavior: str = "",
+        log_file: str = ""
     ) -> str:
         """Formats a structured GitHub issue body tailored for Agent B consumption."""
+        clean_log = log_file.strip() if log_file else ""
+        if clean_log:
+            log_file_str = clean_log if ("temp/" in clean_log or "temp\\" in clean_log) else f"temp/{clean_log}"
+            log_line = f"`{log_file_str}` (created in `temp/` folder)"
+        else:
+            log_line = "Created in `temp/` folder (`temp/eda_mcp_*.log`)"
+
         body_parts = [
             f"> **Reported by Agent:** {agent_name} (Chip Design Consumer)",
             f"> **Session ID:** `{session_id}`",
+            f"> **MCP Log File:** {log_line}",
             "---",
             "",
             "### Chip Design Intent",
@@ -34,6 +43,7 @@ class IssueReporter:
             "### MCP Tool Call Executed",
             f"- **Tool:** `{tool_name}`",
             f"- **Action:** `{tool_action}`",
+            f"- **MCP Log File:** {log_line}",
             "",
             "### Observed Tool Error / Output",
             "```text",
@@ -96,6 +106,7 @@ class IssueReporter:
         tool_action: str = "",
         error_message: str = "",
         expected_behavior: str = "",
+        log_file: str = "",
         label: str = "bug",
         cwd: Optional[str] = None
     ) -> str:
@@ -112,7 +123,8 @@ class IssueReporter:
             tool_name=tool_name,
             tool_action=tool_action,
             error_message=error_message,
-            expected_behavior=expected_behavior
+            expected_behavior=expected_behavior,
+            log_file=log_file
         )
 
         # Collect unique labels to apply
