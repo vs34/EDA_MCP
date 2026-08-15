@@ -32,6 +32,28 @@ class TestIssueReporter(unittest.TestCase):
         self.assertIn("### Expected Behavior / Requirement", body)
         self.assertIn("Retry polling before timing out", body)
 
+    def test_format_issue_body_freeform_markdown(self):
+        freeform_md = """## Feature Request: Add Spectre Netlist Parser
+
+Please add support for parsing Cadence Spectre netlist files `.scs` directly.
+
+### User Benefits
+- Allows automated extraction of transistor device models
+- Enables automated corner sweep configuration
+"""
+        result = IssueReporter.format_issue_body(
+            body=freeform_md,
+            agent_name="Antigravity",
+            agent_model="gemini-3.6-flash",
+            session_id="test-session-456",
+            log_file="eda_mcp_20260815_120000_999.log"
+        )
+
+        self.assertIn("> **Reported by Agent:** Antigravity (`gemini-3.6-flash`) (Chip Design Consumer)", result)
+        self.assertIn("> **Session ID:** `test-session-456`", result)
+        self.assertIn("## Feature Request: Add Spectre Netlist Parser", result)
+        self.assertIn("- Allows automated extraction of transistor device models", result)
+
     @patch("subprocess.run")
     def test_ensure_label_exists_creates_missing_label(self, mock_run):
         # Mock gh label list output without 'Claude'

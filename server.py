@@ -285,6 +285,8 @@ def workboard(
 @mcp.tool()
 def report_issue(
     title: str,
+    body: str = "",
+    label: str = "bug",
     agent_name: str = "Antigravity",
     agent_model: str = "",
     session_id: str = "unknown",
@@ -292,27 +294,28 @@ def report_issue(
     tool_name: str = "",
     tool_action: str = "",
     error_message: str = "",
-    expected_behavior: str = "",
-    label: str = "bug"
+    expected_behavior: str = ""
 ) -> str:
     """
-    Report an issue, bug, or feature request directly to GitHub for Agent B to fix.
+    Report a bug, issue, or feature request directly to GitHub for Agent B to fix or implement.
     
     Args:
-        title: Concise title describing the problem or feature request.
+        title: Concise title describing the problem, bug, or feature request.
+        body: Full freeform Markdown content written by the agent (bug report, feature request, code snippets, tables, etc.).
+        label: GitHub issue label ('bug', 'enhancement', 'feature-request', etc.).
         agent_name: Name of the reporting agent ('Antigravity', 'Claude', etc.).
         agent_model: Model name/version of the reporting agent (e.g. 'gemini-3.6-flash', 'claude-3-5-sonnet').
         session_id: The conversation/session ID of the current agent turn.
-        domain_intent: High-level Chip Design task or context being performed.
-        tool_name: The MCP tool that encountered an error or needs enhancement (e.g. 'eldo', 'virtuoso').
-        tool_action: The action parameter invoked on the tool (e.g. 'run_script', 'pull').
-        error_message: The raw error output or trace returned by the tool.
-        expected_behavior: Optional expected behavior or user requirement.
-        label: GitHub issue label ('bug', 'enhancement', 'documentation', etc.).
+        domain_intent: Optional legacy field for high-level chip design task context.
+        tool_name: Optional legacy field for tool name.
+        tool_action: Optional legacy field for tool action.
+        error_message: Optional legacy field for raw error output.
+        expected_behavior: Optional legacy field for expected behavior.
     """
-    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, model={agent_model!r}, tool={tool_name!r}, log_file={log_filename!r}, label={label!r}")
+    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, model={agent_model!r}, label={label!r}")
     return IssueReporter.create_issue(
         title=title,
+        body=body,
         agent_name=agent_name,
         agent_model=agent_model,
         session_id=session_id,

@@ -14,17 +14,18 @@ class IssueReporter:
 
     @staticmethod
     def format_issue_body(
-        agent_name: str,
-        session_id: str,
-        domain_intent: str,
-        tool_name: str,
-        tool_action: str,
-        error_message: str,
+        body: str = "",
+        agent_name: str = "Antigravity",
+        session_id: str = "unknown",
+        domain_intent: str = "",
+        tool_name: str = "",
+        tool_action: str = "",
+        error_message: str = "",
         expected_behavior: str = "",
         log_file: str = "",
         agent_model: str = ""
     ) -> str:
-        """Formats a structured GitHub issue body tailored for Agent B consumption."""
+        """Formats a GitHub issue body tailored for Agent B consumption."""
         clean_log = log_file.strip() if log_file else ""
         if clean_log:
             log_file_str = clean_log if ("temp/" in clean_log or "temp\\" in clean_log) else f"temp/{clean_log}"
@@ -34,34 +35,43 @@ class IssueReporter:
 
         model_str = f" (`{agent_model.strip()}`)" if (agent_model and agent_model.strip()) else ""
 
-        body_parts = [
+        header_parts = [
             f"> **Reported by Agent:** {agent_name}{model_str} (Chip Design Consumer)",
             f"> **Session ID:** `{session_id}`",
             f"> **MCP Log File:** {log_line}",
             "---",
-            "",
-            "### Chip Design Intent",
-            domain_intent.strip() or "No domain intent provided.",
-            "",
-            "### MCP Tool Call Executed",
-            f"- **Tool:** `{tool_name}`",
-            f"- **Action:** `{tool_action}`",
-            f"- **MCP Log File:** {log_line}",
-            "",
-            "### Observed Tool Error / Output",
-            "```text",
-            error_message.strip() or "No error output provided.",
-            "```"
+            ""
         ]
 
-        if expected_behavior.strip():
-            body_parts.extend([
+        if body and body.strip():
+            # Full freeform Markdown provided by the agent (bug report or feature request)
+            return "\n".join(header_parts) + body.strip()
+        else:
+            # Fallback for structured legacy parameters
+            legacy_parts = list(header_parts)
+            legacy_parts.extend([
+                "### Chip Design Intent",
+                domain_intent.strip() or "No domain intent provided.",
                 "",
-                "### Expected Behavior / Requirement",
-                expected_behavior.strip()
+                "### MCP Tool Call Executed",
+                f"- **Tool:** `{tool_name}`",
+                f"- **Action:** `{tool_action}`",
+                f"- **MCP Log File:** {log_line}",
+                "",
+                "### Observed Tool Error / Output",
+                "```text",
+                error_message.strip() or "No error output provided.",
+                "```"
             ])
 
-        return "\n".join(body_parts)
+            if expected_behavior.strip():
+                legacy_parts.extend([
+                    "",
+                    "### Expected Behavior / Requirement",
+                    expected_behavior.strip()
+                ])
+
+            return "\n".join(legacy_parts)
 
     @classmethod
     def ensure_label_exists(cls, label_name: str, cwd: Optional[str] = None) -> bool:
@@ -102,6 +112,7 @@ class IssueReporter:
     def create_issue(
         cls,
         title: str,
+        body: str = "",
         agent_name: str = "Antigravity",
         session_id: str = "unknown",
         domain_intent: str = "",
@@ -120,7 +131,8 @@ class IssueReporter:
         Returns:
             The URL of the created issue or an error message.
         """
-        body = cls.format_issue_body(
+        issue_body = cls.format_issue_body(
+            body=body,
             agent_name=agent_name,
             session_id=session_id,
             domain_intent=domain_intent,
@@ -147,7 +159,7 @@ class IssueReporter:
         cmd = [
             "gh", "issue", "create",
             "--title", title,
-            "--body", body
+            "--body", issue_body
         ]
 
         for lbl in labels_to_apply:
