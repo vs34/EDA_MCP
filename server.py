@@ -287,45 +287,28 @@ def report_issue(
     title: str,
     body: str = "",
     label: str = "bug",
-    agent_name: str = "unknown",
     agent_model: str = "",
-    session_id: str = "unknown",
-    domain_intent: str = "",
-    tool_name: str = "",
-    tool_action: str = "",
-    error_message: str = "",
-    expected_behavior: str = ""
+    session_id: str = "unknown"
 ) -> str:
     """
-    Report a bug, issue, or feature request directly to GitHub for Agent B to fix or implement.
+    Report an issue, bug, or feature request directly to GitHub.
     
     Args:
-        title: Concise title describing the problem, bug, or feature request.
-        body: Full freeform Markdown content written by the agent (bug report, feature request, code snippets, tables, etc.).
-        label: GitHub issue label ('bug', 'enhancement', 'feature-request', etc.).
-        agent_name: Name of the reporting agent ('Antigravity', 'Claude', etc.).
-        agent_model: Model name/version of the reporting agent (e.g. 'gemini-3.6-flash', 'claude-3-5-sonnet').
+        title: Issue Title describing the problem, bug, or feature request.
+        body: Issue Content in Markdown format (bug report, feature request, tracebacks, proposals, etc.).
+        label: Issue Label ('bug', 'enhancement', 'feature-request', etc.).
+        agent_model: Model name/version of the agent (e.g. 'gemini-3.6-flash', 'claude-3.5-sonnet', 'opus').
         session_id: The conversation/session ID of the current agent turn.
-        domain_intent: Optional legacy field for high-level chip design task context.
-        tool_name: Optional legacy field for tool name.
-        tool_action: Optional legacy field for tool action.
-        error_message: Optional legacy field for raw error output.
-        expected_behavior: Optional legacy field for expected behavior.
     """
-    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, model={agent_model!r}, label={label!r}")
+    logger.info(f"[TOOL CALL] report_issue: title={title!r}, model={agent_model!r}, label={label!r}")
     return IssueReporter.create_issue(
         title=title,
         body=body,
-        agent_name=agent_name,
+        label=label,
         agent_model=agent_model,
         session_id=session_id,
-        domain_intent=domain_intent,
-        tool_name=tool_name,
-        tool_action=tool_action,
-        error_message=error_message,
-        expected_behavior=expected_behavior,
+        agent_name="unknown",
         log_file=log_filename,
-        label=label,
         cwd=base_dir
     )
 
