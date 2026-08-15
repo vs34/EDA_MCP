@@ -111,10 +111,11 @@ class IssueReporter:
         
         if agent_name and agent_name.strip():
             agent_label = agent_name.strip()
-            # Ensure the agent label exists in the repository (creates via gh if missing)
-            cls.ensure_label_exists(agent_label, cwd=cwd)
-            if agent_label.lower() not in [l.lower() for l in labels_to_apply]:
-                labels_to_apply.append(agent_label)
+            if agent_label.lower() != "unknown":
+                # Ensure the agent label exists in the repository (creates via gh if missing)
+                cls.ensure_label_exists(agent_label, cwd=cwd)
+                if agent_label.lower() not in [l.lower() for l in labels_to_apply]:
+                    labels_to_apply.append(agent_label)
 
         cmd = [
             "gh", "issue", "create",

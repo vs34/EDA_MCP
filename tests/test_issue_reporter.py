@@ -71,11 +71,11 @@ Please add support for parsing Cadence Spectre netlist files `.scs` directly.
             label="bug",
             agent_model="gemini-3.6-flash",
             session_id="test-session-123",
-            agent_name="unknown"
+            agent_name="Claude"
         )
 
         self.assertIn("Successfully created GitHub issue: https://github.com/vs34/EDA_MCP/issues/42", result)
-        mock_ensure_label.assert_called_once_with("unknown", cwd=None)
+        mock_ensure_label.assert_called_once_with("Claude", cwd=None)
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
         cmd = args[0]
@@ -86,6 +86,7 @@ Please add support for parsing Cadence Spectre netlist files `.scs` directly.
         self.assertIn("Eldo timeout on file lock", cmd)
         self.assertIn("--label", cmd)
         self.assertIn("bug", cmd)
+        self.assertIn("Claude", cmd)
 
 if __name__ == "__main__":
     unittest.main()
