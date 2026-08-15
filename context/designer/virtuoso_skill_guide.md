@@ -77,7 +77,7 @@ close(fp)
 ---
 
 ## 5. `assisted_run` Command Length & Error Trapping Spec
-- **Length Constraint**: Keep `assisted_run` SKILL `command` strings short and modular. For monolithic scripts, write to `.il` file and run `load("script.il")`, or use `action="standalone"`.
+- **Length Constraint**: Keep `assisted_run` SKILL `command` strings short and modular.
 - **Error Trapping (`errset`)**: Server `MCP_setup.il` automatically traps unhandled SKILL errors via `errset` and `unwindProtect` (preventing 30s timeouts). Agents may also use `errset(expr t)` inside SKILL commands to capture detailed diagnostic messages for self-healing.
 
 
