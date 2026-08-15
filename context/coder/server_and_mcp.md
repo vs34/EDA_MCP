@@ -20,7 +20,7 @@ virtuoso_interactive_session = RemoteSession(config_path="config/config_virtuoso
 eldo_session = RemoteSession(config_path="config/config_eldo.json")
 
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
-virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
+virtuoso_standalone_client = VirtuosoClient(session=virtuoso_standalone_session)
 eldo_client = EldoClient(session=eldo_session)
 workboard_client = WorkBoardClient()
 ```
@@ -36,9 +36,9 @@ workboard_client = WorkBoardClient()
 | `remote_control` | `"write_file"` | `remote_session.write_file(path, content, timeout)` |
 | `virtuoso` | `"initialize"` | `virtuoso_client.initialize(work_dir)` |
 | `virtuoso` | `"assisted_run"` | `virtuoso_client.assisted_run(skill_code=command, timeout)` |
-| `virtuoso` | `"start_standalone"` | `virtuoso_interactive_client.start_standalone(work_dir)` |
-| `virtuoso` | `"standalone"` | `virtuoso_interactive_client.run_standalone(command, work_dir, timeout)` |
-| `virtuoso` | `"stop_standalone"` | `virtuoso_interactive_client.stop_standalone()` |
+| `virtuoso` | `"start_standalone"` | `virtuoso_standalone_client.start_standalone(work_dir)` |
+| `virtuoso` | `"standalone"` | `virtuoso_standalone_client.run_standalone(command, work_dir, timeout)` |
+| `virtuoso` | `"stop_standalone"` | `virtuoso_standalone_client.stop_standalone()` |
 | `virtuoso` | `"run_terminal_command"`| `virtuoso_client.run_terminal_command(command, work_dir, timeout)` |
 | `virtuoso` | `"exit"` | `virtuoso_client.exit()` |
 | `eldo` | `"initialize"` | `eldo_client.initialize(work_dir)` |

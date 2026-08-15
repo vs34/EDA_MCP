@@ -53,11 +53,11 @@ eldo_config = os.path.join(config_dir, "config_eldo.json")
 # Dedicated SSH sessions per tool
 remote_session = RemoteSession(config_path=remote_control_config)
 virtuoso_session = RemoteSession(config_path=virtuoso_config)
-virtuoso_interactive_session = RemoteSession(config_path=virtuoso_config)
+virtuoso_standalone_session = RemoteSession(config_path=virtuoso_config)
 eldo_session = RemoteSession(config_path=eldo_config)
 
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
-virtuoso_interactive_client = VirtuosoClient(session=virtuoso_interactive_session)
+virtuoso_standalone_client = VirtuosoClient(session=virtuoso_standalone_session)
 eldo_client = EldoClient(session=eldo_session)
 def _format_result_summary(res: str, max_len: int = 300) -> str:
     """Formats tool return result on a single line for clean, full lifecycle logging."""
@@ -143,12 +143,12 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
                 res = "Error: 'command' argument is required when action='assisted_run'."
             else:
                 res = virtuoso_client.assisted_run(skill_code=command, timeout=timeout)
-        elif act in ("standalone", "run_standalone", "run_interactive", "run_inter", "interactive", "inter"):
-            res = virtuoso_interactive_client.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
-        elif act in ("start_standalone", "start_interactive", "start_inter", "start"):
-            res = virtuoso_interactive_client.start_standalone(work_dir=work_dir)
-        elif act in ("stop_standalone", "stop_interactive", "stop_inter", "stop", "exit_interactive"):
-            res = virtuoso_interactive_client.stop_standalone()
+        elif act in ("standalone", "run_standalone"):
+            res = virtuoso_standalone_client.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
+        elif act in ("start_standalone", "start"):
+            res = virtuoso_standalone_client.start_standalone(work_dir=work_dir)
+        elif act in ("stop_standalone", "stop"):
+            res = virtuoso_standalone_client.stop_standalone()
         elif act in ("run_terminal_command", "terminal_command", "run_terminal", "terminal", "cmd", "shell"):
             if not command.strip():
                 res = "Error: 'command' argument is required when action='run_terminal_command'."

@@ -15,16 +15,16 @@ class VirtuosoClient:
         self.session = session
         self.pid = None
         self.workdir = None
-        self.interactive_active = False
-        self.interactive_workdir = None
+        self.standalone_active = False
+        self.standalone_workdir = None
 
     def start_standalone(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
-        Navigates to work_dir and launches virtuoso -nograph interactive REPL session using execute_interactive_stream.
+        Navigates to work_dir and launches virtuoso -nograph standalone REPL session using execute_interactive_stream.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/cmos65"
-        self.interactive_workdir = target_dir
+        self.standalone_workdir = target_dir
         
         safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
         self.session.execute_command(f"cd {safe_dir}")
@@ -33,20 +33,17 @@ class VirtuosoClient:
         cmd = "virtuoso -nograph"
         exit_code, stdout, stderr = self.session.execute_interactive_stream(cmd, prompt_regex=r"(>\s*$|\bCIW>\s*$)", timeout=15.0)
         
-        self.interactive_active = True
+        self.standalone_active = True
         return f"Virtuoso standalone REPL session (virtuoso -nograph) initialized in {target_dir}.\nOutput:\n{stdout.strip()}"
-
-    def start_interactive(self, work_dir: str = "~/Desktop/cmos65") -> str:
-        return self.start_standalone(work_dir=work_dir)
 
     def run_standalone(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
         """
-        Executes SKILL statements directly in the active virtuoso -nograph interactive REPL stream.
+        Executes SKILL statements directly in the active virtuoso -nograph REPL stream.
         """
         self.session.connect()
         
-        if not self.interactive_active:
-            target_dir = work_dir or self.interactive_workdir or "~/Desktop/cmos65"
+        if not self.standalone_active:
+            target_dir = work_dir or self.standalone_workdir or "~/Desktop/cmos65"
             init_res = self.start_standalone(work_dir=target_dir)
             if "Failed" in init_res:
                 return init_res
@@ -64,14 +61,11 @@ class VirtuosoClient:
 
         return "\n".join(output)
 
-    def run_interactive(self, command: str = "", work_dir: str = "", timeout: float = 10.0) -> str:
-        return self.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
-
     def stop_standalone(self) -> str:
         """
         Stops and closes the standalone Virtuoso REPL session cleanly.
         """
-        if not self.interactive_active:
+        if not self.standalone_active:
             return "No standalone Virtuoso session is currently active."
 
         try:
@@ -79,12 +73,9 @@ class VirtuosoClient:
         except Exception:
             pass
 
-        self.interactive_active = False
-        self.interactive_workdir = None
+        self.standalone_active = False
+        self.standalone_workdir = None
         return "Standalone Virtuoso REPL session (virtuoso -nograph) terminated cleanly."
-
-    def stop_interactive(self) -> str:
-        return self.stop_standalone()
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """

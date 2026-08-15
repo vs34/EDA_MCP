@@ -33,9 +33,9 @@ type RemoteControlArgs = {
 ```typescript
 type VirtuosoArgs = {
   action: "initialize"
-        | "start_standalone" | "start_interactive" | "start"
-        | "standalone" | "run_standalone" | "run_interactive" | "interactive"
-        | "stop_standalone" | "stop_interactive" | "stop"
+        | "start_standalone" | "start"
+        | "standalone" | "run_standalone"
+        | "stop_standalone" | "stop"
         | "assisted_run" | "assisted" | "run"
         | "run_terminal_command" | "terminal" | "shell"
         | "exit";
