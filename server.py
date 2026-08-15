@@ -287,7 +287,7 @@ def report_issue(
     title: str,
     body: str = "",
     label: str = "bug",
-    agent_name: str = "Antigravity",
+    agent_name: str = "unknown",
     agent_model: str = "",
     session_id: str = "unknown",
     domain_intent: str = "",

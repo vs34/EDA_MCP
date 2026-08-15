@@ -15,7 +15,7 @@ class IssueReporter:
     @staticmethod
     def format_issue_body(
         body: str = "",
-        agent_name: str = "Antigravity",
+        agent_name: str = "unknown",
         session_id: str = "unknown",
         domain_intent: str = "",
         tool_name: str = "",
@@ -113,7 +113,7 @@ class IssueReporter:
         cls,
         title: str,
         body: str = "",
-        agent_name: str = "Antigravity",
+        agent_name: str = "unknown",
         session_id: str = "unknown",
         domain_intent: str = "",
         tool_name: str = "",
