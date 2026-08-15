@@ -292,7 +292,6 @@ def report_issue(
     tool_action: str = "",
     error_message: str = "",
     expected_behavior: str = "",
-    log_file: str = "",
     label: str = "bug"
 ) -> str:
     """
@@ -307,11 +306,9 @@ def report_issue(
         tool_action: The action parameter invoked on the tool (e.g. 'run_script', 'pull').
         error_message: The raw error output or trace returned by the tool.
         expected_behavior: Optional expected behavior or user requirement.
-        log_file: Optional log file name created in temp/ folder. Defaults to current MCP session log file.
         label: GitHub issue label ('bug', 'enhancement', 'documentation', etc.).
     """
-    effective_log_file = log_file.strip() if (log_file and log_file.strip()) else log_filename
-    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, tool={tool_name!r}, log_file={effective_log_file!r}, label={label!r}")
+    logger.info(f"[TOOL CALL] report_issue: title={title!r}, agent={agent_name!r}, tool={tool_name!r}, log_file={log_filename!r}, label={label!r}")
     return IssueReporter.create_issue(
         title=title,
         agent_name=agent_name,
@@ -321,7 +318,7 @@ def report_issue(
         tool_action=tool_action,
         error_message=error_message,
         expected_behavior=expected_behavior,
-        log_file=effective_log_file,
+        log_file=log_filename,
         label=label,
         cwd=base_dir
     )
