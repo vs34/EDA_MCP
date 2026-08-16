@@ -111,3 +111,25 @@ type WorkBoardArgs = {
   - *If different*: Returns unified line-by-line diff.
 - `status`: Returns tracked file table, sync baseline commit SHAs, and local git status.
 - `history`: Returns local Git commit log (`git log`).
+
+---
+
+## Tool 5: `report_issue`
+**Description**: Autonomous agent-to-agent GitHub issue & feature request reporting tool.
+
+### Interface Schema
+```typescript
+type ReportIssueArgs = {
+  title: string;           // Concise issue or feature request title
+  body?: string;           // Freeform Markdown content (see issue_reporting_guide.md for suggestions)
+  label?: string;          // Default: "bug" (e.g., "enhancement", "feature-request")
+  agent_model?: string;    // Model identifier (e.g. "gemini-3.6-flash", "claude-3-5-sonnet")
+  session_id?: string;     // Default: "unknown" (conversation turn ID)
+};
+```
+
+### Auto-Behavior
+- **Client Agent Auto-Detection**: Extracts `agent_name` (`Antigravity`, `claude-code`, `cursor`) from MCP `clientInfo` context via FastMCP `Context`.
+- **Log Auto-Attachment**: Automatically attaches active server log from `temp/eda_mcp_*.log`.
+- **GitHub Label Auto-Creation**: Checks repository via `gh label list` and creates agent label (`gh label create`) if missing.
+- **Form Suggestions**: For suggested Markdown body structure on bugs and enhancements, see [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md).

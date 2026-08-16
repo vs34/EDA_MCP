@@ -13,8 +13,18 @@
 
 ---
 
+## Coder Agent Operational Invariants (MUST FOLLOW)
+
+1. **AGENT_IDENTITY_BRANCHING**: Every issue fix or enhancement MUST be created on a feature branch named `<agent_name>/issue-<issue_number>-<description>` (e.g., `antigravity/issue-42-eldo-timeout-fix`).
+2. **AGENT_IDENTITY_COMMITS**: All commits MUST explicitly declare custom agent author metadata: `git -c user.name="<AgentName>" -c user.email="<agent>@ai.local" commit -m "..."`.
+3. **PULL_REQUEST_EXPLANATION**: Pull Requests MUST be created via `gh pr create` with a clear explanation of root cause, fix details, test verification, and issue linkage (`Fixes #<issue_number>`).
+4. **STRICT_NO_AUTOMERGE_POLICY**: Coder Agents MUST NEVER merge PRs or push directly to `main`. Stop execution immediately after `gh pr create` and request Human Code Review.
+
+---
+
 ## Coder Context Index
 
+- [`issue_resolution_workflow.md`](file:///Users/vs/function/EDA_MCP/context/coder/issue_resolution_workflow.md): Standard operating procedure for Coder agents resolving issues, creating agent branches, PR formatting, and human review gates.
 - [`server_and_mcp.md`](file:///Users/vs/function/EDA_MCP/context/coder/server_and_mcp.md): FastMCP tool signatures, tool action dispatching, session isolation logic.
 - [`transport_layer.md`](file:///Users/vs/function/EDA_MCP/context/coder/transport_layer.md): Subshell IO pipes, sentinel token format, regex prompt match loop, SCP command generation.
 - [`eda_tool_clients.md`](file:///Users/vs/function/EDA_MCP/context/coder/eda_tool_clients.md): FIFO pipe write/read contract, REPL interactive streaming state machine.
