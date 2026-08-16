@@ -69,17 +69,42 @@ drain(fp) ;; MUST EXECUTE DRAIN BEFORE CLOSE
 close(fp)
 ```
 
+### Template C: Displaying Schematic/Layout in Virtuoso GUI Window (`assisted_run`)
+```lisp
+;; Use in assisted_run when user requests creating, opening, or viewing a schematic/layout in the Virtuoso GUI window!
+
+;; 1. Open/create cellview database object
+cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "a")
+
+;; ... (Instantiate transistors, pins, nets, run schCheck(cv), and dbSave(cv)) ...
+schCheck(cv)
+dbSave(cv)
+
+;; 2. Open & display cellview in the live Virtuoso GUI window
+;; CRITICAL: Do NOT call dbClose(cv) when displaying in GUI, as dbClose purges the view from Virtuoso!
+win = geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+;; Alternatively, if you already have 'cv':
+;; win = geOpenCellViewInAnotherWindow(cv)
+```
+
 ---
 
-## 4. Local Tooling & Computation Authorization
+## 4. GUI Window Opening vs. Background Batch Execution
+
+| Execution Mode | Tool Action | Required SKILL Functions | Window / Close Rule |
+| :--- | :--- | :--- | :--- |
+| **Interactive GUI Mode** | `virtuoso(action="assisted_run")` | `dbOpenCellViewByType`, `schCheck`, `dbSave`, `geOpen(?lib ... ?cell ...)` | **MUST call `geOpen`** to bring schematic/layout window to front. **DO NOT call `dbClose(cv)`**. |
+| **Background Batch Mode** | `virtuoso(action="standalone")` / `run_script` | `dbOpenCellViewByType`, `schCheck`, `dbSave`, `dbClose(cv)` | Performs database editing in memory. Must call `dbClose(cv)` to release lock. |
+
+---
+
+## 5. Local Tooling & Computation Authorization
 - Agents may freely use all local system tools (Python scripts, NumPy, SymPy, local scratch files, web research, math solvers) to compute transistor dimensions ($W/L$), gain-bandwidth product allocations, bias currents, node voltages, or netlist topologies locally before synthesizing SKILL scripts or launching remote EDA commands.
 
 ---
 
-## 5. `assisted_run` Command Length & Error Trapping Spec
+## 6. `assisted_run` Command Length & Error Trapping Spec
 - **Length Constraint**: Keep `assisted_run` SKILL `command` strings short and modular.
 - **Error Trapping (`errset`)**: Server `MCP_setup.il` automatically traps unhandled SKILL errors via `errset` and `unwindProtect` (preventing 30s timeouts). Agents may also use `errset(expr t)` inside SKILL commands to capture detailed diagnostic messages for self-healing.
+- **GUI Window Display**: When asked to open or build a schematic, use `geOpen(...)` so the window appears on the user's remote Virtuoso display.
 - **GUI Popup Notification**: `assisted_run` executes against the active graphical Virtuoso window. If a command opens a modal GUI popup window (e.g., save prompt, geOpen dialog, schCheck warning popup), the agent MUST explicitly notify the user to inspect and interact with the remote GUI popup.
-
-
-

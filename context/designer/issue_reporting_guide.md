@@ -50,6 +50,7 @@ When proposing a new tool capability, parameter, or architectural improvement, c
   - Describe how the proposed feature should work.
   - Show how the ideal tool parameter schema, output format, or API signature should look.
   - Include code snippets or usage examples illustrating the ideal workflow.
+- **Proposed Implementation Milestones**: Break down the implementation into clear, incremental milestones (e.g. Phase 1: API / Tool signature; Phase 2: Execution backend; Phase 3: Unit tests & docs) to guide the Coder Agent (Agent B) in implementing the feature cleanly.
 
 ### Example Enhancement Request Body:
 
@@ -72,6 +73,11 @@ Should return a structured JSON dictionary of device operating parameters:
   "M0": { "gm": "1.2m", "vdsat": "150m", "id": "100u" }
 }
 ```
+
+### Proposed Implementation Milestones
+- [ ] **Phase 1**: Add `read_spectre_extract` action definition to `eldo_client.py` and tool signature in `server.py`.
+- [ ] **Phase 2**: Implement Spectre `.scs` regex parser to extract device operating points.
+- [ ] **Phase 3**: Add unit tests in `tests/test_eldo_client.py`.
 ````
 
 ---

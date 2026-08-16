@@ -3,14 +3,14 @@
 ## Repository & Client Binding
 - **GitHub Repository**: [`https://github.com/vs34/EDA_MCP.git`](https://github.com/vs34/EDA_MCP.git)
 - **Protocol**: Model Context Protocol (FastMCP Stdio)
-- **Entrypoint**: [`server.py`](file:///Users/vs/function/EDA_MCP/server.py)
+- **Entrypoint**: [`server.py`](file:///Users/vs/function/EDA_MCP2/server.py)
 
 ```json
 {
   "mcpServers": {
     "eda-mcp": {
       "command": "python3",
-      "args": ["/Users/vs/function/EDA_MCP/server.py"]
+      "args": ["/Users/vs/function/EDA_MCP2/server.py"]
     }
   }
 }
@@ -33,14 +33,15 @@
 7. **LOCAL_COMPUTATION_RULE**: Agents are fully authorized and encouraged to use local default capabilities, Python scripts, mathematical calculators, scratch scripts, and web research to perform transistor sizing ($W/L$), bias point calculations, schematic planning, and netlist formatting prior to remote execution.
 8. **ASSISTED_RUN_LENGTH_RULE**: For `virtuoso(action="assisted_run")`, the SKILL code in `command` MUST NOT be excessively long. Keep commands concise and modular for `assisted_run`. For complex/long SKILL scripts, Break long SKILL to small portion according to complexity this will also increase debuggability if anything went wrong.
 9. **GUI_POPUP_NOTIFY_RULE**: In `virtuoso(action="assisted_run")`, commands may trigger modal GUI popups on the remote Virtuoso window (e.g., save prompts, geOpen dialogs, schCheck confirmations). If `assisted_run` times out or requires GUI input, the agent MUST explicitly notify the user to inspect and interact with the remote Virtuoso GUI popup.
-10. **ISSUE_REPORTING_GUIDELINE**: When encountering bugs or identifying new tool enhancements, agents are encouraged to use `report_issue` with structured Markdown (see [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md) for suggestions on bug & enhancement reports).
+10. **ISSUE_REPORTING_GUIDELINE**: When encountering bugs or identifying new tool enhancements, agents are encouraged to use `report_issue` with structured Markdown (see [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP2/context/designer/issue_reporting_guide.md) for suggestions on bug & enhancement reports).
+11. **GUI_WINDOW_OPEN_RULE**: In `virtuoso(action="assisted_run")`, when requested to build, edit, or open a schematic or layout for the user to view in Virtuoso, the SKILL script MUST open the window in the live Virtuoso GUI using `geOpen(?lib ... ?cell ... ?view ...)` or `geOpenCellViewInAnotherWindow(cv)`, and MUST NOT call `dbClose(cv)` (which would purge the view).
 
 ---
 
 ## Agent Context Index
 
-- [`mcp_tools_spec.md`](file:///Users/vs/function/EDA_MCP/context/designer/mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
-- [`virtuoso_skill_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks.
-- [`eldo_simulation_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
-- [`workboard_sync_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
-- [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.
+- [`mcp_tools_spec.md`](file:///Users/vs/function/EDA_MCP2/context/designer/mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
+- [`virtuoso_skill_guide.md`](file:///Users/vs/function/EDA_MCP2/context/designer/virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks.
+- [`eldo_simulation_guide.md`](file:///Users/vs/function/EDA_MCP2/context/designer/eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
+- [`workboard_sync_guide.md`](file:///Users/vs/function/EDA_MCP2/context/designer/workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
+- [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP2/context/designer/issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.

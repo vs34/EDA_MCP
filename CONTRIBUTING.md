@@ -61,6 +61,7 @@ report_issue({
 - **What to Add**: Clearly state the proposed tool extension or parameter.
 - **Why it is Needed**: Explain the bottleneck or friction point being solved.
 - **How to Enhance**: Show the ideal tool signature, proposed JSON schema, or code example.
+- **Proposed Implementation Milestones**: Outline logical step-by-step milestones (Phase 1, Phase 2, Phase 3) to guide the Coder Agent in implementing the feature.
 
 *(For detailed examples, see [`context/designer/issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md)).*
 
