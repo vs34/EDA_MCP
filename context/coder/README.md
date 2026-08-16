@@ -13,11 +13,11 @@
 
 ---
 
-## Coder Agent Operational Invariants (MUST FOLLOW)
+## Agent Operational Invariants (Suggestion)
 
 1. **AGENT_IDENTITY_BRANCHING**: Every issue fix or enhancement MUST be created on a feature branch named `<agent_name>/issue-<issue_number>-<description>` (e.g., `antigravity/issue-42-eldo-timeout-fix`).
 2. **AGENT_IDENTITY_COMMITS**: All commits MUST explicitly declare custom agent author metadata: `git -c user.name="<AgentName>" -c user.email="<agent>@ai.local" commit -m "..."`.
-3. **PULL_REQUEST_EXPLANATION**: Pull Requests MUST be created via `gh pr create` with a clear explanation of root cause, fix details, test verification, and issue linkage (`Fixes #<issue_number>`).
+3. **PULL_REQUEST_EXPLANATION**: Pull Requests MUST be created via `gh pr create` with Metadata Header Banner (`Resolved by Agent`, `agent_model`, `session_id`, `log_file`), PR label auto-creation (`gh label create`), attached `--label "<agent_name>"`, root cause explanation, fix details, test verification, and issue linkage (`Fixes #<issue_number>`).
 4. **STRICT_NO_AUTOMERGE_POLICY**: Coder Agents MUST NEVER merge PRs or push directly to `main`. Stop execution immediately after `gh pr create` and request Human Code Review.
 
 ---
@@ -28,7 +28,7 @@
 
 | Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
 | :--- | :--- | :--- |
-| **GitHub Issue Fixing / Branching / PR Creation** | [`issue_resolution_workflow.md`](issue_resolution_workflow.md) | Agent branch naming (`<agent>/issue-<id>-<desc>`), custom author commits, PR templates, **STRICT NO-AUTOMERGE RULE**. |
+| **GitHub Issue Fixing / Branching / PR Creation** | [`issue_resolution_workflow.md`](issue_resolution_workflow.md) | Agent branch naming (`<agent>/issue-<id>-<desc>`), custom author commits, PR label auto-creation (`gh label create`), PR templates, **STRICT NO-AUTOMERGE RULE**. |
 | **Server Architecture / MCP Handler Edits** | [`server_and_mcp.md`](server_and_mcp.md) | `FastMCP` session allocations (`RemoteSession`), tool dispatch table, logger setup (`logs/eda_mcp_*.log`). |
 | **SSH / SCP Transport Layer Edits** | [`transport_layer.md`](transport_layer.md) | Subshell `csh` sentinel tokens, regex REPL stream matching, OpenSSH `scp -O` parameters. |
 | **Virtuoso / Eldo Tool Client Edits** | [`eda_tool_clients.md`](eda_tool_clients.md) | `MCP.command` FIFO pipe IPC state machine, `MCP_setup.il` error trapping, REPL interactive loops. |

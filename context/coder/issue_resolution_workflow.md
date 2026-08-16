@@ -42,7 +42,15 @@ This document establishes the **standard operating workflow** for Coder / Mainta
 
 ### 4. 📝 PULL REQUEST EXPLANATION & ISSUE LINKING
 - The agent MUST open a Pull Request using `gh pr create`.
-- The PR description MUST include:
+- **PR Metadata Banner**: The PR description MUST begin with a metadata banner identifying the fixing agent, model, session ID, and log file (matching the Issue header format):
+  ```markdown
+  > **Resolved by Agent:** `<agent_name>` (`<agent_model>`) (Coder / Maintainer)
+  > **Session ID:** `<session_id>`
+  > **MCP Log File:** `temp/eda_mcp_YYYYMMDD_HHMMSS_<PID>.log`
+  ---
+  ```
+- The PR body MUST include:
+  - **Header Banner**: Metadata block identifying agent, model, session ID, and log path.
   - **Summary**: Concise description of what was fixed or implemented.
   - **Root Cause & Technical Fix**: Technical explanation of why the bug occurred and how the code was updated.
   - **Test Verification**: Output summary of passing unit tests.
@@ -50,9 +58,20 @@ This document establishes the **standard operating workflow** for Coder / Mainta
 
 #### Example PR Creation Command:
 ```bash
+# 1. Ensure agent label exists on GitHub (creates if missing)
+gh label list | grep -i "Antigravity" || gh label create "Antigravity" --color "0E8A16" --description "PRs created by Antigravity Agent"
+
+# 2. Open PR with agent and type labels attached
 gh pr create \
   --title "fix(eldo): retry file lock acquisition during IPC polling" \
-  --body "## Summary
+  --label "bug" \
+  --label "Antigravity" \
+  --body "> **Resolved by Agent:** antigravity (\`gemini-3.6-flash\`) (Coder / Maintainer)
+> **Session ID:** \`turn-c73adfac-a8dd\`
+> **MCP Log File:** \`temp/eda_mcp_20260816_182421_17427.log\`
+---
+
+## Summary
 Fixes Eldo simulation timeout caused by premature file lock failure.
 
 ## Technical Details & Root Cause
@@ -68,7 +87,14 @@ Fixes #42" \
 
 ---
 
-### 5. 🛑 STRICT NO AUTO-MERGE POLICY (HUMAN REVIEW GATE)
+### 5. 🏷️ GITHUB LABEL AUTO-CREATION & PR ATTACHMENT
+- **Pre-Check**: Before running `gh pr create`, the agent MUST check if the agent label (e.g. `Antigravity`, `Claude`, `Codex`) exists using `gh label list`.
+- **Auto-Create**: If the label does not exist on GitHub, the agent MUST run `gh label create "<label_name>" --color "0E8A16"` to create it (unless agent name is `"unknown"`).
+- **PR Attachment**: All Pull Requests MUST pass `--label "<agent_name>"` and `--label "<type>"` (e.g. `--label "bug"` or `--label "enhancement"`).
+
+---
+
+### 6. 🛑 STRICT NO AUTO-MERGE POLICY (HUMAN REVIEW GATE)
 - **STRICT RULE**: The Coder Agent **MUST NEVER** execute `git merge`, `gh pr merge`, or merge code into `main`.
 - Immediately after executing `gh pr create`, the Coder Agent MUST **STOP execution** and notify the human reviewer (You) that the PR is open and awaiting review.
 - Only the human maintainer is authorized to review and merge code into `main`.

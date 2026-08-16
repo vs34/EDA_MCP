@@ -121,14 +121,24 @@ Run the unit test suite to ensure all tests pass cleanly before pushing:
 python3 -m unittest discover tests
 ```
 
-### 4. Pull Request Creation & Issue Linking
-Push the branch and open a Pull Request via GitHub CLI:
+### 4. Pull Request Creation, Label Auto-Creation & Issue Linking
+Push the branch, check/create the GitHub agent label (`gh label create`), and open a Pull Request via GitHub CLI:
 ```bash
 git push origin <agent_name>/issue-<issue_number>-<short-description>
 
+# Check & create agent label on GitHub if missing
+gh label list | grep -i "<agent_name>" || gh label create "<agent_name>" --color "0E8A16"
+
 gh pr create \
   --title "fix(component): concise fix summary" \
-  --body "## Summary
+  --label "<type>" \
+  --label "<agent_name>" \
+  --body "> **Resolved by Agent:** <agent_name> (\`<agent_model>\`) (Coder / Maintainer)
+> **Session ID:** \`<session_id>\`
+> **MCP Log File:** \`temp/eda_mcp_YYYYMMDD_HHMMSS_<PID>.log\`
+---
+
+## Summary
 Description of fix...
 
 ## Technical Details
