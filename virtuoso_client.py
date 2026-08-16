@@ -79,17 +79,93 @@ class VirtuosoClient:
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """
-        Strips ';;' comments and converts multi-line SKILL statements into a single line string.
+        Strips ';;' comments outside string literals, escapes literal newlines inside
+        string literals, and converts multi-line SKILL statements into a single line string.
         """
-        clean_lines = []
-        for line in cmd_str.splitlines():
-            if ";;" in line:
-                comment_idx = line.find(";;")
-                line = line[:comment_idx]
-            stripped = line.strip()
-            if stripped:
-                clean_lines.append(stripped)
-        return " ".join(clean_lines)
+        if not cmd_str:
+            return ""
+
+        in_string = False
+        escaped = False
+        in_comment = False
+        result = []
+        i = 0
+        n = len(cmd_str)
+
+        while i < n:
+            char = cmd_str[i]
+
+            if in_comment:
+                if char in ("\n", "\r"):
+                    in_comment = False
+                    result.append(" ")
+                i += 1
+                continue
+
+            if in_string:
+                if escaped:
+                    result.append(char)
+                    escaped = False
+                elif char == "\\":
+                    result.append(char)
+                    escaped = True
+                elif char == '"':
+                    result.append(char)
+                    in_string = False
+                elif char == "\r":
+                    if i + 1 < n and cmd_str[i + 1] == "\n":
+                        i += 1
+                    result.append("\\n")
+                elif char == "\n":
+                    result.append("\\n")
+                else:
+                    result.append(char)
+            else:
+                if char == '"':
+                    in_string = True
+                    result.append(char)
+                elif char == ";" and i + 1 < n and cmd_str[i + 1] == ";":
+                    in_comment = True
+                    i += 2
+                    continue
+                elif char in ("\n", "\r"):
+                    if char == "\r" and i + 1 < n and cmd_str[i + 1] == "\n":
+                        i += 1
+                    result.append(" ")
+                else:
+                    result.append(char)
+
+            i += 1
+
+        raw_cleaned = "".join(result)
+        final_chars = []
+        in_str = False
+        esc = False
+        prev_space = False
+
+        for char in raw_cleaned:
+            if in_str:
+                final_chars.append(char)
+                if esc:
+                    esc = False
+                elif char == "\\":
+                    esc = True
+                elif char == '"':
+                    in_str = False
+            else:
+                if char == '"':
+                    in_str = True
+                    prev_space = False
+                    final_chars.append(char)
+                elif char == " ":
+                    if not prev_space:
+                        final_chars.append(" ")
+                        prev_space = True
+                else:
+                    prev_space = False
+                    final_chars.append(char)
+
+        return "".join(final_chars).strip()
 
     def initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
@@ -126,7 +202,7 @@ class VirtuosoClient:
         self.session.execute_command(f"rm -f {output_file} && touch {output_file}")
         
         # Write command directly to FIFO pipe MCP.command
-        fifo_write_cmd = f"echo {shlex.quote(clean_skill)} > MCP.command"
+        fifo_write_cmd = f"printf '%s\\n' {shlex.quote(clean_skill)} > MCP.command"
         exit_code, out, _ = self.session.execute_command(fifo_write_cmd)
         if exit_code != 0:
             return f"Failed to send command to Virtuoso FIFO pipe: {out}"
