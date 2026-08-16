@@ -1,9 +1,7 @@
 procedure( MCP_DataHandler(ipcId data)
     let((p oldWo oldPo res errSuccess)
-        ;; Prints debug info to Virtuoso CIW
         printf("[RUNNING]: %s\n" data)
 
-        ;; Redirects command output to file
         p = outfile("mcp_output.txt" "a")
         oldWo = woport  oldPo = poport
         woport = p      poport = p
