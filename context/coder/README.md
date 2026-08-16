@@ -22,6 +22,21 @@
 
 ---
 
+## 🤖 MANDATORY_AGENT_PRE_TASK_HOOKS (Machine Directives)
+
+> **STRICT AGENT INSTRUCTION**: Before executing code edits, git operations, or server maintenance listed below, the AI Agent MUST execute `view_file` on the linked specification file to load system constraints into active memory.
+
+| Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
+| :--- | :--- | :--- |
+| **GitHub Issue Fixing / Branching / PR Creation** | [`issue_resolution_workflow.md`](issue_resolution_workflow.md) | Agent branch naming (`<agent>/issue-<id>-<desc>`), custom author commits, PR templates, **STRICT NO-AUTOMERGE RULE**. |
+| **Server Architecture / MCP Handler Edits** | [`server_and_mcp.md`](server_and_mcp.md) | `FastMCP` session allocations (`RemoteSession`), tool dispatch table, logger setup (`logs/eda_mcp_*.log`). |
+| **SSH / SCP Transport Layer Edits** | [`transport_layer.md`](transport_layer.md) | Subshell `csh` sentinel tokens, regex REPL stream matching, OpenSSH `scp -O` parameters. |
+| **Virtuoso / Eldo Tool Client Edits** | [`eda_tool_clients.md`](eda_tool_clients.md) | `MCP.command` FIFO pipe IPC state machine, `MCP_setup.il` error trapping, REPL interactive loops. |
+| **WorkBoard Engine Edits** | [`workboard_backend.md`](workboard_backend.md) | `.workboard.json` registry schema, `_git_cmd` subprocess wrapper, SHA-256 checksum tracking. |
+| **Debugging / Running Test Suites** | [`known_issues_and_maintenance.md`](known_issues_and_maintenance.md) | Bug audit matrices, test suite discovery commands (`python3 -m unittest discover tests`). |
+
+---
+
 ## Coder Context Index
 
 - [`issue_resolution_workflow.md`](issue_resolution_workflow.md): Standard operating procedure for Coder agents resolving issues, creating agent branches, PR formatting, and human review gates.

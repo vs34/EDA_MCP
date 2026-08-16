@@ -38,10 +38,24 @@
 
 ---
 
+## 🤖 MANDATORY_AGENT_PRE_TASK_HOOKS (Machine Directives)
+
+> **STRICT AGENT INSTRUCTION**: Before invoking any MCP tool or generating code for the tasks below, the AI Agent MUST execute `view_file` on the linked specification file to load domain constraints into active memory.
+
+| Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
+| :--- | :--- | :--- |
+| **`virtuoso(...)`** / SKILL Code / Schematic Generation | [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) | PDK cell names (`cmos065`), pin types (`ipin`/`opin`/`iopin`), zero `schCheck` warnings policy, GUI `geOpen` window display. |
+| **`eldo(...)`** / SPICE Netlists / Simulations | [`eldo_simulation_guide.md`](eldo_simulation_guide.md) | Line 1 title comment rule, Level-1 fallback models, REPL commands (`run`/`step`), `.extract` result parsing. |
+| **`workboard(...)`** / Workspace Synchronization | [`workboard_sync_guide.md`](workboard_sync_guide.md) | Git baseline commit tracking ($C_{\text{sync}}$), line-by-line unified diff advancing, `.workboard.json` schema. |
+| **`report_issue(...)`** / Bug Reports & Feature Requests | [`issue_reporting_guide.md`](issue_reporting_guide.md) | Freeform Markdown formatting, bug reproduction templates, enhancement implementation milestone structures. |
+| **Tool Interface Schemas & Action Modes** | [`mcp_tools_spec.md`](mcp_tools_spec.md) | TypeScript interface schemas, parameter types, timeouts, action mode invariants for all 5 MCP tools. |
+
+---
+
 ## Agent Context Index
 
 - [`mcp_tools_spec.md`](mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
-- [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks.
+- [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks, GUI `geOpen` window rules.
 - [`eldo_simulation_guide.md`](eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
 - [`workboard_sync_guide.md`](workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
 - [`issue_reporting_guide.md`](issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.
