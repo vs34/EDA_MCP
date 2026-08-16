@@ -79,14 +79,31 @@ class VirtuosoClient:
 
     def _clean_skill_command(self, cmd_str: str) -> str:
         """
-        Strips ';;' comments and converts multi-line SKILL statements into a single line string.
+        Strips ';;' comments outside string literals and converts multi-line SKILL statements safely.
         """
         clean_lines = []
         for line in cmd_str.splitlines():
-            if ";;" in line:
-                comment_idx = line.find(";;")
-                line = line[:comment_idx]
-            stripped = line.strip()
+            in_quote = False
+            escape = False
+            clean_chars = []
+            i = 0
+            while i < len(line):
+                c = line[i]
+                if escape:
+                    clean_chars.append(c)
+                    escape = False
+                elif c == '\\':
+                    clean_chars.append(c)
+                    escape = True
+                elif c == '"':
+                    clean_chars.append(c)
+                    in_quote = not in_quote
+                elif not in_quote and line[i:i+2] == ";;":
+                    break
+                else:
+                    clean_chars.append(c)
+                i += 1
+            stripped = "".join(clean_chars).strip()
             if stripped:
                 clean_lines.append(stripped)
         return " ".join(clean_lines)
@@ -126,7 +143,7 @@ class VirtuosoClient:
         self.session.execute_command(f"rm -f {output_file} && touch {output_file}")
         
         # Write command directly to FIFO pipe MCP.command
-        fifo_write_cmd = f"echo {shlex.quote(clean_skill)} > MCP.command"
+        fifo_write_cmd = f"printf '%s\\n' {shlex.quote(clean_skill)} > MCP.command"
         exit_code, out, _ = self.session.execute_command(fifo_write_cmd)
         if exit_code != 0:
             return f"Failed to send command to Virtuoso FIFO pipe: {out}"
