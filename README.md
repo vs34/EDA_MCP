@@ -8,6 +8,8 @@
 
 `EDA_MCP` empowers AI agents to manage remote IC design tools (Cadence Virtuoso, Siemens Eldo), execute SKILL & simulation decks, and synchronize workspace files locally using a **Git-backed WorkBoard architecture** with sub-10ms connection speeds over SSH multiplexing.
 
+> 🤝 **Contributing & Agent Guidelines**: See [`CONTRIBUTING.md`](file:///Users/vs/function/EDA_MCP/CONTRIBUTING.md) for full Designer & Coder AI Agent contribution guidelines.
+
 ---
 
 ## 🏛️ Architecture: Local Control Plane + Remote Execution Engine
