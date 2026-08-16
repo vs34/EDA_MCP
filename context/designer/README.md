@@ -18,7 +18,7 @@
 
 ---
 
-## Agent Operational Invariants (MUST FOLLOW)
+## Agent Operational Invariants (Suggestion)
 
 1. **LIBRARY_SCOPE**: All generated cellviews, schematics, testbenches, and layouts MUST reside in library `MCP` unless explicitly overridden.
 2. **SESSION_ISOLATION**:
