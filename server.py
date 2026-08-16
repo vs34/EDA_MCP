@@ -10,15 +10,15 @@ from eldo_client import EldoClient
 from workboard_client import WorkBoardClient
 from issue_reporter import IssueReporter
 
-# Get absolute path to base dir and setup temp logging folder
+# Get absolute path to base dir and setup logs logging folder
 base_dir = os.path.dirname(os.path.abspath(__file__))
-temp_dir = os.path.join(base_dir, "temp")
-os.makedirs(temp_dir, exist_ok=True)
+logs_dir = os.path.join(base_dir, "logs")
+os.makedirs(logs_dir, exist_ok=True)
 
 # Generate unique log file for each server instance (timestamp + PID)
 session_timestamp = time.strftime("%Y%m%d_%H%M%S")
 log_filename = f"eda_mcp_{session_timestamp}_{os.getpid()}.log"
-log_filepath = os.path.join(temp_dir, log_filename)
+log_filepath = os.path.join(logs_dir, log_filename)
 
 # Configure logger
 logger = logging.getLogger("EDA_MCP")
@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 
-# File handler for saving logs in temp/
+# File handler for saving logs in logs/
 file_handler = logging.FileHandler(log_filepath, encoding="utf-8")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)

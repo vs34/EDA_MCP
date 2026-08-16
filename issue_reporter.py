@@ -24,10 +24,10 @@ class IssueReporter:
         """Formats a simple GitHub issue body with metadata banner."""
         clean_log = log_file.strip() if log_file else ""
         if clean_log:
-            log_file_str = clean_log if ("temp/" in clean_log or "temp\\" in clean_log) else f"temp/{clean_log}"
-            log_line = f"`{log_file_str}` (created in `temp/` folder)"
+            log_file_str = clean_log if ("logs/" in clean_log or "logs\\" in clean_log or "temp/" in clean_log or "temp\\" in clean_log) else f"logs/{clean_log}"
+            log_line = f"`{log_file_str}` (created in `logs/` folder)"
         else:
-            log_line = "Created in `temp/` folder (`temp/eda_mcp_*.log`)"
+            log_line = "Created in `logs/` folder (`logs/eda_mcp_*.log`)"
 
         model_str = f" (`{agent_model.strip()}`)" if (agent_model and agent_model.strip()) else ""
 

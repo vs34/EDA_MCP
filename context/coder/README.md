@@ -4,7 +4,7 @@
 
 | Component | Source File | Class / Function | Description |
 | :--- | :--- | :--- | :--- |
-| **MCP Entrypoint** | [`server.py`](file:///Users/vs/function/EDA_MCP/server.py) | `FastMCP("EDA_MCP")` | Registers 4 MCP tools, initializes per-tool SSH sessions, configures logger (`temp/eda_mcp_*.log`). |
+| **MCP Entrypoint** | [`server.py`](file:///Users/vs/function/EDA_MCP/server.py) | `FastMCP("EDA_MCP")` | Registers 4 MCP tools, initializes per-tool SSH sessions, configures logger (`logs/eda_mcp_*.log`). |
 | **SSH Transport** | [`ssh_client.py`](file:///Users/vs/function/EDA_MCP/ssh_client.py) | `RemoteSession` | Manages persistent `csh` subshell over SSH, sentinel execution (`_read_until_sentinel`), and interactive stream reading (`execute_interactive_stream`). |
 | **SCP Transport** | [`scp_client.py`](file:///Users/vs/function/EDA_MCP/scp_client.py) | `SCPClient` | Executes OpenSSH `scp -O` for direct binary/folder transfer without shell escaping overhead. |
 | **Virtuoso Interface** | [`virtuoso_client.py`](file:///Users/vs/function/EDA_MCP/virtuoso_client.py) | `VirtuosoClient` | Manages SKILL FIFO pipe (`MCP.command`) IPC polling (`mcp_output.txt`) and `virtuoso -nograph` REPL streaming. |

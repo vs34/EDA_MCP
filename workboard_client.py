@@ -154,7 +154,7 @@ class WorkBoardClient:
         # Write default .gitignore
         gitignore_path = os.path.join(wb_dir, ".gitignore")
         if not os.path.exists(gitignore_path):
-            gitignore_content = "*.tr0\n*.wdb\n*.vcd\n*.log\ntemp/\n__pycache__/\n"
+            gitignore_content = "*.tr0\n*.wdb\n*.vcd\n*.log\nlogs/\ntemp/\n__pycache__/\n"
             with open(gitignore_path, "w", encoding="utf-8") as f:
                 f.write(gitignore_content)
             output.append("Created default .gitignore for large simulation binaries.")

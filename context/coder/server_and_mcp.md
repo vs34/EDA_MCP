@@ -2,7 +2,7 @@
 
 ## 1. Instance & Logging Setup ([`server.py`](file:///Users/vs/function/EDA_MCP/server.py))
 - **FastMCP Server**: `mcp = FastMCP("EDA_MCP")`
-- **Log Location**: `temp/eda_mcp_<session_timestamp>_<pid>.log`
+- **Log Location**: `logs/eda_mcp_<session_timestamp>_<pid>.log`
 - **Log Handlers**:
   - `logging.FileHandler(log_filepath, encoding="utf-8")`
   - `logging.StreamHandler(sys.stderr)` (preserves stdout JSON-RPC stdio protocol)

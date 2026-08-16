@@ -3,5 +3,6 @@ __pycache__/
 *$py.class
 .env
 .DS_Store
+logs/
 temp/
 workboard/

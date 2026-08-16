@@ -16,7 +16,7 @@ class TestIssueReporter(unittest.TestCase):
 
         self.assertIn("> **Reported by Agent:** Antigravity (`gemini-3.6-flash`) (Chip Design Consumer)", body)
         self.assertIn("> **Session ID:** `test-session-123`", body)
-        self.assertIn("> **MCP Log File:** `temp/eda_mcp_20260815_120000_999.log` (created in `temp/` folder)", body)
+        self.assertIn("> **MCP Log File:** `logs/eda_mcp_20260815_120000_999.log` (created in `logs/` folder)", body)
         self.assertIn("## Problem\nTimeout waiting for output file lock", body)
 
     def test_format_issue_body_freeform_markdown(self):
