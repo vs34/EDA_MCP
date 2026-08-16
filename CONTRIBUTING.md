@@ -63,7 +63,7 @@ report_issue({
 - **How to Enhance**: Show the ideal tool signature, proposed JSON schema, or code example.
 - **Proposed Implementation Milestones**: Outline logical step-by-step milestones (Phase 1, Phase 2, Phase 3) to guide the Coder Agent in implementing the feature.
 
-*(For detailed examples, see [`context/designer/issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md)).*
+*(For detailed examples, see [`context/designer/issue_reporting_guide.md`](context/designer/issue_reporting_guide.md)).*
 
 ---
 
@@ -146,19 +146,19 @@ Fixes #<issue_number>" \
 - Immediately after opening the PR (`gh pr create`), stop execution and notify the human maintainer.
 - Only human maintainers are authorized to review and merge PRs into `main`.
 
-*(For detailed Coder guidelines, see [`context/coder/issue_resolution_workflow.md`](file:///Users/vs/function/EDA_MCP/context/coder/issue_resolution_workflow.md)).*
+*(For detailed Coder guidelines, see [`context/coder/issue_resolution_workflow.md`](context/coder/issue_resolution_workflow.md)).*
 
 ---
 
 ## 5. Documentation & Context References
 
-- **Designer Agent Context**: [`context/designer/README.md`](file:///Users/vs/function/EDA_MCP/context/designer/README.md)
-  - Tool Specifications: [`context/designer/mcp_tools_spec.md`](file:///Users/vs/function/EDA_MCP/context/designer/mcp_tools_spec.md)
-  - Virtuoso SKILL Guide: [`context/designer/virtuoso_skill_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/virtuoso_skill_guide.md)
-  - Eldo Simulation Guide: [`context/designer/eldo_simulation_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/eldo_simulation_guide.md)
-  - WorkBoard Sync Guide: [`context/designer/workboard_sync_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/workboard_sync_guide.md)
-  - Issue Reporting Guide: [`context/designer/issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md)
-- **Coder Agent Context**: [`context/coder/README.md`](file:///Users/vs/function/EDA_MCP/context/coder/README.md)
-  - Issue Resolution Workflow: [`context/coder/issue_resolution_workflow.md`](file:///Users/vs/function/EDA_MCP/context/coder/issue_resolution_workflow.md)
-  - Server & MCP Architecture: [`context/coder/server_and_mcp.md`](file:///Users/vs/function/EDA_MCP/context/coder/server_and_mcp.md)
-  - Transport Layer (SSH/SCP): [`context/coder/transport_layer.md`](file:///Users/vs/function/EDA_MCP/context/coder/transport_layer.md)
+- **Designer Agent Context**: [`context/designer/README.md`](context/designer/README.md)
+  - Tool Specifications: [`context/designer/mcp_tools_spec.md`](context/designer/mcp_tools_spec.md)
+  - Virtuoso SKILL Guide: [`context/designer/virtuoso_skill_guide.md`](context/designer/virtuoso_skill_guide.md)
+  - Eldo Simulation Guide: [`context/designer/eldo_simulation_guide.md`](context/designer/eldo_simulation_guide.md)
+  - WorkBoard Sync Guide: [`context/designer/workboard_sync_guide.md`](context/designer/workboard_sync_guide.md)
+  - Issue Reporting Guide: [`context/designer/issue_reporting_guide.md`](context/designer/issue_reporting_guide.md)
+- **Coder Agent Context**: [`context/coder/README.md`](context/coder/README.md)
+  - Issue Resolution Workflow: [`context/coder/issue_resolution_workflow.md`](context/coder/issue_resolution_workflow.md)
+  - Server & MCP Architecture: [`context/coder/server_and_mcp.md`](context/coder/server_and_mcp.md)
+  - Transport Layer (SSH/SCP): [`context/coder/transport_layer.md`](context/coder/transport_layer.md)

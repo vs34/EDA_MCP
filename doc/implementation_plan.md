@@ -24,7 +24,7 @@ We will create a lightweight Python application using the official Python MCP SD
 ### Component: SSH Client
 Manages a persistent connection to the remote EDA server, handles PTY allocation, sources the environment startup file, and performs SFTP file operations.
 
-#### [NEW] [ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)
+#### [NEW] [ssh_client.py](../ssh_client.py)
 - Implements `RemoteSession` class.
 - Establishes connection using Paramiko.
 - Implements command execution that automatically prepends shell initialization (e.g. `source ~/.cshrc && <command>`).
@@ -35,7 +35,7 @@ Manages a persistent connection to the remote EDA server, handles PTY allocation
 ### Component: MCP Server Interface
 Exposes the core bridge tools using FastMCP with dedicated per-tool SSH sessions and config files in `config/`.
 
-#### [MODIFY] [server.py](file:///Users/vs/function/EDA_MCP/server.py)
+#### [MODIFY] [server.py](../server.py)
 - Initializes `FastMCP("EDA_MCP")`.
 - Creates dedicated SSH sessions:
   - `remote_session`: Isolated session for `remote_control` using `config/config_remote_control.json`.
@@ -49,12 +49,12 @@ Exposes the core bridge tools using FastMCP with dedicated per-tool SSH sessions
 ### Component: Configuration & Dependency Management
 Handles packages and tool-specific configuration files.
 
-#### [NEW] [config/](file:///Users/vs/function/EDA_MCP/config)
+#### [NEW] [config/](../config)
 - `config/config_remote_control.json` & `config/config_remote_control.json.template`: Dedicated configuration for `remote_control`.
 - `config/config_virtuoso.json` & `config/config_virtuoso.json.template`: Dedicated configuration for `virtuoso`.
 - `config/config.json.template`: Fallback configuration template.
 
-#### [MODIFY] [README.md](file:///Users/vs/function/EDA_MCP/README.md)
+#### [MODIFY] [README.md](../README.md)
 - Explains tool-specific configurations in `config/`, tool signatures (`remote_control`, `virtuoso`), and AI client connection instructions.
 
 ---

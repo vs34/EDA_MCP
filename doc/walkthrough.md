@@ -28,21 +28,21 @@ We have implemented a highly modular, state-isolated, and scalable architecture 
                                        └───────────────────────────┘          └───────────────────────────┘
 ```
 
-### 1. Low-Level SSH Transport Backbone ([ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py))
+### 1. Low-Level SSH Transport Backbone ([ssh_client.py](../ssh_client.py))
 Contains persistent SSH shellPrimitives:
 - `connect()`
 - `execute_command(command: str)`
 - `read_file(remote_path: str)`
 - `write_file(remote_path: str, content: str)`
-- `load_config()`: Automatically resolves tool-specific config files in [config/](file:///Users/vs/function/EDA_MCP/config) with fallback searching.
+- `load_config()`: Automatically resolves tool-specific config files in [config/](../config) with fallback searching.
 
-### 2. Cadence Virtuoso Client ([virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py))
+### 2. Cadence Virtuoso Client ([virtuoso_client.py](../virtuoso_client.py))
 Encapsulates `VirtuosoClient` class bound to `virtuoso_session`:
 - `initialize(work_dir)`: Navigates to working directory and starts Virtuoso.
 - `run(skill_code, timeout)`: Pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
 - `exit()`: Gracefully exits Virtuoso via SKILL FIFO command.
 
-### 3. Siemens Eldo Client ([eldo_client.py](file:///Users/vs/function/EDA_MCP/eldo_client.py))
+### 3. Siemens Eldo Client ([eldo_client.py](../eldo_client.py))
 Encapsulates `EldoClient` class bound to `eldo_session`:
 - `initialize(work_dir)`: Navigates to project directory, creates `interctive.fifo` named pipe and `intective_out.txt` output file.
 - `start_interactive(netlist_file)`: Launches background pipe keeper (`tail -f /dev/null > interctive.fifo &`) and spawns background interactive Eldo (`eldo <netlist.cir> -inter < interctive.fifo >& intective_out.txt &`) with PID tracking.
@@ -51,7 +51,7 @@ Encapsulates `EldoClient` class bound to `eldo_session`:
 - `run_script(script_path)`: Executes batch Eldo simulation (`eldo <script_path> >& mcp_run.log`), auto-truncating output to `tail -100` if log exceeds 100 lines.
 - `read_extract()`: Auto-detects and reads the latest `.extract` measurement summary file.
 
-### 4. FastMCP Server Entrypoint ([server.py](file:///Users/vs/function/EDA_MCP/server.py))
+### 4. FastMCP Server Entrypoint ([server.py](../server.py))
 Instantiates isolated sessions:
 ```python
 remote_session = RemoteSession(config_path="config/config_remote_control.json")

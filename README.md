@@ -8,7 +8,7 @@
 
 `EDA_MCP` empowers AI agents to manage remote IC design tools (Cadence Virtuoso, Siemens Eldo), execute SKILL & simulation decks, and synchronize workspace files locally using a **Git-backed WorkBoard architecture** with sub-10ms connection speeds over SSH multiplexing.
 
-> 🤝 **Contributing & Agent Guidelines**: See [`CONTRIBUTING.md`](file:///Users/vs/function/EDA_MCP2/CONTRIBUTING.md) for full Designer & Coder AI Agent contribution guidelines.
+> 🤝 **Contributing & Agent Guidelines**: See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full Designer & Coder AI Agent contribution guidelines.
 
 ---
 
@@ -79,7 +79,7 @@ pip3 install -r requirements.txt
 ```
 
 ### 2. Configuration (`config/`)
-Configure tool credentials in the [`config/`](file:///Users/vs/function/EDA_MCP2/config/) directory (see [`config/config_remote_control.json.template`](file:///Users/vs/function/EDA_MCP2/config/config_remote_control.json.template)):
+Configure tool credentials in the [`config/`](config/) directory (see [`config/config_remote_control.json.template`](config/config_remote_control.json.template)):
 ```json
 {
   "ssh_host": "eda-uni",
@@ -108,7 +108,7 @@ Add to your `claude_desktop_config.json`:
     "eda-mcp": {
       "command": "python3",
       "args": [
-        "/Users/vs/function/EDA_MCP2/server.py"
+        "server.py"
       ]
     }
   }
@@ -118,22 +118,22 @@ Add to your `claude_desktop_config.json`:
 ### Cursor / Windsurf
 Add a new Stdio MCP Server:
 - **Name**: `EDA_MCP`
-- **Command**: `python3 /Users/vs/function/EDA_MCP2/server.py`
+- **Command**: `python3 server.py`
 
 ---
 
 ## 🏗️ Architecture & Modules
 
-* [`server.py`](file:///Users/vs/function/EDA_MCP2/server.py): FastMCP server registering tool definitions (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
-* [`issue_reporter.py`](file:///Users/vs/function/EDA_MCP2/issue_reporter.py): Meta-Harness helper formatting structured GitHub issue bodies and invoking `gh` CLI.
-* [`workboard_client.py`](file:///Users/vs/function/EDA_MCP2/workboard_client.py): WorkBoard client managing local Git repositories, `.workboard.json` registries, and unified diffs.
-* [`scp_client.py`](file:///Users/vs/function/EDA_MCP2/scp_client.py): High-speed binary/text transport engine leveraging OpenSSH multiplexing.
-* [`ssh_client.py`](file:///Users/vs/function/EDA_MCP2/ssh_client.py): Low-level SSH transport backbone managing persistent `csh` shell sessions.
-* [`virtuoso_client.py`](file:///Users/vs/function/EDA_MCP2/virtuoso_client.py): Cadence Virtuoso client encapsulating SKILL IPC pipe communication and REPL streams.
-* [`eldo_client.py`](file:///Users/vs/function/EDA_MCP2/eldo_client.py): Siemens Eldo simulation client with interactive REPL streaming and `.extract` reading.
+* [`server.py`](server.py): FastMCP server registering tool definitions (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
+* [`issue_reporter.py`](issue_reporter.py): Meta-Harness helper formatting structured GitHub issue bodies and invoking `gh` CLI.
+* [`workboard_client.py`](workboard_client.py): WorkBoard client managing local Git repositories, `.workboard.json` registries, and unified diffs.
+* [`scp_client.py`](scp_client.py): High-speed binary/text transport engine leveraging OpenSSH multiplexing.
+* [`ssh_client.py`](ssh_client.py): Low-level SSH transport backbone managing persistent `csh` shell sessions.
+* [`virtuoso_client.py`](virtuoso_client.py): Cadence Virtuoso client encapsulating SKILL IPC pipe communication and REPL streams.
+* [`eldo_client.py`](eldo_client.py): Siemens Eldo simulation client with interactive REPL streaming and `.extract` reading.
 
 ---
 
 ## 📜 License
 
-Distributed under the **MIT License**. See [`LICENSE`](file:///Users/vs/function/EDA_MCP2/LICENSE) for details.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.

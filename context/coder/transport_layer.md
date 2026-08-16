@@ -1,6 +1,6 @@
 # TRANSPORT_LAYER_SPEC
 
-## 1. Subshell Transport Contract ([`ssh_client.py`](file:///Users/vs/function/EDA_MCP/ssh_client.py))
+## 1. Subshell Transport Contract ([`ssh_client.py`](../../ssh_client.py))
 
 ```python
 self.process = subprocess.Popen(
@@ -29,7 +29,7 @@ self.process = subprocess.Popen(
 
 ---
 
-## 2. Direct SCP Transport Contract ([`scp_client.py`](file:///Users/vs/function/EDA_MCP/scp_client.py))
+## 2. Direct SCP Transport Contract ([`scp_client.py`](../../scp_client.py))
 
 Executes OpenSSH legacy SCP protocol (`scp -O`) to bypass terminal escaping and Base64 size expansion for binary files/directories:
 

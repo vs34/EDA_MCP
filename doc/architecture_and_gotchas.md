@@ -28,11 +28,11 @@ This document captures key technical findings, architecture details, and critica
                                        └───────────────────────────┘          └───────────────────────────┘
 ```
 
-- **[server.py](file:///Users/vs/function/EDA_MCP/server.py)**: Exposes `@mcp.tool()` definitions (`remote_control`, `virtuoso`, `eldo`) to MCP clients. Instantiates distinct, isolated `RemoteSession` instances for each tool. Handles per-instance logging in `temp/`.
-- **[config/](file:///Users/vs/function/EDA_MCP/config)**: Holds tool-specific JSON configuration files (`config_remote_control.json`, `config_virtuoso.json`, `config_eldo.json`). `RemoteSession.load_config()` automatically resolves tool-specific configs with a fallback to `config.json`.
-- **[virtuoso_client.py](file:///Users/vs/function/EDA_MCP/virtuoso_client.py)**: High-level Cadence Virtuoso client encapsulating SKILL command cleaning, FIFO pipe communication, response polling, and Virtuoso process lifecycle.
-- **[eldo_client.py](file:///Users/vs/function/EDA_MCP/eldo_client.py)**: High-level Siemens/Mentor Graphics Eldo simulation client managing FIFO pipe IPC for interactive simulation, PID health monitoring (`kill -0`), batch simulation output redirection, and `.extract` result reading.
-- **[ssh_client.py](file:///Users/vs/function/EDA_MCP/ssh_client.py)**: Low-level transport layer managing persistent, stateful `csh` shell sessions over SSH (`RemoteSession`).
+- **[server.py](../server.py)**: Exposes `@mcp.tool()` definitions (`remote_control`, `virtuoso`, `eldo`) to MCP clients. Instantiates distinct, isolated `RemoteSession` instances for each tool. Handles per-instance logging in `temp/`.
+- **[config/](../config)**: Holds tool-specific JSON configuration files (`config_remote_control.json`, `config_virtuoso.json`, `config_eldo.json`). `RemoteSession.load_config()` automatically resolves tool-specific configs with a fallback to `config.json`.
+- **[virtuoso_client.py](../virtuoso_client.py)**: High-level Cadence Virtuoso client encapsulating SKILL command cleaning, FIFO pipe communication, response polling, and Virtuoso process lifecycle.
+- **[eldo_client.py](../eldo_client.py)**: High-level Siemens/Mentor Graphics Eldo simulation client managing FIFO pipe IPC for interactive simulation, PID health monitoring (`kill -0`), batch simulation output redirection, and `.extract` result reading.
+- **[ssh_client.py](../ssh_client.py)**: Low-level transport layer managing persistent, stateful `csh` shell sessions over SSH (`RemoteSession`).
 
 ---
 
@@ -107,9 +107,9 @@ This document captures key technical findings, architecture details, and critica
    mcp_output.txt  ==> Read by virtuoso_client.py
 ```
 
-- **[MCP_initalize.sh](file:///Users/vs/function/EDA_MCP/server_side/virtuoso/MCP_initalize.sh)**: Creates FIFO pipe `MCP.command`, sources `.cshrc_cmos065`, sets `DISPLAY=:0`, and launches Virtuoso.
-- **[MCP_setup.il](file:///Users/vs/function/EDA_MCP/server_side/virtuoso/MCP_setup.il)**: Loaded via `.cdsinit` on Virtuoso launch. Uses `ipcBeginProcess` to start `MCP_sockit.py`.
-- **[MCP_sockit.py](file:///Users/vs/function/EDA_MCP/server_side/virtuoso/MCP_sockit.py)**: Opens `MCP.command` in `r+` mode (keeping the pipe open permanently across writes) and streams lines to Virtuoso's `stdout` evaluation loop.
+- **[MCP_initalize.sh](../server_side/virtuoso/MCP_initalize.sh)**: Creates FIFO pipe `MCP.command`, sources `.cshrc_cmos065`, sets `DISPLAY=:0`, and launches Virtuoso.
+- **[MCP_setup.il](../server_side/virtuoso/MCP_setup.il)**: Loaded via `.cdsinit` on Virtuoso launch. Uses `ipcBeginProcess` to start `MCP_sockit.py`.
+- **[MCP_sockit.py](../server_side/virtuoso/MCP_sockit.py)**: Opens `MCP.command` in `r+` mode (keeping the pipe open permanently across writes) and streams lines to Virtuoso's `stdout` evaluation loop.
 
 ---
 

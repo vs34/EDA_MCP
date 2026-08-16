@@ -132,4 +132,4 @@ type ReportIssueArgs = {
 - **Client Agent Auto-Detection**: Extracts `agent_name` (`Antigravity`, `claude-code`, `cursor`) from MCP `clientInfo` context via FastMCP `Context`.
 - **Log Auto-Attachment**: Automatically attaches active server log from `temp/eda_mcp_*.log`.
 - **GitHub Label Auto-Creation**: Checks repository via `gh label list` and creates agent label (`gh label create`) if missing.
-- **Form Suggestions**: For suggested Markdown body structure on bugs and enhancements, see [`issue_reporting_guide.md`](file:///Users/vs/function/EDA_MCP/context/designer/issue_reporting_guide.md).
+- **Form Suggestions**: For suggested Markdown body structure on bugs and enhancements, see [`issue_reporting_guide.md`](issue_reporting_guide.md).

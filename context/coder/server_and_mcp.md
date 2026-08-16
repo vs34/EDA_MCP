@@ -1,6 +1,6 @@
 # SERVER_AND_MCP_SPEC
 
-## 1. Instance & Logging Setup ([`server.py`](file:///Users/vs/function/EDA_MCP/server.py))
+## 1. Instance & Logging Setup ([`server.py`](../../server.py))
 - **FastMCP Server**: `mcp = FastMCP("EDA_MCP")`
 - **Log Location**: `logs/eda_mcp_<session_timestamp>_<pid>.log`
 - **Log Handlers**:
@@ -11,7 +11,7 @@
 
 ## 2. Dedicated SSH Session Allocations
 
-To prevent working directory (`cd`) or environment contamination across tools, [`server.py`](file:///Users/vs/function/EDA_MCP/server.py#L54-L61) instantiates separate `RemoteSession` instances:
+To prevent working directory (`cd`) or environment contamination across tools, [`server.py`](../../server.py#L54-L61) instantiates separate `RemoteSession` instances:
 
 ```python
 remote_session = RemoteSession(config_path="config/config_remote_control.json")

@@ -1,6 +1,6 @@
 # EDA_TOOL_CLIENTS_SPEC
 
-## 1. Cadence Virtuoso Client ([`virtuoso_client.py`](file:///Users/vs/function/EDA_MCP/virtuoso_client.py))
+## 1. Cadence Virtuoso Client ([`virtuoso_client.py`](../../virtuoso_client.py))
 
 ### Assisted Run FIFO Pipe IPC State Machine
 ```
@@ -18,7 +18,7 @@
           ▼
    Polling Loop (Interval: 0.3s, Timeout: 30.0s)
    read_file("mcp_output.txt") until "RESULT:" appears
-> **Command Length & Error Handling Contract**: `assisted_run` SKILL commands are written directly to `MCP.command` FIFO via shell `echo` (keep short/concise; use `load("file.il")` for large scripts). Server-side [`MCP_setup.il`](file:///Users/vs/function/EDA_MCP/server_side/virtuoso/MCP_setup.il) wraps `evalstring` in `errset` and `unwindProtect` to catch SKILL exceptions, write `RESULT: ERROR ...`, and restore ports without timing out.
+> **Command Length & Error Handling Contract**: `assisted_run` SKILL commands are written directly to `MCP.command` FIFO via shell `echo` (keep short/concise; use `load("file.il")` for large scripts). Server-side [`MCP_setup.il`](../../server_side/virtuoso/MCP_setup.il) wraps `evalstring` in `errset` and `unwindProtect` to catch SKILL exceptions, write `RESULT: ERROR ...`, and restore ports without timing out.
 
 
 ### Standalone REPL Mode
@@ -28,7 +28,7 @@
 
 ---
 
-## 2. Siemens Eldo Client ([`eldo_client.py`](file:///Users/vs/function/EDA_MCP/eldo_client.py))
+## 2. Siemens Eldo Client ([`eldo_client.py`](../../eldo_client.py))
 
 ### Interactive REPL Mode (`eldo -inter`)
 - `start_interactive(netlist_file, work_dir)`: Sends `eldo <netlist_file> -inter` via `execute_interactive_stream()` matching `(eldo>\s*$|\bELDO>\s*$)`.

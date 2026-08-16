@@ -1,6 +1,6 @@
 # WORKBOARD_BACKEND_SPEC
 
-## 1. Directory Structure & Registry Schema ([`workboard_client.py`](file:///Users/vs/function/EDA_MCP/workboard_client.py))
+## 1. Directory Structure & Registry Schema ([`workboard_client.py`](../../workboard_client.py))
 
 ### Path Binding
 - Base Directory: `./workboard/<workboard_name>/`
