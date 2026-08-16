@@ -79,6 +79,7 @@ close(fp)
 ## 5. `assisted_run` Command Length & Error Trapping Spec
 - **Length Constraint**: Keep `assisted_run` SKILL `command` strings short and modular.
 - **Error Trapping (`errset`)**: Server `MCP_setup.il` automatically traps unhandled SKILL errors via `errset` and `unwindProtect` (preventing 30s timeouts). Agents may also use `errset(expr t)` inside SKILL commands to capture detailed diagnostic messages for self-healing.
+- **GUI Popup Notification**: `assisted_run` executes against the active graphical Virtuoso window. If a command opens a modal GUI popup window (e.g., save prompt, geOpen dialog, schCheck warning popup), the agent MUST explicitly notify the user to inspect and interact with the remote GUI popup.
 
 
 

@@ -50,7 +50,7 @@ type VirtuosoArgs = {
 - `start_standalone`: Launches non-graphical Virtuoso REPL (`virtuoso -nograph`).
 - `standalone`: Sends SKILL statement to active `virtuoso -nograph` REPL stream.
 - `stop_standalone`: Sends `exit()` to non-graphical REPL and closes session.
-- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Constraint**: SKILL `command` MUST NOT be excessively long; keep commands short and modular.
+- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Constraint**: SKILL `command` MUST NOT be excessively long; keep commands short and modular. **GUI Popups**: If a modal GUI popup opens (e.g. save dialog, schCheck warning), notify the user to interact with the Virtuoso GUI.
 - `run_terminal_command`: Executes shell command in Virtuoso terminal environment.
 
 ---

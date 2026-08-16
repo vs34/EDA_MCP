@@ -32,6 +32,7 @@
 6. **ELDO_TITLE_RULE**: Line 1 of any `.cir` netlist is strictly treated by Eldo as a title comment line.
 7. **LOCAL_COMPUTATION_RULE**: Agents are fully authorized and encouraged to use local default capabilities, Python scripts, mathematical calculators, scratch scripts, and web research to perform transistor sizing ($W/L$), bias point calculations, schematic planning, and netlist formatting prior to remote execution.
 8. **ASSISTED_RUN_LENGTH_RULE**: For `virtuoso(action="assisted_run")`, the SKILL code in `command` MUST NOT be excessively long. Keep commands concise and modular for `assisted_run`. For complex/long SKILL scripts, Break long SKILL to small portion according to complexity this will also increase debuggability if anything went wrong.
+9. **GUI_POPUP_NOTIFY_RULE**: In `virtuoso(action="assisted_run")`, commands may trigger modal GUI popups on the remote Virtuoso window (e.g., save prompts, geOpen dialogs, schCheck confirmations). If `assisted_run` times out or requires GUI input, the agent MUST explicitly notify the user to inspect and interact with the remote Virtuoso GUI popup.
 
 ---
 
