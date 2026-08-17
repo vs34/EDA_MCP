@@ -148,6 +148,23 @@ async def run_mcp_client_test():
                 if "Exit Status: 0" not in delete_output:
                     raise RuntimeError(f"Failed to delete test file {temp_file_path}")
                 print("Cleanup successful!")
+
+                # 5. Test calling 'workboard' with action='status'
+                print("\nCalling 'workboard' with action='status'...")
+                wb_response = await session.call_tool(
+                    name="workboard",
+                    arguments={"action": "status", "workboard_name": "default"}
+                )
+                wb_text = ""
+                for content in wb_response.content:
+                    if hasattr(content, "text"):
+                        wb_text += content.text
+                    else:
+                        wb_text += str(content)
+                print(f"WorkBoard Status Response:\n{wb_text}")
+                if "WorkBoard Name: default" not in wb_text:
+                    raise AssertionError(f"WorkBoard tool call failed: {wb_text}")
+                print("WorkBoard tool verification successful!")
     except Exception as e:
         print(f"\nERROR: MCP client test failed: {e}", file=sys.stderr)
         sys.exit(1)

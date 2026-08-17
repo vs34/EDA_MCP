@@ -60,6 +60,8 @@ eldo_session = RemoteSession(config_path=eldo_config)
 virtuoso_client = VirtuosoClient(session=virtuoso_session)
 virtuoso_standalone_client = VirtuosoClient(session=virtuoso_standalone_session)
 eldo_client = EldoClient(session=eldo_session)
+workboard_client = WorkBoardClient()
+
 def _format_result_summary(res: str, max_len: int = 300) -> str:
     """Formats tool return result on a single line for clean, full lifecycle logging."""
     if not res:
