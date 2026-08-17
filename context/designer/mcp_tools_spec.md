@@ -59,8 +59,7 @@ type VirtuosoArgs = {
 ### Interface Schema
 ```typescript
 type EldoArgs = {
-  action: "initialize"
-        | "start_interactive" | "start"
+  action: "start_interactive" | "start"
         | "run_interactive" | "interactive"
         | "stop_interactive" | "stop"
         | "run_script" | "script"
@@ -73,7 +72,6 @@ type EldoArgs = {
 ```
 
 ### Action Modes
-- `initialize`: Creates/navigates to `work_dir`.
 - `start_interactive`: Launches `eldo <netlist> -inter` interactive session.
 - `run_interactive`: Sends simulation control command (`run`, `step`, `display`) to `eldo>` REPL.
 - `stop_interactive`: Sends `quit` to active Eldo REPL session.

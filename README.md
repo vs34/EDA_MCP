@@ -49,8 +49,7 @@ Full Cadence Virtuoso lifecycle and SKILL command execution:
 
 ### 3. ⚡ Siemens Eldo Control (`eldo`)
 Siemens/Mentor Graphics Eldo analog simulation control:
-- **`initialize`**: Sets up project directory (`~/Desktop/eldo`) and interactive IPC pipes.
-- **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL.
+- **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL. Automatically initializes simulation directory on demand.
 - **`run_script`**: Runs batch Eldo simulation (`eldo <script.cir>`) and truncates execution logs cleanly.
 - **`read_extract`**: Auto-detects and reads the latest `.extract` measurement summary file.
 

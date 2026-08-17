@@ -43,6 +43,7 @@ Exposes the core bridge tools using FastMCP with dedicated per-tool SSH sessions
 - Exposes tools:
   - `remote_control(action, command="", path="", content="")`: Remote shell command execution (`action='run_command'`), file reading (`action='read_file'`), and file writing (`action='write_file'`).
   - `virtuoso(action, command="", work_dir="~/Desktop/cmos65")`: Cadence Virtuoso auto-initialized SKILL execution (`action='assisted_run'`), REPL execution (`action='standalone'`), and session termination (`action='exit'`).
+  - `eldo(action, command="", work_dir="~/Desktop/eldo")`: Siemens Eldo auto-initialized batch simulation (`action='run_script'`), interactive REPL (`action='start_interactive'`), and measurement parsing (`action='read_extract'`).
 
 ---
 

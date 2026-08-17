@@ -40,7 +40,6 @@ workboard_client = WorkBoardClient()
 | `virtuoso` | `"stop_standalone"` | `virtuoso_standalone_client.stop_standalone()` |
 | `virtuoso` | `"run_terminal_command"`| `virtuoso_client.run_terminal_command(command, work_dir, timeout)` |
 | `virtuoso` | `"exit"` | `virtuoso_client.exit()` |
-| `eldo` | `"initialize"` | `eldo_client.initialize(work_dir)` |
 | `eldo` | `"start_interactive"` | `eldo_client.start_interactive(netlist_file=command, work_dir)` |
 | `eldo` | `"run_interactive"` | `eldo_client.run_interactive(command, work_dir, timeout)` |
 | `eldo` | `"stop_interactive"` | `eldo_client.stop_interactive(work_dir)` |

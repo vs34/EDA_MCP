@@ -17,10 +17,10 @@ class EldoClient:
         self.interactive_keeper_pid = None
         self.interactive_cir = None
 
-    def initialize(self, work_dir: str = "~/Desktop/eldo") -> str:
+    def _initialize(self, work_dir: str = "~/Desktop/eldo") -> str:
         """
-        Navigates to work_dir (default: ~/Desktop/eldo), sets working directory for Eldo,
-        and creates interctive.fifo FIFO pipe and intective_out.txt file.
+        Navigates to work_dir (default: ~/Desktop/eldo), sets working directory for Eldo.
+        Internal initialization method called automatically by Eldo simulation actions.
         """
         self.session.connect()
         target_dir = work_dir.strip() if work_dir and work_dir.strip() else "~/Desktop/eldo"

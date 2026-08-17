@@ -174,7 +174,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
     Args:
-        action: The operation to perform ('run_terminal_command', 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
+        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
         command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', or shell command when action='run_terminal_command'
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
@@ -183,9 +183,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act == "initialize":
-            res = eldo_client.initialize(work_dir=work_dir)
-        elif act in ("start_interactive", "start_inter", "start"):
+        if act in ("start_interactive", "start_inter", "start"):
             res = eldo_client.start_interactive(netlist_file=command, work_dir=work_dir)
         elif act in ("run_interactive", "run_inter", "interactive", "inter"):
             res = eldo_client.run_interactive(command=command, work_dir=work_dir, timeout=timeout)
@@ -201,7 +199,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
             else:
                 res = eldo_client.run_terminal_command(command=command, work_dir=work_dir, timeout=timeout)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
