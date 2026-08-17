@@ -31,7 +31,7 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 - **Assisted Run Mode (`assisted_run`):**
   - Used for interacting directly with the active graphical Cadence Virtuoso editor window.
 - **Before executing SKILL code:**
-  - Verify Virtuoso is initialized. If timed out, run `virtuoso(action="initialize", work_dir="~/Desktop/cmos65")`.
+  - Virtuoso session working directory is auto-initialized on demand during `assisted_run`.
 
 ### Explicit `cds.lib` Technology Resolution
 - If Virtuoso emits `DB-270172` (`Failed to open cellview cmos065/psvtgp/symbol`), ensure `cds.lib` includes explicit absolute library paths:

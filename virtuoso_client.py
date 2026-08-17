@@ -167,9 +167,10 @@ class VirtuosoClient:
 
         return "".join(final_chars).strip()
 
-    def initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
+    def _initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
         Navigates to work_dir, executes MCP_initalize.sh, and tracks the Virtuoso PID.
+        Internal initialization method called automatically by assisted_run.
         """
         self.session.connect()
         self.workdir = work_dir
@@ -183,12 +184,20 @@ class VirtuosoClient:
 
         return f"Virtuoso initialization complete in {work_dir}."
 
-    def assisted_run(self, skill_code: str, timeout: float = 30.0) -> str:
+    def assisted_run(self, skill_code: str, work_dir: str = "", timeout: float = 30.0) -> str:
         """
         Executes a SKILL command in Human+AI assisted mode via IPC pipe and polls mcp_output.txt for output.
+        Auto-initializes session working directory if not yet initialized.
         """
         self.session.connect()
-        if self.workdir:
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/cmos65"
+
+        if not self.workdir:
+            logger.info("assisted_run auto-initializing Virtuoso session...")
+            init_res = self._initialize(work_dir=target_dir)
+            if "Failed to initialize" in init_res:
+                return init_res
+        else:
             safe_dir = f"$HOME{self.workdir[1:]}" if self.workdir.startswith("~") else shlex.quote(self.workdir)
             self.session.execute_command(f"cd {safe_dir}")
             
@@ -230,8 +239,8 @@ class VirtuosoClient:
             
         return f"Execution timed out ({timeout}s). No response received from Virtuoso in {output_file}.\nPossible causes:\n1. Virtuoso GUI is waiting for user interaction on a modal dialog (e.g., geOpen, schCheck unlinked master prompt, file overwrite prompt).\n2. The SKILL script contains a long-running execution (e.g., system(...) shell call, netlist check, heavy simulation setup).\nRemedies: Pass a larger 'timeout' parameter or interact with/close the modal dialog in the Virtuoso GUI on the remote server."
 
-    def run(self, skill_code: str, timeout: float = 10.0) -> str:
-        return self.assisted_run(skill_code=skill_code, timeout=timeout)
+    def run(self, skill_code: str, work_dir: str = "", timeout: float = 10.0) -> str:
+        return self.assisted_run(skill_code=skill_code, work_dir=work_dir, timeout=timeout)
 
     def run_terminal_command(self, command: str, work_dir: str = "", timeout: float = 60.0) -> str:
         """

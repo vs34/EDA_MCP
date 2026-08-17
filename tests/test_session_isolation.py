@@ -41,12 +41,12 @@ async def run_session_isolation_test():
             print(f"remote_control pwd after cd /tmp: {rc_pwd_after.strip()}")
             assert "/tmp" in rc_pwd_after, "remote_control failed to change directory to /tmp"
 
-            # Initialize virtuoso in a different directory (~/Desktop/cmos65)
+            # Execute virtuoso terminal command in a different directory (~/Desktop/cmos65)
             v_res = await session.call_tool(
                 name="virtuoso",
-                arguments={"action": "initialize", "work_dir": "~/Desktop/cmos65"}
+                arguments={"action": "run_terminal_command", "command": "pwd", "work_dir": "~/Desktop/cmos65"}
             )
-            print(f"virtuoso init output: {v_res.content[0].text.strip() if v_res.content else ''}")
+            print(f"virtuoso output: {v_res.content[0].text.strip() if v_res.content else ''}")
 
             # Verify remote_control is STILL in /tmp (proving sessions are isolated)
             rc_verify = await session.call_tool(

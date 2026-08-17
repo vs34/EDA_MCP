@@ -130,22 +130,20 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
     Control and interact with Cadence Virtuoso.
     
     Args:
-        action: The operation to perform ('initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit')
+        action: The operation to perform ('assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit')
         command: SKILL code when action='assisted_run'/'standalone', or shell command when action='run_terminal_command'
-        work_dir: Working directory when action='initialize', 'start_standalone', or 'run_terminal_command'
+        work_dir: Working directory for session execution (default: ~/Desktop/cmos65)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
     """
     logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act == "initialize":
-            res = virtuoso_client.initialize(work_dir=work_dir)
-        elif act in ("assisted_run", "assisted", "run"):
+        if act in ("assisted_run", "assisted", "run"):
             if not command.strip():
                 res = "Error: 'command' argument is required when action='assisted_run'."
             else:
-                res = virtuoso_client.assisted_run(skill_code=command, timeout=timeout)
+                res = virtuoso_client.assisted_run(skill_code=command, work_dir=work_dir, timeout=timeout)
         elif act in ("standalone", "run_standalone"):
             res = virtuoso_standalone_client.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
         elif act in ("start_standalone", "start"):
@@ -160,7 +158,7 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
         elif act == "exit":
             res = virtuoso_client.exit()
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
@@ -176,7 +174,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
     Control and interact with Siemens/Mentor Graphics Eldo simulator.
     
     Args:
-        action: The operation to perform ('run_terminal_command', 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
+        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
         command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', or shell command when action='run_terminal_command'
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
@@ -185,9 +183,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act == "initialize":
-            res = eldo_client.initialize(work_dir=work_dir)
-        elif act in ("start_interactive", "start_inter", "start"):
+        if act in ("start_interactive", "start_inter", "start"):
             res = eldo_client.start_interactive(netlist_file=command, work_dir=work_dir)
         elif act in ("run_interactive", "run_inter", "interactive", "inter"):
             res = eldo_client.run_interactive(command=command, work_dir=work_dir, timeout=timeout)
@@ -203,7 +199,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
             else:
                 res = eldo_client.run_terminal_command(command=command, work_dir=work_dir, timeout=timeout)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")

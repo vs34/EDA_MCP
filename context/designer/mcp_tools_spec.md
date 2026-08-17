@@ -32,8 +32,7 @@ type RemoteControlArgs = {
 ### Interface Schema
 ```typescript
 type VirtuosoArgs = {
-  action: "initialize"
-        | "start_standalone" | "start"
+  action: "start_standalone" | "start"
         | "standalone" | "run_standalone"
         | "stop_standalone" | "stop"
         | "assisted_run" | "assisted" | "run"
@@ -46,7 +45,6 @@ type VirtuosoArgs = {
 ```
 
 ### Action Modes
-- `initialize`: Creates/navigates to `work_dir`.
 - `start_standalone`: Launches non-graphical Virtuoso REPL (`virtuoso -nograph`).
 - `standalone`: Sends SKILL statement to active `virtuoso -nograph` REPL stream.
 - `stop_standalone`: Sends `exit()` to non-graphical REPL and closes session.
@@ -61,8 +59,7 @@ type VirtuosoArgs = {
 ### Interface Schema
 ```typescript
 type EldoArgs = {
-  action: "initialize"
-        | "start_interactive" | "start"
+  action: "start_interactive" | "start"
         | "run_interactive" | "interactive"
         | "stop_interactive" | "stop"
         | "run_script" | "script"
@@ -75,7 +72,6 @@ type EldoArgs = {
 ```
 
 ### Action Modes
-- `initialize`: Creates/navigates to `work_dir`.
 - `start_interactive`: Launches `eldo <netlist> -inter` interactive session.
 - `run_interactive`: Sends simulation control command (`run`, `step`, `display`) to `eldo>` REPL.
 - `stop_interactive`: Sends `quit` to active Eldo REPL session.

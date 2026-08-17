@@ -38,14 +38,12 @@ Contains persistent SSH shellPrimitives:
 
 ### 2. Cadence Virtuoso Client ([virtuoso_client.py](../virtuoso_client.py))
 Encapsulates `VirtuosoClient` class bound to `virtuoso_session`:
-- `initialize(work_dir)`: Navigates to working directory and starts Virtuoso.
-- `run(skill_code, timeout)`: Pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
+- `assisted_run(skill_code, work_dir, timeout)`: Auto-initializes working directory on demand, pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
 - `exit()`: Gracefully exits Virtuoso via SKILL FIFO command.
 
 ### 3. Siemens Eldo Client ([eldo_client.py](../eldo_client.py))
 Encapsulates `EldoClient` class bound to `eldo_session`:
-- `initialize(work_dir)`: Navigates to project directory, creates `interctive.fifo` named pipe and `intective_out.txt` output file.
-- `start_interactive(netlist_file)`: Launches background pipe keeper (`tail -f /dev/null > interctive.fifo &`) and spawns background interactive Eldo (`eldo <netlist.cir> -inter < interctive.fifo >& intective_out.txt &`) with PID tracking.
+- `start_interactive(netlist_file, work_dir)`: Auto-initializes simulation working directory and spawns interactive Eldo (`eldo <netlist.cir> -inter`) REPL stream.
 - `run_interactive(command)`: Checks PID status (`kill -0 <pid>`), sends commands into `interctive.fifo`, clears log, and reads output from `intective_out.txt`.
 - `stop_interactive()`: Terminates background Eldo PID (`kill -9 <pid>`).
 - `run_script(script_path)`: Executes batch Eldo simulation (`eldo <script_path> >& mcp_run.log`), auto-truncating output to `tail -100` if log exceeds 100 lines.

@@ -43,15 +43,13 @@ Git-backed local-remote workspace synchronization and version control:
 
 ### 2. 🎨 Cadence Virtuoso Control (`virtuoso`)
 Full Cadence Virtuoso lifecycle and SKILL command execution:
-- **`initialize`**: Navigates to project workspace (`~/Desktop/cmos65`) and initializes environment.
-- **`run`**: Executes SKILL statements via non-blocking FIFO IPC (`MCP.command`) and polls results.
+- **`assisted_run` / `run`**: Executes SKILL statements via non-blocking FIFO IPC (`MCP.command`) and polls results. Automatically initializes session working directory on first invocation.
 - **`start_standalone` / `run_standalone`**: Interactive `virtuoso -nograph` REPL streaming session.
 - **`exit`**: Gracefully terminates Virtuoso processes.
 
 ### 3. ⚡ Siemens Eldo Control (`eldo`)
 Siemens/Mentor Graphics Eldo analog simulation control:
-- **`initialize`**: Sets up project directory (`~/Desktop/eldo`) and interactive IPC pipes.
-- **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL.
+- **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL. Automatically initializes simulation directory on demand.
 - **`run_script`**: Runs batch Eldo simulation (`eldo <script.cir>`) and truncates execution logs cleanly.
 - **`read_extract`**: Auto-detects and reads the latest `.extract` measurement summary file.
 
