@@ -38,8 +38,7 @@ Contains persistent SSH shellPrimitives:
 
 ### 2. Cadence Virtuoso Client ([virtuoso_client.py](../virtuoso_client.py))
 Encapsulates `VirtuosoClient` class bound to `virtuoso_session`:
-- `initialize(work_dir)`: Navigates to working directory and starts Virtuoso.
-- `run(skill_code, timeout)`: Pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
+- `assisted_run(skill_code, work_dir, timeout)`: Auto-initializes working directory on demand, pre-processes SKILL, writes to `MCP.command` FIFO, and polls `mcp_output.txt`.
 - `exit()`: Gracefully exits Virtuoso via SKILL FIFO command.
 
 ### 3. Siemens Eldo Client ([eldo_client.py](../eldo_client.py))

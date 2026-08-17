@@ -32,8 +32,7 @@ type RemoteControlArgs = {
 ### Interface Schema
 ```typescript
 type VirtuosoArgs = {
-  action: "initialize"
-        | "start_standalone" | "start"
+  action: "start_standalone" | "start"
         | "standalone" | "run_standalone"
         | "stop_standalone" | "stop"
         | "assisted_run" | "assisted" | "run"
@@ -46,7 +45,6 @@ type VirtuosoArgs = {
 ```
 
 ### Action Modes
-- `initialize`: Creates/navigates to `work_dir`.
 - `start_standalone`: Launches non-graphical Virtuoso REPL (`virtuoso -nograph`).
 - `standalone`: Sends SKILL statement to active `virtuoso -nograph` REPL stream.
 - `stop_standalone`: Sends `exit()` to non-graphical REPL and closes session.

@@ -34,8 +34,7 @@ workboard_client = WorkBoardClient()
 | `remote_control` | `"run_command"` | `remote_session.execute_command(command, timeout)` |
 | `remote_control` | `"read_file"` | `remote_session.read_file(path, timeout)` |
 | `remote_control` | `"write_file"` | `remote_session.write_file(path, content, timeout)` |
-| `virtuoso` | `"initialize"` | `virtuoso_client.initialize(work_dir)` |
-| `virtuoso` | `"assisted_run"` | `virtuoso_client.assisted_run(skill_code=command, timeout)` |
+| `virtuoso` | `"assisted_run"` | `virtuoso_client.assisted_run(skill_code=command, work_dir, timeout)` |
 | `virtuoso` | `"start_standalone"` | `virtuoso_standalone_client.start_standalone(work_dir)` |
 | `virtuoso` | `"standalone"` | `virtuoso_standalone_client.run_standalone(command, work_dir, timeout)` |
 | `virtuoso` | `"stop_standalone"` | `virtuoso_standalone_client.stop_standalone()` |

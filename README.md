@@ -43,8 +43,7 @@ Git-backed local-remote workspace synchronization and version control:
 
 ### 2. 🎨 Cadence Virtuoso Control (`virtuoso`)
 Full Cadence Virtuoso lifecycle and SKILL command execution:
-- **`initialize`**: Navigates to project workspace (`~/Desktop/cmos65`) and initializes environment.
-- **`run`**: Executes SKILL statements via non-blocking FIFO IPC (`MCP.command`) and polls results.
+- **`assisted_run` / `run`**: Executes SKILL statements via non-blocking FIFO IPC (`MCP.command`) and polls results. Automatically initializes session working directory on first invocation.
 - **`start_standalone` / `run_standalone`**: Interactive `virtuoso -nograph` REPL streaming session.
 - **`exit`**: Gracefully terminates Virtuoso processes.
 

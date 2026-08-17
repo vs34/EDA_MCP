@@ -24,7 +24,7 @@ class TestVirtuosoAutoInit(unittest.TestCase):
         self.mock_session.connect.assert_called()
 
     def test_assisted_run_uses_existing_workdir_if_already_initialized(self):
-        self.client.initialize(work_dir="~/Desktop/custom_dir")
+        self.client._initialize(work_dir="~/Desktop/custom_dir")
         self.assertEqual(self.client.workdir, "~/Desktop/custom_dir")
         
         res = self.client.assisted_run(skill_code="plus(3 4)")

@@ -167,9 +167,10 @@ class VirtuosoClient:
 
         return "".join(final_chars).strip()
 
-    def initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
+    def _initialize(self, work_dir: str = "~/Desktop/cmos65") -> str:
         """
         Navigates to work_dir, executes MCP_initalize.sh, and tracks the Virtuoso PID.
+        Internal initialization method called automatically by assisted_run.
         """
         self.session.connect()
         self.workdir = work_dir
@@ -186,14 +187,14 @@ class VirtuosoClient:
     def assisted_run(self, skill_code: str, work_dir: str = "", timeout: float = 30.0) -> str:
         """
         Executes a SKILL command in Human+AI assisted mode via IPC pipe and polls mcp_output.txt for output.
-        Auto-initializes session if initialize was not called prior to assisted_run.
+        Auto-initializes session working directory if not yet initialized.
         """
         self.session.connect()
         target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/cmos65"
 
         if not self.workdir:
-            logger.info("assisted_run called prior to explicit initialize call. Auto-initializing Virtuoso session...")
-            init_res = self.initialize(work_dir=target_dir)
+            logger.info("assisted_run auto-initializing Virtuoso session...")
+            init_res = self._initialize(work_dir=target_dir)
             if "Failed to initialize" in init_res:
                 return init_res
         else:

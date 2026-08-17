@@ -27,18 +27,19 @@ async def run_virtuoso_test():
                 print("Initialization successful!")
 
                 print("\n==========================================")
-                print("Calling 'virtuoso' tool (action='initialize')...")
+                print("Calling 'virtuoso' tool (action='assisted_run')...")
                 print("==========================================")
                 
                 response = await session.call_tool(
                     name="virtuoso",
                     arguments={
-                        "action": "initialize",
+                        "action": "assisted_run",
+                        "command": "plus(1 1)",
                         "work_dir": "~/Desktop/cmos65"
                     }
                 )
                 
-                print("\n--- Virtuoso Initialization Output ---")
+                print("\n--- Virtuoso Assisted Run Output ---")
                 for content in response.content:
                     if hasattr(content, "text"):
                         print(content.text)

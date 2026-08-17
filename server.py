@@ -130,18 +130,16 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
     Control and interact with Cadence Virtuoso.
     
     Args:
-        action: The operation to perform ('initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit')
+        action: The operation to perform ('assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit')
         command: SKILL code when action='assisted_run'/'standalone', or shell command when action='run_terminal_command'
-        work_dir: Working directory when action='initialize', 'start_standalone', or 'run_terminal_command'
+        work_dir: Working directory for session execution (default: ~/Desktop/cmos65)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
     """
     logger.info(f"[TOOL CALL] virtuoso: action={action!r}, command={command!r}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act == "initialize":
-            res = virtuoso_client.initialize(work_dir=work_dir)
-        elif act in ("assisted_run", "assisted", "run"):
+        if act in ("assisted_run", "assisted", "run"):
             if not command.strip():
                 res = "Error: 'command' argument is required when action='assisted_run'."
             else:
@@ -160,7 +158,7 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
         elif act == "exit":
             res = virtuoso_client.exit()
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'initialize', 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'assisted_run', 'standalone', 'start_standalone', 'stop_standalone', 'run_terminal_command', 'exit'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] virtuoso (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
