@@ -22,18 +22,21 @@ Before running any commands, determine the Virtuoso execution mode:
 
 ---
 
-## Step 2: Draw ASCII Schematic & Seek User Confirmation
+## Step 2: Draw ASCII Schematic & Seek User Confirmation (`ask_question`)
 
-**DO NOT execute MCP commands yet.** First, design the circuit and present it visually to the user.
+**DO NOT execute MCP commands yet.** First, design the circuit and present it visually inside the `ask_question` modal and chat response.
 
 1. **Size Devices & Plan Architecture:** Determine device counts, $W/L$ dimensions, overdrive voltages ($V_{OV}$), and net connections.
-2. **Render ASCII Schematic:** Use the `ascii-schematics` skill to render the circuit diagram.
-3. **Ask User for Confirmation (`ask_question`):** Present the ASCII schematic, sizing specs, and net topology in your response text, then invoke the interactive `ask_question` tool:
+2. **Render ASCII Schematic:** Use the `ascii-schematics` skill to render the complete circuit diagram.
+3. **Output Diagram in Response & Invoke `ask_question`:**
+   - Print the ASCII schematic and sizing table in your main response text.
+   - **CRITICAL**: Include the **full ASCII schematic diagram, net list, and device sizing table directly inside the `question` string** of `ask_question` so the user can see the schematic right inside the modal popup window!
+
    ```json
    {
      "questions": [
        {
-         "question": "Is this the circuit topology, sizing, and schematic structure you want me to create?",
+         "question": "### Proposed Schematic & Topology:\n\n```text\n      VDD (1.2V)\n       │\n     ┌─┴─┐\n     │M1 │ PMOS (W=2.0u, L=0.065u)\n     └─┬─┘\n  VIN ─┼────── VOUT\n     ┌─┴─┐\n     │M2 │ NMOS (W=1.0u, L=0.065u)\n     └─┬─┘\n       │\n      GND\n```\n\n**Device Sizing & Nets:**\n- M1 (PMOS): W=2.0u, L=0.065u (Bulk -> VDD, Drain -> VOUT)\n- M2 (NMOS): W=1.0u, L=0.065u (Bulk -> GND, Drain -> VOUT)\n\nIs this the circuit topology, sizing, and schematic structure you want me to create in Virtuoso?",
          "options": [
            "(Recommended) Proceed with creating this schematic in Virtuoso",
            "Modify transistor sizing or dimensions",
@@ -46,7 +49,7 @@ Before running any commands, determine the Virtuoso execution mode:
      "toolSummary": "Schematic topology confirmation"
    }
    ```
-4. **Wait for User Response:** Execution blocks until the user selects an option or provides write-in feedback in the `ask_question` modal. Do not proceed to Step 3 until the user confirms.
+4. **Wait for User Response:** Execution blocks until the user selects an option or submits write-in feedback in the modal. Do not proceed to Step 3 until confirmed.
 
 ---
 
