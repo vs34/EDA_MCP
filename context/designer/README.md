@@ -44,6 +44,7 @@
 
 | Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
 | :--- | :--- | :--- |
+| **Schematic Design Workflow** / Creating Analog Schematics | [`Scamatic_small.md`](../../SKILL/Scamatic_small.md) | 5-Step sequential procedure: ASCII schematic preview $\rightarrow$ `ask_question` user confirmation $\rightarrow$ Virtuoso SKILL creation & `geOpen` window display $\rightarrow$ `ask_question` for Eldo simulation. |
 | **`virtuoso(...)`** / SKILL Code / Schematic Generation | [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) | PDK cell names (`cmos065`), pin types (`ipin`/`opin`/`iopin`), zero `schCheck` warnings policy, GUI `geOpen` window display. |
 | **`eldo(...)`** / SPICE Netlists / Simulations | [`eldo_simulation_guide.md`](eldo_simulation_guide.md) | Line 1 title comment rule, Level-1 fallback models, REPL commands (`run`/`step`), `.extract` result parsing. |
 | **`workboard(...)`** / Workspace Synchronization | [`workboard_sync_guide.md`](workboard_sync_guide.md) | Git baseline commit tracking ($C_{\text{sync}}$), line-by-line unified diff advancing, `.workboard.json` schema. |
@@ -54,6 +55,7 @@
 
 ## Agent Context Index
 
+- [`Scamatic_small.md`](../../SKILL/Scamatic_small.md): Quick step-by-step procedure for creating analog schematics, ASCII previews, `ask_question` user confirmations, and Virtuoso/Eldo workflows.
 - [`mcp_tools_spec.md`](mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
 - [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks, GUI `geOpen` window rules.
 - [`eldo_simulation_guide.md`](eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.

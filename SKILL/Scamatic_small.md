@@ -12,13 +12,13 @@ A structured, end-to-end procedure for building analog schematics via SKILL / `e
 
 ---
 
-## Step 1: Determine Execution Mode (Standalone vs. Assisted Virtuoso)
+## Step 1: Determine Execution Mode (Assisted Run vs. Script Mode)
 
 Before running any commands, determine the Virtuoso execution mode:
-- **Standalone Mode (`start_standalone` / `standalone`):** Runs non-graphical Virtuoso (`virtuoso -nograph`). **(Recommended)** Ideal for headless SKILL scripting, CDF updates, and netlist extraction without GUI timeouts.
-- **Assisted Run Mode (`assisted_run`):** Connects to an active graphical Cadence Virtuoso editor session for visual GUI interaction.
+- **Assisted Run Mode (`assisted_run`):** Executes SKILL commands against the active Cadence Virtuoso editor session for visual GUI interaction and live window display (`geOpen`).
+- **Batch Script Mode (`run_script`):** Executes standalone SKILL scripts headlessly (`virtuoso -nograph`) for batch processing, netlist extraction, and automated checks.
 
-*(The agent manages Virtuoso session initialization automatically.)*
+*(The agent manages Virtuoso session initialization automatically via `server.py`.)*
 
 ---
 
@@ -28,9 +28,25 @@ Before running any commands, determine the Virtuoso execution mode:
 
 1. **Size Devices & Plan Architecture:** Determine device counts, $W/L$ dimensions, overdrive voltages ($V_{OV}$), and net connections.
 2. **Render ASCII Schematic:** Use the `ascii-schematics` skill to render the circuit diagram.
-3. **Ask User for Confirmation:** Present the ASCII schematic, sizing specs, and net topology, then explicitly ask the user:
-   > *"Is this the circuit topology, sizing, and schematic structure you want me to create?"*
-4. **Wait for User Response:** Do not proceed to Step 3 until the user confirms or provides modifications.
+3. **Ask User for Confirmation (`ask_question`):** Present the ASCII schematic, sizing specs, and net topology in your response text, then invoke the interactive `ask_question` tool:
+   ```json
+   {
+     "questions": [
+       {
+         "question": "Is this the circuit topology, sizing, and schematic structure you want me to create?",
+         "options": [
+           "(Recommended) Proceed with creating this schematic in Virtuoso",
+           "Modify transistor sizing or dimensions",
+           "Change circuit topology or net connections"
+         ],
+         "is_multi_select": false
+       }
+     ],
+     "toolAction": "Asking confirmation for schematic structure",
+     "toolSummary": "Schematic topology confirmation"
+   }
+   ```
+4. **Wait for User Response:** Execution blocks until the user selects an option or provides write-in feedback in the `ask_question` modal. Do not proceed to Step 3 until the user confirms.
 
 ---
 
@@ -43,11 +59,14 @@ Before running any commands, determine the Virtuoso execution mode:
   ```lisp
   cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "a")
   ```
-- Place transistor instances with descriptive names (`M1_ref`, `M2_mirror`, etc.).
-- Explicitly set $W$ and $L$ CDF parameters for every device:
+- Place transistor instances with descriptive names (`M1_ref`, `M2_mirror`, etc.):
   ```lisp
-  dbSetInstCDFparamValue(inst "w" "string" "<width>")
-  dbSetInstCDFparamValue(inst "l" "string" "<length>")
+  inst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "M1" list(1.0 1.0) "R0")
+  ```
+- **Transistor Sizing & CDF Lifecycle (`cmos065`):**
+  Use `initMosTransistor` (or CDF property assignment) with width and length expressed in **Microns ($\mu\text{m}$)** (e.g., `"2.0"` for $2.0\mu\text{m}$, `"0.065"` for $65\text{nm}$):
+  ```lisp
+  initMosTransistor(inst "2.0" "0.065")
   ```
 - Place input (`ipin`), output (`opin`), and power (`iopin`) pins from the `basic` library using `schCreatePin`.
 
@@ -59,7 +78,7 @@ Before running any commands, determine the Virtuoso execution mode:
   - **Drains (`d`) & Sources (`s`):** Connect to output pins, internal nodes, or supply rails according to circuit topology.
 - Verify no floating terminals, unattached gates, or unintended short circuits exist.
 
-### C. Check & Save Cellview (Zero-Tolerance for Warnings)
+### C. Check, Save & Display Cellview (Zero-Tolerance for Warnings)
 - Execute schematic check:
   ```lisp
   schCheck(cv)
@@ -74,6 +93,10 @@ Before running any commands, determine the Virtuoso execution mode:
   ```lisp
   dbSave(cv)
   ```
+- **GUI Window Display (`assisted_run`):** Open the cellview in the active Virtuoso GUI window and **DO NOT call `dbClose(cv)`**:
+  ```lisp
+  geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+  ```
 
 ---
 
@@ -82,9 +105,24 @@ Before running any commands, determine the Virtuoso execution mode:
 **ONLY proceed after `schCheck` passes with zero errors and zero warnings regarding floating nodes.**
 
 - Inform the user that the schematic cellview is created and verified with zero errors/warnings in the `MCP` library.
-- Explicitly ask the user:
-  > *"The schematic has been created and verified with 0 errors and 0 warnings. Would you like me to run Eldo simulations on this netlist?"*
-- Wait for user confirmation before initiating simulation.
+- Invoke the interactive `ask_question` tool:
+  ```json
+  {
+    "questions": [
+      {
+        "question": "The schematic has been created and verified with 0 errors and 0 warnings. Would you like me to run Eldo simulations on this netlist?",
+        "options": [
+          "(Recommended) Proceed with Eldo simulation sweep",
+          "Skip simulation for now"
+        ],
+        "is_multi_select": false
+      }
+    ],
+    "toolAction": "Asking confirmation for Eldo simulation",
+    "toolSummary": "Eldo simulation confirmation"
+  }
+  ```
+- Wait for user response via `ask_question` before initiating simulation.
 
 
 ---
