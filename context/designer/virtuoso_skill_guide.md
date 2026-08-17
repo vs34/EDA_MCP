@@ -38,8 +38,11 @@ foreach(term cv~>terminals dbDeleteObject(term))
 ;; Transistor Placement
 pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "I0" list(1.0 1.5) "R0")
 nInst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "I1" list(1.0 0.5) "R0")
-pInst~>w = 2.0u  pInst~>l = 65n
-nInst~>w = 1.0u  nInst~>l = 65n
+
+;; Transistor CDF Lifecycle & Sizing (MUST use string Micron values: "2.0", "0.065")
+;; Do NOT assign raw float meters (pInst~>w = 2.0u), as this bypasses CDF callbacks and truncates dimensions to 0.
+initMosTransistor(pInst "2.0" "0.065")  ;; 2.0µm width, 65nm length
+initMosTransistor(nInst "1.0" "0.065")  ;; 1.0µm width, 65nm length
 
 ;; Pin Placement
 ip  = dbOpenCellViewByType("basic" "ipin" "symbol")
