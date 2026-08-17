@@ -145,7 +145,7 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
             if not command.strip():
                 res = "Error: 'command' argument is required when action='assisted_run'."
             else:
-                res = virtuoso_client.assisted_run(skill_code=command, timeout=timeout)
+                res = virtuoso_client.assisted_run(skill_code=command, work_dir=work_dir, timeout=timeout)
         elif act in ("standalone", "run_standalone"):
             res = virtuoso_standalone_client.run_standalone(command=command, work_dir=work_dir, timeout=timeout)
         elif act in ("start_standalone", "start"):
