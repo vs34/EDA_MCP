@@ -83,11 +83,11 @@ cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "a")
 schCheck(cv)
 dbSave(cv)
 
-;; 2. Open & display cellview in the live Virtuoso GUI window
-;; CRITICAL: Do NOT call dbClose(cv) when displaying in GUI, as dbClose purges the view from Virtuoso!
-win = geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
-;; Alternatively, if you already have 'cv':
-;; win = geOpenCellViewInAnotherWindow(cv)
+;; 2. Open & display cellview in the live Virtuoso GUI window (guarded against duplicate window spawns)
+;; CRITICAL: Use geGetCellViewWindow check to prevent duplicate windows. Do NOT call dbClose(cv) when displaying in GUI!
+unless( geGetCellViewWindow(cv)
+    geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+)
 ```
 
 ---
@@ -96,7 +96,7 @@ win = geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schemati
 
 | Execution Mode | Tool Action | Required SKILL Functions | Window / Close Rule |
 | :--- | :--- | :--- | :--- |
-| **Interactive GUI Mode** | `virtuoso(action="assisted_run")` | `dbOpenCellViewByType`, `schCheck`, `dbSave`, `geOpen(?lib ... ?cell ...)` | **MUST call `geOpen`** to bring schematic/layout window to front. **DO NOT call `dbClose(cv)`**. |
+| **Interactive GUI Mode** | `virtuoso(action="assisted_run")` | `dbOpenCellViewByType`, `schCheck`, `dbSave`, `unless(geGetCellViewWindow ... geOpen)` | **MUST guard `geOpen` with `geGetCellViewWindow(cv)`** to prevent duplicate window spawns. **DO NOT call `dbClose(cv)`**. |
 | **Background Batch Mode** | `virtuoso(action="standalone")` / `run_script` | `dbOpenCellViewByType`, `schCheck`, `dbSave`, `dbClose(cv)` | Performs database editing in memory. Must call `dbClose(cv)` to release lock. |
 
 ---

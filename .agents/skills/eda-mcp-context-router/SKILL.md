@@ -51,7 +51,7 @@ TASK INTENT CLASSIFICATION                  MANDATORY SPECIFICATION TO READ (vie
 3. `CDF_UNITS`: CDF fields `w` and `l` MUST receive string values in **Microns ($\mu\text{m}$)** (e.g., `"2.0"`, `"0.065"`). Never assign raw float meters (`2.0u`).
 4. `CDF_LIFECYCLE`: Transistors MUST be initialized via `initMosTransistor(inst, wMicrons, lMicrons)` or `DK_mosInit` $\rightarrow$ `DK_CBmos('w)` $\rightarrow$ `DK_CBmos('l)` $\rightarrow$ `DK_mosDone(inst)`.
 5. `SCH_CHECK`: Zero-tolerance for `schCheck` warnings (`(0 0)` required).
-6. `GUI_OPEN`: Open schematic windows via `deOpenCellView("MCP" "<cell>" "schematic" "schematic" nil "a")` or `geOpen`. DO NOT call `dbClose(cv)` when displaying in GUI.
+6. `GUI_OPEN`: Open schematic windows via `unless(geGetCellViewWindow(cv) geOpen(?lib ... ?cell ...))` to prevent duplicate window spawns (`window:3`, `window:4`). DO NOT call `dbClose(cv)` when displaying in GUI.
 7. `ELDO_TITLE`: Line 1 of every Eldo `.cir` netlist is strictly treated as a title comment line.
 
 ---

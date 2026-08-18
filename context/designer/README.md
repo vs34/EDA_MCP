@@ -34,7 +34,7 @@
 8. **ASSISTED_RUN_LENGTH_RULE**: For `virtuoso(action="assisted_run")`, the SKILL code in `command` MUST NOT be excessively long. Keep commands concise and modular for `assisted_run`. For complex/long SKILL scripts, Break long SKILL to small portion according to complexity this will also increase debuggability if anything went wrong.
 9. **GUI_POPUP_NOTIFY_RULE**: In `virtuoso(action="assisted_run")`, commands may trigger modal GUI popups on the remote Virtuoso window (e.g., save prompts, geOpen dialogs, schCheck confirmations). If `assisted_run` times out or requires GUI input, the agent MUST explicitly notify the user to inspect and interact with the remote Virtuoso GUI popup.
 10. **ISSUE_REPORTING_GUIDELINE**: When encountering bugs or identifying new tool enhancements, agents are encouraged to use `report_issue` with structured Markdown (see [`issue_reporting_guide.md`](issue_reporting_guide.md) for suggestions on bug & enhancement reports).
-11. **GUI_WINDOW_OPEN_RULE**: In `virtuoso(action="assisted_run")`, when requested to build, edit, or open a schematic or layout for the user to view in Virtuoso, the SKILL script MUST open the window in the live Virtuoso GUI using `geOpen(?lib ... ?cell ... ?view ...)` or `geOpenCellViewInAnotherWindow(cv)`, and MUST NOT call `dbClose(cv)` (which would purge the view).
+11. **GUI_WINDOW_OPEN_RULE**: In `virtuoso(action="assisted_run")`, when requested to build, edit, or open a schematic or layout for the user to view in Virtuoso, the SKILL script MUST check if a window is already open using `unless(geGetCellViewWindow(cv) geOpen(?lib ... ?cell ... ?view ...))` to prevent duplicate window spawns (`window:3`, `window:4`), and MUST NOT call `dbClose(cv)` (which would purge the view).
 
 ---
 

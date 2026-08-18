@@ -96,9 +96,11 @@ Before running any commands, determine the Virtuoso execution mode:
   ```lisp
   dbSave(cv)
   ```
-- **GUI Window Display (`assisted_run`):** Open the cellview in the active Virtuoso GUI window and **DO NOT call `dbClose(cv)`**:
+- **GUI Window Display (`assisted_run`):** Open the cellview if not already open (guarded to prevent duplicate window spawns) and **DO NOT call `dbClose(cv)`**:
   ```lisp
-  geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+  unless( geGetCellViewWindow(cv)
+      geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+  )
   ```
 
 ---
