@@ -53,7 +53,7 @@ TASK INTENT CLASSIFICATION                  MANDATORY SPECIFICATION TO READ (vie
 5. `SCH_CHECK`: Zero-tolerance for `schCheck` warnings (`(0 0)` required).
 6. `GUI_OPEN`: Open schematic windows via `unless(geGetCellViewWindow(cv) geOpen(?lib ... ?cell ...))` to prevent duplicate window spawns (`window:3`, `window:4`). DO NOT call `dbClose(cv)` when displaying in GUI.
 7. `FILE_IO`: DO NOT write files directly to the remote server using shell commands (`printf`, `echo`, `cat <<EOF`). Use `remote_control(action="write_file")`, `workboard`, or tool export workflows.
-8. `NETLIST_EXTRACTION`: DO NOT hand-write SPICE transistor netlists for Eldo. Programmatically extract the netlist from the Virtuoso schematic (`MCP` library) and wrap it using `.include "<cellName>.cir"` in the Eldo testbench deck.
+8. `NETLIST_EXTRACTION`: DO NOT hand-write SPICE transistor netlists for Eldo. Programmatically extract structural netlist `<cellName>.net` from the Virtuoso schematic (`MCP` library) and wrap it using `.include "<cellName>.net"` inside the Eldo simulation config deck (`tb_<cellName>.cir`).
 9. `ELDO_TITLE`: Line 1 of every Eldo `.cir` netlist is strictly treated as a title comment line.
 
 ---

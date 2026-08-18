@@ -136,32 +136,22 @@ Before running any commands, determine the Virtuoso execution mode:
 
 If the user agrees to run simulations:
 
-1. **Extract Virtuoso Netlist & Prepare Testbench Deck:**
-   - **DO NOT hand-write transistor netlists by hand.** Programmatically extract/export the SPICE subcircuit netlist (`<cellName>.cir`) directly from the Virtuoso schematic cellview (`MCP` library) to the target working directory.
-   - **File I/O Rule**: Use `remote_control(action="write_file")` or `workboard` sync to export files to the target workspace (NEVER use shell `printf`/`echo`/`cat <<EOF` commands).
-   - Write the Eldo testbench wrapper deck (`tb_<cellName>.cir`) using `.include "<cellName>.cir"` to wrap the extracted Virtuoso schematic netlist:
-     ```spice
-     * Eldo Simulation Testbench for <cellName>
-     .include "<cellName>.cir"
-     .include "cmos065.mod"
+1. **Export Virtuoso Netlist (`<cellName>.net`)**:
+   - **DO NOT hand-write transistor netlists by hand.** Programmatically export the structural subcircuit netlist (`<cellName>.net` or `.cdl`) directly from the Virtuoso schematic cellview (`MCP` library) via CDL SKILL commands, saving to `~/Desktop/eldo/<cellName>.net`.
 
-     * Power Supplies & Stimulus
-     Vvdd VDD 0 1.2
-     Vvss VSS 0 0
-     Vvin VIN 0 0.6
+2. **Select Eldo Simulation Mode**:
+   - **Mode 1: Interactive REPL Mode (`eldo(action="start_interactive")` & `run_interactive`)**:
+     - Uses the exported `<cellName>.net` structural netlist file.
+     - Write interactive commands directly to the REPL terminal (`run`, `step`, parameter sweeps, print commands) to observe real-time simulation output.
+   - **Mode 2: Batch Script Mode (`eldo(action="run_script")`)**:
+     - Requires 2 files:
+       1. **Structural Netlist (`<cellName>.net`)**: Saved in `~/Desktop/eldo/<cellName>.net`.
+       2. **Simulation Configuration Deck (`<cellName>.cir`)**: Created **locally** by the agent (specifying `.include "<cellName>.net"`, `.include "cmos065.mod"`, subcircuit instantiation `X1`, pin voltage sources, and simulation controls) and then **exported to the server using WorkBoard (`workboard`)**.
+     - Execute batch simulation: `eldo(action="run_script", command="<cellName>.cir", work_dir="~/Desktop/eldo")`.
 
-     * Simulation Controls
-     .dc Vvin 0 1.2 0.01
-     .option access
-     .plot dc v(VOUT)
-     .end
-     ```
-2. **Run Simulation:**
-   - Initialize `eldo` session and execute interactive or batch simulation sweep.
-3. **Present Summary:**
-   - Output a clean text summary of DC operating points, transient delay/rise times, AC gain/bandwidth, and key performance metrics. Do not render visual waveforms.
-
-*Note: You may use WorkBoard (`workboard`) or `remote_control` for file syncing across local machine and remote server.*
+3. **Download Output Files & Local Analysis**:
+   - After simulation completes, download output files (`.chi`, `.extract`, log files) from the remote server to the local workspace using **`workboard(action="add")`** or `workboard` sync.
+   - Analyze the downloaded output files locally to calculate DC operating points, transient delays, AC gain/bandwidth, find bugs, or report clean results to the user.
 
 ---
 

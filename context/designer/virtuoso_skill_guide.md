@@ -90,13 +90,13 @@ unless( geGetCellViewWindow(cv)
 )
 ```
 
-### Template D: Programmatic SPICE Netlist Extraction for Simulation
+### Template D: Programmatic SPICE/CDL Structural Netlist Export (`~/Desktop/eldo/<cellName>.net`)
 ```lisp
-;; Extract SPICE netlist from Virtuoso schematic cellview to target simulation file
+;; Programmatically export structural subcircuit netlist from Virtuoso schematic cellview
 hnlInit("MCP" "<cellName>" "schematic" "spice")
 hnlNetlist()
 hnlEnd()
-;; The extracted SPICE netlist is saved as <cellName>.cir for Eldo testbench inclusion (.include)
+;; Exported netlist is saved directly to default Eldo directory ~/Desktop/eldo/<cellName>.net
 ```
 
 ---
