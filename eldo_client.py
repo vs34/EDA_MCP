@@ -141,6 +141,51 @@ class EldoClient:
         except Exception as e:
             return f"Error reading extracted measurement file '{extract_file}': {str(e)}"
 
+    def run_script(self, script_path: str = "", work_dir: str = "", timeout: float = 60.0) -> str:
+        """
+        Executes a standalone batch Eldo simulation on the target netlist deck (.cir/.sp/.net).
+        Auto-inspects .errm.log or .chi files if errors occur.
+        """
+        self.session.connect()
+        target_dir = (work_dir.strip() if work_dir and work_dir.strip() else None) or self.workdir or "~/Desktop/eldo"
+        self.workdir = target_dir
+        safe_dir = f"$HOME{target_dir[1:]}" if target_dir.startswith("~") else shlex.quote(target_dir)
+
+        self.session.execute_command(f"mkdir -p {safe_dir} && cd {safe_dir}")
+
+        netlist_file = script_path.strip()
+        if not netlist_file:
+            return "Error: Netlist script path is required for Eldo batch simulation."
+
+        safe_netlist = shlex.quote(netlist_file)
+        cmd = f"cd {safe_dir} && eldo {safe_netlist}"
+        exit_code, stdout, stderr = self.session.execute_command(cmd, timeout=timeout)
+
+        output = []
+        output.append(f"[Eldo Batch Simulation (Exit code {exit_code})]: eldo {netlist_file}")
+        if stdout.strip():
+            lines = stdout.strip().splitlines()
+            if len(lines) > 100:
+                truncated_stdout = "\n".join(lines[:50]) + f"\n\n... [{len(lines) - 100} lines truncated] ...\n\n" + "\n".join(lines[-50:])
+                output.append(f"\n--- STDOUT ---\n{truncated_stdout}")
+            else:
+                output.append(f"\n--- STDOUT ---\n{stdout.strip()}")
+        if stderr.strip():
+            output.append(f"\n--- STDERR ---\n{stderr.strip()}")
+
+        if exit_code != 0:
+            err_log_cmd = "ls -t *.errm.log 2>/dev/null | head -n 1"
+            _, err_out, _ = self.session.execute_command(f"cd {safe_dir} && {err_log_cmd}")
+            err_log_file = err_out.strip()
+            if err_log_file:
+                try:
+                    err_content = self.session.read_file(f"{target_dir}/{err_log_file}")
+                    output.append(f"\n--- ERROR LOG ({err_log_file}) ---\n{err_content.strip()}")
+                except Exception:
+                    pass
+
+        return "\n".join(output)
+
     def run_terminal_command(self, command: str, work_dir: str = "", timeout: float = 60.0) -> str:
         """
         Executes a terminal/shell command in the dedicated Eldo SSH terminal session.
