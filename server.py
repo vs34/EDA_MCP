@@ -190,7 +190,10 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
         elif act in ("stop_interactive", "stop_inter", "stop", "exit_interactive", "exit"):
             res = eldo_client.stop_interactive(work_dir=work_dir)
         elif act in ("run_script", "script"):
-            res = eldo_client.run_script(script_path=command, work_dir=work_dir)
+            if not command.strip():
+                res = "Error: 'command' argument (netlist/script path) is required when action='run_script'."
+            else:
+                res = eldo_client.run_script(script_path=command, work_dir=work_dir, timeout=timeout)
         elif act in ("read_extract", "extract"):
             res = eldo_client.read_extract(work_dir=work_dir)
         elif act in ("run_terminal_command", "terminal_command", "run_terminal", "terminal", "cmd", "shell"):
