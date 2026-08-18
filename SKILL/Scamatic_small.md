@@ -136,16 +136,32 @@ Before running any commands, determine the Virtuoso execution mode:
 
 If the user agrees to run simulations:
 
-1. **Extract / Prepare Netlist:**
-   - Generate netlist (`.cir`) with a valid Title Line on Line 1.
-   - Flush file stream using `drain(fileId)` before `close(fileId)`.
-   - Ensure compatible model cards (`nsvtgp`, `psvtgp`) and simulation controls (`.dc`, `.tran`, `.ac`, `.option`) are present.
+1. **Extract Virtuoso Netlist & Prepare Testbench Deck:**
+   - **DO NOT hand-write transistor netlists by hand.** Programmatically extract/export the SPICE subcircuit netlist (`<cellName>.cir`) directly from the Virtuoso schematic cellview (`MCP` library) to the target working directory.
+   - **File I/O Rule**: Use `remote_control(action="write_file")` or `workboard` sync to export files to the target workspace (NEVER use shell `printf`/`echo`/`cat <<EOF` commands).
+   - Write the Eldo testbench wrapper deck (`tb_<cellName>.cir`) using `.include "<cellName>.cir"` to wrap the extracted Virtuoso schematic netlist:
+     ```spice
+     * Eldo Simulation Testbench for <cellName>
+     .include "<cellName>.cir"
+     .include "cmos065.mod"
+
+     * Power Supplies & Stimulus
+     Vvdd VDD 0 1.2
+     Vvss VSS 0 0
+     Vvin VIN 0 0.6
+
+     * Simulation Controls
+     .dc Vvin 0 1.2 0.01
+     .option access
+     .plot dc v(VOUT)
+     .end
+     ```
 2. **Run Simulation:**
    - Initialize `eldo` session and execute interactive or batch simulation sweep.
 3. **Present Summary:**
    - Output a clean text summary of DC operating points, transient delay/rise times, AC gain/bandwidth, and key performance metrics. Do not render visual waveforms.
 
-*Note: You may use WorkBoard (`workboard`) for file syncing across the local machine and remote server (e.g., pulling/pushing netlists, model cards, or simulation results).*
+*Note: You may use WorkBoard (`workboard`) or `remote_control` for file syncing across local machine and remote server.*
 
 ---
 

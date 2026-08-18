@@ -90,6 +90,15 @@ unless( geGetCellViewWindow(cv)
 )
 ```
 
+### Template D: Programmatic SPICE Netlist Extraction for Simulation
+```lisp
+;; Extract SPICE netlist from Virtuoso schematic cellview to target simulation file
+hnlInit("MCP" "<cellName>" "schematic" "spice")
+hnlNetlist()
+hnlEnd()
+;; The extracted SPICE netlist is saved as <cellName>.cir for Eldo testbench inclusion (.include)
+```
+
 ---
 
 ## 4. GUI Window Opening vs. Background Batch Execution
