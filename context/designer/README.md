@@ -26,7 +26,7 @@
    - Eldo shell commands -> `eldo(action="run_terminal_command")`
    - File I/O & raw remote shell -> `remote_control`
    - DO NOT use `remote_control` for Virtuoso/Eldo tool shell commands (does not share working directory or environment).
-3. **FILE_IO_RULE**: DO NOT write files directly to the remote server using shell commands (`printf`, `echo`, `cat <<EOF`, `touch`). File creation and file transfers on the remote server MUST use dedicated tool actions (`remote_control(action="write_file")`, `workboard`) or programmatically export files to the target location via tool workflows.
+3. **FILE_IO_RULE**: DO NOT write files directly to the remote server using shell commands (`printf`, `echo`, `cat <<EOF`, `touch`). File creation and file transfers on the remote server MUST use dedicated tool actions `workboard` or programmatically export files to the target location via tool workflows.
 4. **SCHEMATIC_CHECK_POLICY**: Zero-tolerance for `schCheck` warnings. Floating gates or unattached pins must be fixed before saving or netlisting.
 5. **STREAM_FLUSH_RULE**: Every SKILL file stream (`outfile`) MUST execute `drain(fileId)` before `close(fileId)`.
 6. **ELDO_TITLE_RULE**: Line 1 of any `.cir` netlist is strictly treated by Eldo as a title comment line.
