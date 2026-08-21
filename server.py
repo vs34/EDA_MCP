@@ -1,8 +1,11 @@
 import os
 import sys
 import time
+import json
 import shlex
 import logging
+import subprocess
+from typing import Any, List, Dict
 from mcp.server.fastmcp import FastMCP, Context
 from ssh_client import RemoteSession
 from virtuoso_client import VirtuosoClient
@@ -327,6 +330,71 @@ def report_issue(
         log_file=log_filename,
         cwd=base_dir
     )
+
+@mcp.tool()
+def visualize_waveforms(
+    file_path: str,
+    layout: List[Dict[str, Any]]
+) -> str:
+    """
+    Launch an interactive multi-pane PyQtGraph oscilloscope waveform visualizer for SPICE transient analysis (.raw or .spi3 files).
+
+    Args:
+        file_path: Path to a standard SPICE3 simulation output file (strictly expecting .raw or .spi3 files).
+        layout: Array of pane objects defining how signals should be grouped into vertical plot panes.
+                Each object MUST contain 'pane_title' (string) and 'signals' (list of strings).
+
+    Guidance for LLM Signal Grouping:
+        - Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
+        - Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents I(VDD) with logic voltages V(IN)).
+        - Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. V(A) and V(Y)).
+        - Example layout:
+          [
+            {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
+            {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
+          ]
+    """
+    logger.info(f"[TOOL CALL] visualize_waveforms: file_path={file_path!r}, layout_panes={len(layout) if layout else 0}")
+    start_time = time.time()
+    
+    try:
+        if not file_path or not str(file_path).strip():
+            return "Error: 'file_path' argument is required."
+            
+        clean_path = str(file_path).strip()
+        ext = os.path.splitext(clean_path)[1].lower()
+        if ext not in ('.raw', '.spi3'):
+            return f"Error: 'file_path' must strictly target a .raw or .spi3 SPICE output file (got '{clean_path}')."
+            
+        abs_path = os.path.abspath(os.path.expanduser(clean_path))
+        if not os.path.exists(abs_path):
+            return f"Error: Simulation output file not found at '{abs_path}'."
+            
+        if not isinstance(layout, list) or len(layout) == 0:
+            return "Error: 'layout' must be a non-empty list of pane layout objects containing 'pane_title' and 'signals'."
+            
+        for i, pane in enumerate(layout):
+            if not isinstance(pane, dict) or "pane_title" not in pane or "signals" not in pane:
+                return f"Error: Layout item at index {i} is invalid. Each object must have 'pane_title' and 'signals' keys."
+                
+        plotter_script = os.path.join(base_dir, "eldo_plotter.py")
+        cmd = [
+            sys.executable,
+            plotter_script,
+            "--input", abs_path,
+            "--layout", json.dumps(layout)
+        ]
+        
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        duration = time.time() - start_time
+        res = f"Successfully launched PyQtGraph waveform visualizer (Process PID: {proc.pid}) for SPICE output '{os.path.basename(abs_path)}' with {len(layout)} pane(s)."
+        logger.info(f"[TOOL RESULT] visualize_waveforms finished in {duration:.2f}s | {res}")
+        return res
+        
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"[TOOL ERROR] visualize_waveforms failed in {duration:.2f}s: {e}")
+        return f"Error in visualize_waveforms tool: {str(e)}"
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)
