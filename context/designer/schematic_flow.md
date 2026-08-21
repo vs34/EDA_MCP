@@ -1,11 +1,3 @@
----
-name: analog-schematic-quick
-description: >-
-  Compact procedural checklist for creating analog schematics in Cadence
-  Virtuoso. Covers execution mode selection, ASCII schematic preview confirmation,
-  MCP-based SKILL creation, optional Eldo simulation, and summary reporting.
----
-
 # Analog Schematic Design — Quick Step-by-Step Guide
 
 A structured, end-to-end procedure for building analog schematics via SKILL / `eda-mcp` and running simulations. Follow these steps in strict sequential order.
@@ -129,7 +121,6 @@ Before running any commands, determine the Virtuoso execution mode:
   ```
 - Wait for user response via `ask_question` before initiating simulation.
 
-
 ---
 
 ## Step 5: Execute Eldo Simulation & Present Summary
@@ -156,5 +147,3 @@ If the user agrees to run simulations:
 ---
 
 *Follow the 5 steps in strict sequence. Always confirm with the user after Step 2 and Step 4.*
-
-
