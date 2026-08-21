@@ -191,17 +191,6 @@ def eldo(
                 Each object MUST contain 'pane_title' (string) and 'signals' (list of strings).
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
-
-    Guidance for LLM Signal Grouping (action='visualize_waveforms'):
-        - Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
-        - Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents I(VDD) with logic voltages V(IN)).
-        - Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. V(A) and V(Y)).
-        - To present large, clear graphs without overcrowding a single layout, call `eldo(action="visualize_waveforms")` multiple times to open separate plot windows for different signal categories.
-        - Example layout:
-          [
-            {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
-            {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
-          ]
     """
     logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, file_path={file_path!r}, layout_panes={len(layout) if layout else 0}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
