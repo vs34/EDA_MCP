@@ -94,6 +94,9 @@ sequenceDiagram
 
 ## 6. Waveform Visualization (`visualize_waveforms`)
 
+> [!IMPORTANT]
+> **DO NOT CREATE HTML WEBSITES/FILES**: Agents MUST NOT generate HTML files, web scripts, or local web servers to plot simulation waveforms. ALWAYS use `eldo(action="visualize_waveforms")` to display simulation waveforms to the user in the native oscilloscope viewer.
+
 To render simulation results in an oscilloscope viewer window for the user, invoke `eldo(action="visualize_waveforms", ...)` on the `.raw` or `.spi3` simulation output file.
 
 ### Tool Invocation
