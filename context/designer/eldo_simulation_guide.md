@@ -89,3 +89,23 @@ sequenceDiagram
 ## 5. Extracted Measurement Retrieval (`read_extract`)
 - Command: `eldo(action="read_extract", work_dir="~/Desktop/eldo")`
 - Returns: Latest `.extract` file content string parsed from working directory.
+
+---
+
+## 6. Waveform Visualization (`visualize_waveforms`)
+
+To render simulation results in an oscilloscope viewer window for the user, invoke `eldo(action="visualize_waveforms", ...)` on the `.raw` or `.spi3` simulation output file.
+
+### Guidance for LLM Signal Grouping
+- Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
+- Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents `I(VDD)` with logic voltages `V(IN)`).
+- Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. `V(A)` and `V(Y)`).
+- To present large, clear graphs without overcrowding a single layout, call `eldo(action="visualize_waveforms")` multiple times to open separate plot windows for different signal categories.
+- Example layout:
+  ```json
+  [
+    {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
+    {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
+  ]
+  ```
+

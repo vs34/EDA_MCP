@@ -48,10 +48,11 @@ Full Cadence Virtuoso lifecycle and SKILL command execution:
 - **`exit`**: Gracefully terminates Virtuoso processes.
 
 ### 3. ⚡ Siemens Eldo Control (`eldo`)
-Siemens/Mentor Graphics Eldo analog simulation control:
+Siemens/Mentor Graphics Eldo analog simulation control and waveform visualization:
 - **`start_interactive` / `run_interactive`**: Spawns and streams commands to interactive `eldo -inter` REPL. Automatically initializes simulation directory on demand.
 - **`run_script`**: Runs batch Eldo simulation (`eldo <script.cir>`) and truncates execution logs cleanly.
 - **`read_extract`**: Auto-detects and reads the latest `.extract` measurement summary file.
+- **`visualize_waveforms` / `plot`**: Spawns an interactive multi-pane PyQtGraph oscilloscope window (`eldo_plotter.py`) for SPICE transient analysis (`.raw` or `.spi3` files) with linked X-axes, dynamic signal value legends, and synchronized vertical crosshair readout.
 
 ### 4. 💻 Remote Control (`remote_control`)
 Unified remote shell execution inside persistent, sourced `csh` environments:
