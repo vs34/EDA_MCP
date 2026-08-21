@@ -153,7 +153,7 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
         
         self.plot_panes = []
         self.crosshairs = []
-        self.plotted_signals = {}  # pane_idx -> list of (signal_name, unit, wave_array)
+        self.plotted_signals = {}  # pane_idx -> list of (signal_name, unit, wave_array, color_hex, label_item)
         
         first_pane = None
         color_idx = 0
@@ -169,7 +169,10 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
             plot_item.showGrid(x=True, y=True, alpha=0.3)
             plot_item.getAxis('bottom').setLabel('Time', color='#a1a1aa')
             plot_item.getAxis('left').setLabel('Magnitude', color='#a1a1aa')
-            plot_item.addLegend(offset=(10, 10), labelTextColor='#e4e4e7')
+            
+            legend = plot_item.addLegend(offset=(10, 10), labelTextColor='#e4e4e7')
+            legend.setBrush(pg.mkBrush(39, 39, 42, 200))
+            legend.setPen(pg.mkPen(63, 63, 70, 255))
             
             # Synchronized X-Axes locking across all panes
             if first_pane is None:
@@ -204,11 +207,12 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
                 pen = pg.mkPen(color=color, width=2)
                 plot_item.plot(self.time_axis, wave, pen=pen, name=sig)
                 
-                self.plotted_signals[pane_idx].append((sig, unit, wave))
+                label_item = legend.items[-1][1] if legend.items else None
+                self.plotted_signals[pane_idx].append((sig, unit, wave, color, label_item))
                 
             self.plot_panes.append(plot_item)
             
-        # Connect mouse move event across all plots for synced crosshair
+        # Connect mouse move event across all plots for synced crosshair and dynamic legend updates
         self.win.scene().sigMouseMoved.connect(self.on_mouse_moved)
         
     def on_mouse_moved(self, pos):
@@ -243,16 +247,21 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
         actual_time = self.time_axis[idx]
         formatted_time = format_si_unit(actual_time, 's')
         
-        # Format single global header readout label at the top
+        # Format single global header readout label at the top and update dynamic legends in-place
         readout_parts = [f"Time: {formatted_time}"]
         
         for pane_idx, sig_list in self.plotted_signals.items():
             pane_title = self.layout_config[pane_idx].get("pane_title", f"Pane {pane_idx+1}")
             sig_readouts = []
-            for sig_name, unit, wave in sig_list:
+            for sig_name, unit, wave, color, label_item in sig_list:
                 val = wave[idx]
                 val_str = format_si_unit(val, unit)
                 sig_readouts.append(f"{sig_name}={val_str}")
+                
+                # Dynamic Legend Update: Update legend item text with live value
+                if label_item is not None:
+                    label_item.setText(f"<span style='color: {color}; font-weight: bold;'>{sig_name}: {val_str}</span>")
+                    
             if sig_readouts:
                 readout_parts.append(f"{pane_title}: [{', '.join(sig_readouts)}]")
                 

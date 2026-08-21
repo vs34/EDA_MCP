@@ -72,6 +72,21 @@ class TestEldoPlotter(unittest.TestCase):
         self.assertIn(0, viewer.plotted_signals)
         self.assertEqual(viewer.plotted_signals[0][0][0], "V(Y)")
 
+    def test_dynamic_legend_update(self):
+        layout = [
+            {"pane_title": "Output", "signals": ["V(Y)"]}
+        ]
+        viewer = WaveformVisualizer(self.raw_path, layout)
+        # Simulate mouse movement at x = 0
+        from pyqtgraph.Qt import QtCore
+        pos = viewer.plot_panes[0].vb.mapViewToScene(QtCore.QPointF(0, 0))
+        viewer.on_mouse_moved(pos)
+        
+        # Check label item text has updated with live value
+        label_item = viewer.plotted_signals[0][0][4]
+        self.assertIsNotNone(label_item)
+        self.assertIn("V(Y):", label_item.text)
+
     def test_visualize_waveforms_tool_validation(self):
         # Missing file_path
         res = visualize_waveforms(file_path="", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
