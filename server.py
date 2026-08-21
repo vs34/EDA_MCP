@@ -172,21 +172,71 @@ def virtuoso(action: str, command: str = "", work_dir: str = "~/Desktop/cmos65",
         return f"Error in virtuoso tool: {str(e)}"
 
 @mcp.tool()
-def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str = "~/Desktop/eldo", timeout: float = 30.0) -> str:
+def eldo(
+    action: str = "run_terminal_command",
+    command: str = "",
+    file_path: str = "",
+    layout: List[Dict[str, Any]] = None,
+    work_dir: str = "~/Desktop/eldo",
+    timeout: float = 30.0
+) -> str:
     """
-    Control and interact with Siemens/Mentor Graphics Eldo simulator.
+    Control and interact with Siemens/Mentor Graphics Eldo simulator and waveform visualizer.
     
     Args:
-        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'read_extract')
-        command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', or shell command when action='run_terminal_command'
+        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', or 'visualize_waveforms')
+        command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', shell command when action='run_terminal_command', or SPICE output file path when action='visualize_waveforms'.
+        file_path: Simulation output file path when action='visualize_waveforms' (strictly expecting .raw or .spi3 files).
+        layout: Array of pane objects defining how signals should be grouped into vertical plot panes when action='visualize_waveforms'.
+                Each object MUST contain 'pane_title' (string) and 'signals' (list of strings).
         work_dir: Working directory for simulation execution (defaults to ~/Desktop/eldo if not specified)
         timeout: Maximum wait time in seconds for execution/response (default: 30.0)
+
+    Guidance for LLM Signal Grouping (action='visualize_waveforms'):
+        - Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
+        - Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents I(VDD) with logic voltages V(IN)).
+        - Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. V(A) and V(Y)).
+        - Example layout:
+          [
+            {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
+            {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
+          ]
     """
-    logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, work_dir={work_dir!r}, timeout={timeout}")
+    logger.info(f"[TOOL CALL] eldo: action={action!r}, command={command!r}, file_path={file_path!r}, layout_panes={len(layout) if layout else 0}, work_dir={work_dir!r}, timeout={timeout}")
     start_time = time.time()
     try:
         act = action.lower().strip()
-        if act in ("start_interactive", "start_inter", "start"):
+        if act in ("visualize_waveforms", "visualize", "plot_waveforms", "plot"):
+            target_path = file_path.strip() or command.strip()
+            if not target_path:
+                return "Error: 'file_path' or 'command' argument is required when action='visualize_waveforms'."
+                
+            ext = os.path.splitext(target_path)[1].lower()
+            if ext not in ('.raw', '.spi3'):
+                return f"Error: File must strictly target a .raw or .spi3 SPICE output file (got '{target_path}')."
+                
+            abs_path = os.path.abspath(os.path.expanduser(target_path))
+            if not os.path.exists(abs_path):
+                return f"Error: Simulation output file not found at '{abs_path}'."
+                
+            if layout is not None and isinstance(layout, list) and len(layout) > 0:
+                for i, pane in enumerate(layout):
+                    if not isinstance(pane, dict) or "pane_title" not in pane or "signals" not in pane:
+                        return f"Error: Layout item at index {i} is invalid. Each object must have 'pane_title' and 'signals' keys."
+            
+            plotter_script = os.path.join(base_dir, "eldo_plotter.py")
+            cmd_args = [sys.executable, plotter_script, "--input", abs_path]
+            if layout:
+                cmd_args.extend(["--layout", json.dumps(layout)])
+                
+            proc = subprocess.Popen(cmd_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            duration = time.time() - start_time
+            pane_count = len(layout) if layout else 0
+            res = f"Successfully launched PyQtGraph waveform visualizer (Process PID: {proc.pid}) for SPICE output '{os.path.basename(abs_path)}' with {pane_count} specified pane(s)."
+            logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | {res}")
+            return res
+
+        elif act in ("start_interactive", "start_inter", "start"):
             res = eldo_client.start_interactive(netlist_file=command, work_dir=work_dir)
         elif act in ("run_interactive", "run_inter", "interactive", "inter"):
             res = eldo_client.run_interactive(command=command, work_dir=work_dir, timeout=timeout)
@@ -205,7 +255,7 @@ def eldo(action: str = "run_terminal_command", command: str = "", work_dir: str 
             else:
                 res = eldo_client.run_terminal_command(command=command, work_dir=work_dir, timeout=timeout)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'visualize_waveforms', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")
@@ -330,71 +380,6 @@ def report_issue(
         log_file=log_filename,
         cwd=base_dir
     )
-
-@mcp.tool()
-def visualize_waveforms(
-    file_path: str,
-    layout: List[Dict[str, Any]]
-) -> str:
-    """
-    Launch an interactive multi-pane PyQtGraph oscilloscope waveform visualizer for SPICE transient analysis (.raw or .spi3 files).
-
-    Args:
-        file_path: Path to a standard SPICE3 simulation output file (strictly expecting .raw or .spi3 files).
-        layout: Array of pane objects defining how signals should be grouped into vertical plot panes.
-                Each object MUST contain 'pane_title' (string) and 'signals' (list of strings).
-
-    Guidance for LLM Signal Grouping:
-        - Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
-        - Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents I(VDD) with logic voltages V(IN)).
-        - Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. V(A) and V(Y)).
-        - Example layout:
-          [
-            {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
-            {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
-          ]
-    """
-    logger.info(f"[TOOL CALL] visualize_waveforms: file_path={file_path!r}, layout_panes={len(layout) if layout else 0}")
-    start_time = time.time()
-    
-    try:
-        if not file_path or not str(file_path).strip():
-            return "Error: 'file_path' argument is required."
-            
-        clean_path = str(file_path).strip()
-        ext = os.path.splitext(clean_path)[1].lower()
-        if ext not in ('.raw', '.spi3'):
-            return f"Error: 'file_path' must strictly target a .raw or .spi3 SPICE output file (got '{clean_path}')."
-            
-        abs_path = os.path.abspath(os.path.expanduser(clean_path))
-        if not os.path.exists(abs_path):
-            return f"Error: Simulation output file not found at '{abs_path}'."
-            
-        if not isinstance(layout, list) or len(layout) == 0:
-            return "Error: 'layout' must be a non-empty list of pane layout objects containing 'pane_title' and 'signals'."
-            
-        for i, pane in enumerate(layout):
-            if not isinstance(pane, dict) or "pane_title" not in pane or "signals" not in pane:
-                return f"Error: Layout item at index {i} is invalid. Each object must have 'pane_title' and 'signals' keys."
-                
-        plotter_script = os.path.join(base_dir, "eldo_plotter.py")
-        cmd = [
-            sys.executable,
-            plotter_script,
-            "--input", abs_path,
-            "--layout", json.dumps(layout)
-        ]
-        
-        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        duration = time.time() - start_time
-        res = f"Successfully launched PyQtGraph waveform visualizer (Process PID: {proc.pid}) for SPICE output '{os.path.basename(abs_path)}' with {len(layout)} pane(s)."
-        logger.info(f"[TOOL RESULT] visualize_waveforms finished in {duration:.2f}s | {res}")
-        return res
-        
-    except Exception as e:
-        duration = time.time() - start_time
-        logger.error(f"[TOOL ERROR] visualize_waveforms failed in {duration:.2f}s: {e}")
-        return f"Error in visualize_waveforms tool: {str(e)}"
 
 if __name__ == "__main__":
     # Start the server on stdio transport (default)

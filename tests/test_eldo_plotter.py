@@ -15,7 +15,7 @@ from eldo_plotter import (
     create_default_layout,
     WaveformVisualizer
 )
-from server import visualize_waveforms
+from server import eldo
 from pyqtgraph.Qt import QtWidgets
 
 class TestEldoPlotter(unittest.TestCase):
@@ -87,25 +87,21 @@ class TestEldoPlotter(unittest.TestCase):
         self.assertIsNotNone(label_item)
         self.assertIn("V(Y):", label_item.text)
 
-    def test_visualize_waveforms_tool_validation(self):
-        # Missing file_path
-        res = visualize_waveforms(file_path="", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
+    def test_visualize_waveforms_action_validation(self):
+        # Missing file_path and command
+        res = eldo(action="visualize_waveforms", file_path="", command="", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
         self.assertTrue(res.startswith("Error:"))
 
         # Non-raw/spi3 extension
-        res = visualize_waveforms(file_path="sim.txt", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
+        res = eldo(action="visualize_waveforms", file_path="sim.txt", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
         self.assertTrue("must strictly target a .raw or .spi3" in res)
 
         # File does not exist
-        res = visualize_waveforms(file_path="nonexistent.raw", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
+        res = eldo(action="visualize_waveforms", file_path="nonexistent.raw", layout=[{"pane_title": "P", "signals": ["V(Y)"]}])
         self.assertTrue("not found" in res)
 
-        # Invalid layout
-        res = visualize_waveforms(file_path=self.raw_path, layout=[])
-        self.assertTrue("non-empty list" in res)
-
     @patch("subprocess.Popen")
-    def test_visualize_waveforms_tool_success(self, mock_popen):
+    def test_visualize_waveforms_action_success(self, mock_popen):
         mock_proc = MagicMock()
         mock_proc.pid = 12345
         mock_popen.return_value = mock_proc
@@ -114,7 +110,7 @@ class TestEldoPlotter(unittest.TestCase):
             {"pane_title": "Stimulus", "signals": ["V(A1)"]},
             {"pane_title": "Output", "signals": ["V(Y)"]}
         ]
-        res = visualize_waveforms(file_path=self.raw_path, layout=layout)
+        res = eldo(action="visualize_waveforms", file_path=self.raw_path, layout=layout)
         self.assertIn("Successfully launched PyQtGraph waveform visualizer", res)
         self.assertIn("PID: 12345", res)
         mock_popen.assert_called_once()
