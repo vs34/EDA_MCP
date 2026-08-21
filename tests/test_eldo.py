@@ -61,14 +61,6 @@ async def run_eldo_test():
             stop_text = stop_res.content[0].text if stop_res.content else ""
             print(f"Stop Interactive Response:\n{stop_text.strip()}")
 
-            # 7. Test action='read_extract'
-            print("\nTesting eldo action='read_extract'...")
-            extract_res = await session.call_tool(
-                name="eldo",
-                arguments={"action": "read_extract"}
-            )
-            extract_text = extract_res.content[0].text if extract_res.content else ""
-            print(f"Read Extract Response: {extract_text.strip()}")
             print("\nEldo Tool Verification Successful!")
 
 if __name__ == "__main__":

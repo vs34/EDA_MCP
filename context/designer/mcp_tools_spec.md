@@ -63,7 +63,6 @@ type EldoArgs = {
         | "run_interactive" | "interactive"
         | "stop_interactive" | "stop"
         | "run_script" | "script"
-        | "read_extract" | "extract"
         | "visualize_waveforms" | "visualize" | "plot"
         | "run_terminal_command" | "terminal" | "shell";
   command?: string;   // Netlist path, REPL command ('run', 'step'), SPICE output file path, or shell command
@@ -79,7 +78,6 @@ type EldoArgs = {
 - `run_interactive`: Sends simulation control command (`run`, `step`, `display`) to `eldo>` REPL.
 - `stop_interactive`: Sends `quit` to active Eldo REPL session.
 - `run_script`: Runs batch simulation deck.
-- `read_extract`: Auto-detects newest `.extract` file in `work_dir` and returns content.
 - `visualize_waveforms` / `visualize` / `plot`: Spawns a multi-pane oscilloscope window to plot SPICE transient simulation outputs (`.raw` or `.spi3` files) using custom pane layout configurations.
 - `run_terminal_command`: Executes shell command in Eldo terminal environment.
 

@@ -34,7 +34,3 @@
 - `start_interactive(netlist_file, work_dir)`: Sends `eldo <netlist_file> -inter` via `execute_interactive_stream()` matching `(eldo>\s*$|\bELDO>\s*$)`.
 - `run_interactive(command)`: Sends REPL control command (`run`, `step`, `display`) via `execute_interactive_stream()`.
 - `stop_interactive()`: Sends `quit` to Eldo REPL stream.
-
-### Extracted Measurement Retrieval (`read_extract`)
-- Auto-discovery command: `ls -t *.extract 2>/dev/null | head -n 1`
-- Fetches newest file via `session.read_file(extract_file)`.

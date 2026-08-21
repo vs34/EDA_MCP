@@ -57,7 +57,7 @@ After simulation execution finishes:
 1. **Download Output Files via WorkBoard**:
    - Use `workboard(action="add", remote_path="~/Desktop/eldo/<cellName>.chi")` or `workboard` file sync to download `.chi`, `.extract`, or log files from the server to the local workspace.
 2. **Local Output Analysis**:
-   - Analyze the downloaded output files locally (or call `eldo(action="read_extract")`) to calculate DC operating points, transient delays, AC gain/bandwidth, identify circuit bugs, or present clean formatted results to the user.
+   - Analyze the downloaded output files locally to calculate DC operating points, transient delays, AC gain/bandwidth, identify circuit bugs, or present clean formatted results to the user.
 
 ### B. WorkBoard Local Review & Transparency Protocol
 - **Local File Creation & Sync**: Agents MUST create and edit all Eldo configuration decks (`<cellName>.cir`), netlists, and analysis scripts locally first, then sync them to the server via `workboard`.
@@ -83,12 +83,6 @@ sequenceDiagram
     Agent->>MCP: action="stop_interactive"
     MCP->>EldoREPL: quit\n
 ```
-
----
-
-## 5. Extracted Measurement Retrieval (`read_extract`)
-- Command: `eldo(action="read_extract", work_dir="~/Desktop/eldo")`
-- Returns: Latest `.extract` file content string parsed from working directory.
 
 ---
 

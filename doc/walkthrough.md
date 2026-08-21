@@ -47,7 +47,6 @@ Encapsulates `EldoClient` class bound to `eldo_session`:
 - `run_interactive(command)`: Checks PID status (`kill -0 <pid>`), sends commands into `interctive.fifo`, clears log, and reads output from `intective_out.txt`.
 - `stop_interactive()`: Terminates background Eldo PID (`kill -9 <pid>`).
 - `run_script(script_path)`: Executes batch Eldo simulation (`eldo <script_path> >& mcp_run.log`), auto-truncating output to `tail -100` if log exceeds 100 lines.
-- `read_extract()`: Auto-detects and reads the latest `.extract` measurement summary file.
 
 ### 4. FastMCP Server Entrypoint ([server.py](../server.py))
 Instantiates isolated sessions:

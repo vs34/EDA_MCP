@@ -184,7 +184,7 @@ def eldo(
     Control and interact with Siemens/Mentor Graphics Eldo simulator and waveform visualizer.
     
     Args:
-        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', or 'visualize_waveforms')
+        action: The operation to perform ('run_terminal_command', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', or 'visualize_waveforms')
         command: Netlist/script path when action='run_script'/'start_interactive', REPL command when action='run_interactive', shell command when action='run_terminal_command', or SPICE output file path when action='visualize_waveforms'.
         file_path: Simulation output file path when action='visualize_waveforms' (strictly expecting .raw or .spi3 files).
         layout: Array of pane objects defining how signals should be grouped into vertical plot panes when action='visualize_waveforms'.
@@ -237,15 +237,13 @@ def eldo(
                 res = "Error: 'command' argument (netlist/script path) is required when action='run_script'."
             else:
                 res = eldo_client.run_script(script_path=command, work_dir=work_dir, timeout=timeout)
-        elif act in ("read_extract", "extract"):
-            res = eldo_client.read_extract(work_dir=work_dir)
         elif act in ("run_terminal_command", "terminal_command", "run_terminal", "terminal", "cmd", "shell"):
             if not command.strip():
                 res = "Error: 'command' argument is required when action='run_terminal_command'."
             else:
                 res = eldo_client.run_terminal_command(command=command, work_dir=work_dir, timeout=timeout)
         else:
-            res = f"Error: Unknown action '{action}'. Valid actions are 'visualize_waveforms', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'read_extract', 'run_terminal_command'."
+            res = f"Error: Unknown action '{action}'. Valid actions are 'visualize_waveforms', 'start_interactive', 'run_interactive', 'stop_interactive', 'run_script', 'run_terminal_command'."
         
         duration = time.time() - start_time
         logger.info(f"[TOOL RESULT] eldo (action={act}) finished in {duration:.2f}s | Result: {_format_result_summary(res)}")

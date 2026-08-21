@@ -43,8 +43,7 @@ workboard_client = WorkBoardClient()
 | `eldo` | `"start_interactive"` | `eldo_client.start_interactive(netlist_file=command, work_dir)` |
 | `eldo` | `"run_interactive"` | `eldo_client.run_interactive(command, work_dir, timeout)` |
 | `eldo` | `"stop_interactive"` | `eldo_client.stop_interactive(work_dir)` |
-| `eldo` | `"run_script"` | `eldo_client.run_script(script_path=command, work_dir)` *(MISSING)* |
-| `eldo` | `"read_extract"` | `eldo_client.read_extract(work_dir)` |
+| `eldo` | `"run_script"` | `eldo_client.run_script(script_path=command, work_dir)` |
 | `eldo` | `"run_terminal_command"`| `eldo_client.run_terminal_command(command, work_dir, timeout)` |
 | `workboard` | `"initialize"` | `workboard_client.initialize(workboard_name)` |
 | `workboard` | `"add"` | `workboard_client.add(remote_path, local_path, workboard_name, timeout)` |
