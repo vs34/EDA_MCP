@@ -135,7 +135,7 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
         self.crosshair_label.setStyleSheet("""
             QLabel {
                 background-color: #27272a;
-                color: #facc15;
+                color: #ffffff;
                 font-family: 'Courier New', monospace;
                 font-size: 13px;
                 font-weight: bold;
@@ -165,7 +165,7 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
             if pane_idx > 0:
                 self.win.nextRow()
                 
-            plot_item = self.win.addPlot(title=f"<span style='color: #facc15; font-size: 12px; font-weight: bold;'>{title}</span>")
+            plot_item = self.win.addPlot(title=f"<span style='color: #ffffff; font-size: 12px; font-weight: bold;'>{title}</span>")
             plot_item.showGrid(x=True, y=True, alpha=0.3)
             plot_item.getAxis('bottom').setLabel('Time', color='#a1a1aa')
             plot_item.getAxis('left').setLabel('Magnitude', color='#a1a1aa')
