@@ -247,25 +247,18 @@ class WaveformVisualizer(QtWidgets.QMainWindow):
         actual_time = self.time_axis[idx]
         formatted_time = format_si_unit(actual_time, 's')
         
-        # Format single global header readout label at the top and update dynamic legends in-place
-        readout_parts = [f"Time: {formatted_time}"]
+        filename = os.path.basename(self.filepath)
+        self.crosshair_label.setText(f"File: {filename}  |  Time: {formatted_time}")
         
+        # Update dynamic legend in each plot pane with live signal values
         for pane_idx, sig_list in self.plotted_signals.items():
-            pane_title = self.layout_config[pane_idx].get("pane_title", f"Pane {pane_idx+1}")
-            sig_readouts = []
             for sig_name, unit, wave, color, label_item in sig_list:
                 val = wave[idx]
                 val_str = format_si_unit(val, unit)
-                sig_readouts.append(f"{sig_name}={val_str}")
                 
                 # Dynamic Legend Update: Update legend item text with live value
                 if label_item is not None:
                     label_item.setText(f"<span style='color: {color}; font-weight: bold;'>{sig_name}: {val_str}</span>")
-                    
-            if sig_readouts:
-                readout_parts.append(f"{pane_title}: [{', '.join(sig_readouts)}]")
-                
-        self.crosshair_label.setText("  |  ".join(readout_parts))
 
 def main():
     parser = argparse.ArgumentParser(description="Multi-Pane Oscilloscope Waveform Visualizer for SPICE analysis.")
