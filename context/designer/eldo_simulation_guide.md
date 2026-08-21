@@ -92,29 +92,24 @@ sequenceDiagram
 
 ---
 
-## 6. High-Performance PyQtGraph Waveform Visualization (`visualize_waveforms`)
+## 6. Waveform Visualization (`visualize_waveforms`)
 
-Agents can launch a dynamic, multi-pane PyQtGraph oscilloscope window to plot SPICE transient waveforms directly from standard SPICE3 `.raw` or `.spi3` simulation output files using direct `spicelib`/`PyLTSpice` numerical array parsing.
+To render simulation results in an oscilloscope viewer window for the user, invoke `eldo(action="visualize_waveforms", ...)` on the `.raw` or `.spi3` simulation output file.
 
-- **Tool Call**: `eldo(action="visualize_waveforms", file_path="<path_to_sim.raw>", layout=[...])`
-- **Supported File Types**: `.raw` or `.spi3` SPICE simulation output files.
-
-### Layout Parameter & Signal Grouping Directives
-The `layout` parameter defines how signals are organized into vertically stacked plot panes:
-
+### Tool Invocation
 ```json
-[
-  {"pane_title": "Input Stimuli & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
-  {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
-]
+{
+  "action": "visualize_waveforms",
+  "file_path": "workboard/aoi32_sim/aoi32_formats.raw",
+  "layout": [
+    {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
+    {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
+  ]
+}
 ```
 
-#### Intelligent Signal Grouping Guidelines for LLMs:
-1. **Correlated Signals**: Group correlated input/output voltage signals into the same pane for propagation delay ($t_{pd}$) and signal transition measurements (e.g. $V(A1)$ and $V(Y)$).
-2. **Unit Isolation**: Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents $I(VDD)$ with logic voltages $V(IN)$).
-3. **Automatic Fallback**: If no `layout` is specified, `eldo_plotter.py` automatically categorizes voltage signals into a "Voltages" pane and current signals into a "Currents" pane.
-4. **Features**:
-   - **Linked X-Axes**: All panes zoom and pan synchronously via `setXLink()`.
-   - **Dynamic Legend**: Moving the mouse updates live signal values directly inside each plot pane's legend (e.g., `V(Y): 2.697 V`).
-   - **Clean Top Header**: Shows `File: <filename> | Time: <time>` in clean white styling.
+### Signal Grouping Rules for Designers
+1. **Correlated Signals**: Group related input and output voltage signals in the same plot pane for timing and propagation delay ($t_{pd}$) measurements (e.g. `V(A1)` and `V(Y)`).
+2. **Unit Isolation**: Keep signals with different units or scales in separate panes (e.g. keep supply currents `I(VDD)` in a separate pane from logic voltages `V(A)`).
+3. **Optional Layout**: If `layout` is omitted, signals are automatically grouped into a "Voltages" pane and a "Currents" pane.
 

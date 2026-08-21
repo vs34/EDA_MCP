@@ -80,7 +80,7 @@ type EldoArgs = {
 - `stop_interactive`: Sends `quit` to active Eldo REPL session.
 - `run_script`: Runs batch simulation deck.
 - `read_extract`: Auto-detects newest `.extract` file in `work_dir` and returns content.
-- `visualize_waveforms` / `visualize` / `plot`: Launches a high-performance multi-pane PyQtGraph oscilloscope window (`eldo_plotter.py`) for SPICE transient simulation outputs (`.raw` or `.spi3` files) featuring direct NumPy array parsing, dynamic in-legend live trace values, linked X-axes, and a top-anchored crosshair cursor.
+- `visualize_waveforms` / `visualize` / `plot`: Spawns a multi-pane oscilloscope window to plot SPICE transient simulation outputs (`.raw` or `.spi3` files) using custom pane layout configurations.
 - `run_terminal_command`: Executes shell command in Eldo terminal environment.
 
 ---
