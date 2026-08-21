@@ -99,6 +99,8 @@ Before running any commands, determine the Virtuoso execution mode:
 
 ## Step 4: Ask User to Run Eldo Simulation
 
+*(Refer to [`context/designer/eldo_simulation_guide.md`](eldo_simulation_guide.md) for full Eldo simulation execution rules, netlist syntax, and REPL directives.)*
+
 **ONLY proceed after `schCheck` passes with zero errors and zero warnings regarding floating nodes.**
 
 - Inform the user that the schematic cellview is created and verified with zero errors/warnings in the `MCP` library.
@@ -137,12 +139,13 @@ If the user agrees to run simulations:
    - **Mode 2: Batch Script Mode (`eldo(action="run_script")`)**:
      - Requires 2 files:
        1. **Structural Netlist (`<cellName>.net`)**: Saved in `~/Desktop/eldo/<cellName>.net`.
-       2. **Simulation Configuration Deck (`<cellName>.cir`)**: Created **locally** by the agent (specifying `.include "<cellName>.net"`, `.include "cmos065.mod"`, subcircuit instantiation `X1`, pin voltage sources, and simulation controls) and then **exported to the server using WorkBoard (`workboard`)**.
+       2. **Simulation Configuration Deck (`<cellName>.cir`)**: Created **locally** by the agent (specifying `.include "<cellName>.net"`, `.include "cmos065.mod"`, subcircuit instantiation `X1`, pin voltage sources, simulation controls, and `.OPTION SPI3` / waveform output directives so `.spi3` waveform files are produced alongside `.chi` files), and then **exported to the server using WorkBoard (`workboard`)**.
      - Execute batch simulation: `eldo(action="run_script", command="<cellName>.cir", work_dir="~/Desktop/eldo")`.
 
-3. **Download Output Files & Local Analysis**:
-   - After simulation completes, download output files (`.chi`, `.extract`, log files) from the remote server to the local workspace using **`workboard(action="add")`** or `workboard` sync.
-   - Analyze the downloaded output files locally to calculate DC operating points, transient delays, AC gain/bandwidth, find bugs, or report clean results to the user.
+3. **Download Output Files & Waveform Visualization**:
+   - After simulation completes, download output files (**`.spi3` waveform file** and **`.chi` summary file**, plus log files) from the remote server to the local workspace using **`workboard(action="add")`** or `workboard` sync.
+   - Analyze `.chi` output files locally for DC operating points, transient delays, AC gain/bandwidth, and circuit bug analysis.
+   - Launch waveform plotting using **`eldo(action="visualize_waveforms", file_path="<cellName>.spi3")`** to display interactive multi-pane signal plots for the user.
 
 ---
 
