@@ -54,7 +54,7 @@ type VirtuosoArgs = {
 ---
 
 ## Tool 3: `eldo`
-**Description**: Siemens Eldo analog simulation control and measurement retrieval.
+**Description**: Siemens Eldo analog simulation control, measurement retrieval, and high-performance PyQtGraph waveform visualization.
 
 ### Interface Schema
 ```typescript
@@ -64,10 +64,13 @@ type EldoArgs = {
         | "stop_interactive" | "stop"
         | "run_script" | "script"
         | "read_extract" | "extract"
+        | "visualize_waveforms" | "visualize" | "plot"
         | "run_terminal_command" | "terminal" | "shell";
-  command?: string;  // Netlist path, REPL command ('run', 'step'), or shell command
-  work_dir?: string; // Default: "~/Desktop/eldo"
-  timeout?: number;  // Default: 30.0s
+  command?: string;   // Netlist path, REPL command ('run', 'step'), SPICE output file path, or shell command
+  file_path?: string; // Simulation output file path (.raw or .spi3) when action='visualize_waveforms'
+  layout?: Array<{ pane_title: string; signals: string[] }>; // Signal layout config when action='visualize_waveforms'
+  work_dir?: string;  // Default: "~/Desktop/eldo"
+  timeout?: number;   // Default: 30.0s
 };
 ```
 
@@ -77,6 +80,7 @@ type EldoArgs = {
 - `stop_interactive`: Sends `quit` to active Eldo REPL session.
 - `run_script`: Runs batch simulation deck.
 - `read_extract`: Auto-detects newest `.extract` file in `work_dir` and returns content.
+- `visualize_waveforms` / `visualize` / `plot`: Launches a high-performance multi-pane PyQtGraph oscilloscope window (`eldo_plotter.py`) for SPICE transient simulation outputs (`.raw` or `.spi3` files) featuring direct NumPy array parsing, dynamic in-legend live trace values, linked X-axes, and a top-anchored crosshair cursor.
 - `run_terminal_command`: Executes shell command in Eldo terminal environment.
 
 ---
