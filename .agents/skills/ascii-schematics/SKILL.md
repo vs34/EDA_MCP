@@ -2,13 +2,14 @@
 name: ascii-schematics
 description: Rules for printing clean, aligned, unbroken ASCII/Unicode circuit schematics and tables in text output.
 ---
+> Do not create ASCII diagrams using Python. Trust yourself and direct output straight to chat.
 
 # ASCII & Unicode Schematic Drawing Rules
 
 ## 1. Fixed Grid & Large Canvas Layout
 * Always wrap text schematics inside ```text code blocks.
-* **Large Circuit Schematics:** Always draw complete, multi-stage, high-detail schematics (including input stages, active loads, tail bias, output stages, feedback, and supply rails) rather than simplified compact stubs.
-* **Wide Canvas Layout:** Use a generous grid width (e.g., 60–100+ characters wide as needed) to spread out circuit branches, active loads, differential pairs, and bias networks clearly without crowding.
+* **Simple Circuit Schematics:** Draw simple schematics using inline ASCII box diagrams.
+* **Normal Canvas Layout:** Use a good grid width (e.g., 40–60 characters wide if needed) to spread out circuit branches, active loads, differential pairs, and bias networks clearly without crowding.
 * **Equal Line Widths:** Every row of a box or diagram section MUST have the exact same character count.
 * **No Tabs:** Use explicit single spaces (` `), never Tab (`\t`).
 * **Flat Text Only for Variables & Subscripts (No LaTeX, No Multi-Line Stacks):**

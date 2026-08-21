@@ -14,34 +14,16 @@ Before running any commands, determine the Virtuoso execution mode:
 
 ---
 
-## Step 2: Draw ASCII Schematic & Seek User Confirmation (`ask_question`)
+## Step 2: Draw ASCII Schematic & Seek User Confirmation
 
-**DO NOT execute MCP commands yet.** First, design the circuit and present it visually inside the `ask_question` modal and chat response.
+**DO NOT execute MCP commands yet.** First, design the circuit and present it visually in the chat response.
 
 1. **Size Devices & Plan Architecture:** Determine device counts, $W/L$ dimensions, overdrive voltages ($V_{OV}$), and net connections.
 2. **Render ASCII Schematic:** Use the `ascii-schematics` skill to render the complete circuit diagram.
-3. **Output Diagram in Response & Invoke `ask_question`:**
-   - Print the ASCII schematic and sizing table in your main response text.
-   - **CRITICAL**: Include the **full ASCII schematic diagram, net list, and device sizing table directly inside the `question` string** of `ask_question` so the user can see the schematic right inside the modal popup window!
-
-   ```json
-   {
-     "questions": [
-       {
-         "question": "### Proposed Schematic & Topology:\n\n```text\n      VDD (1.2V)\n       │\n     ┌─┴─┐\n     │M1 │ PMOS (W=2.0u, L=0.065u)\n     └─┬─┘\n  VIN ─┼────── VOUT\n     ┌─┴─┐\n     │M2 │ NMOS (W=1.0u, L=0.065u)\n     └─┬─┘\n       │\n      GND\n```\n\n**Device Sizing & Nets:**\n- M1 (PMOS): W=2.0u, L=0.065u (Bulk -> VDD, Drain -> VOUT)\n- M2 (NMOS): W=1.0u, L=0.065u (Bulk -> GND, Drain -> VOUT)\n\nIs this the circuit topology, sizing, and schematic structure you want me to create in Virtuoso?",
-         "options": [
-           "(Recommended) Proceed with creating this schematic in Virtuoso",
-           "Modify transistor sizing or dimensions",
-           "Change circuit topology or net connections"
-         ],
-         "is_multi_select": false
-       }
-     ],
-     "toolAction": "Asking confirmation for schematic structure",
-     "toolSummary": "Schematic topology confirmation"
-   }
-   ```
-4. **Wait for User Response:** Execution blocks until the user selects an option or submits write-in feedback in the modal. Do not proceed to Step 3 until confirmed.
+3. **Output Diagram in Response:**
+   - Print the ASCII schematic, net list, and device sizing table directly in your main response text.
+   - **CRITICAL**: Include the full ASCII schematic diagram, net list, and device sizing table directly in the chat output (do not place them inside an `ask_question` modal window).
+4. **Wait for User Response:** Wait for user confirmation in chat before proceeding to Step 3. Do not proceed to Step 3 until confirmed.
 
 ---
 
