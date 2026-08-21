@@ -40,7 +40,7 @@ TASK INTENT CLASSIFICATION                  MANDATORY SPECIFICATION TO READ (vie
 {
   "tool": "view_file",
   "arguments": {
-    "AbsolutePath": "/Users/vs/function/EDA_MCP2/context/designer/README.md"
+    "AbsolutePath": "/Users/vs/function/EDA_MCP/context/designer/README.md"
   }
 }
 ```
@@ -67,7 +67,7 @@ TASK INTENT CLASSIFICATION                  MANDATORY SPECIFICATION TO READ (vie
 {
   "tool": "view_file",
   "arguments": {
-    "AbsolutePath": "/Users/vs/function/EDA_MCP2/context/coder/README.md"
+    "AbsolutePath": "/Users/vs/function/EDA_MCP/context/coder/README.md"
   }
 }
 ```

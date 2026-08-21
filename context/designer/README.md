@@ -46,21 +46,21 @@
 
 | Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
 | :--- | :--- | :--- |
-| **Schematic Design Workflow** / Creating Analog Schematics | [`schematic_flow.md`](schematic_flow.md) | 5-Step sequential procedure: ASCII schematic preview $\rightarrow$ `ask_question` user confirmation $\rightarrow$ Virtuoso SKILL creation & `geOpen` window display $\rightarrow$ `ask_question` for Eldo simulation. |
-| **`virtuoso(...)`** / SKILL Code / Schematic Generation | [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) | PDK cell names (`cmos065`), pin types (`ipin`/`opin`/`iopin`), zero `schCheck` warnings policy, GUI `geOpen` window display. |
-| **`eldo(...)`** / SPICE Netlists / Simulations | [`eldo_simulation_guide.md`](eldo_simulation_guide.md) | Line 1 title comment rule, Level-1 fallback models, REPL commands (`run`/`step`), `.extract` result parsing. |
-| **Waveform Visualization** / Plotting SPICE Waveforms | [`eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms`](eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms) | `eldo(action="visualize_waveforms")` signal grouping rules, separating currents from logic voltages, and multi-window invocations. |
-| **`workboard(...)`** / Workspace Synchronization | [`workboard_sync_guide.md`](workboard_sync_guide.md) | Git baseline commit tracking ($C_{\text{sync}}$), line-by-line unified diff advancing, `.workboard.json` schema. |
-| **`report_issue(...)`** / Bug Reports & Feature Requests | [`issue_reporting_guide.md`](issue_reporting_guide.md) | Freeform Markdown formatting, bug reproduction templates, enhancement implementation milestone structures. |
-| **Tool Interface Schemas & Action Modes** | [`mcp_tools_spec.md`](mcp_tools_spec.md) | TypeScript interface schemas, parameter types, timeouts, action mode invariants for all 5 MCP tools. |
+| **Schematic Design Workflow** / Creating Analog Schematics | [`context/designer/schematic_flow.md`](schematic_flow.md) | 5-Step sequential procedure: ASCII schematic preview $\rightarrow$ `ask_question` user confirmation $\rightarrow$ Virtuoso SKILL creation & `geOpen` window display $\rightarrow$ `ask_question` for Eldo simulation. |
+| **`virtuoso(...)`** / SKILL Code / Schematic Generation | [`context/designer/virtuoso_skill_guide.md`](virtuoso_skill_guide.md) | PDK cell names (`cmos065`), pin types (`ipin`/`opin`/`iopin`), zero `schCheck` warnings policy, GUI `geOpen` window display. |
+| **`eldo(...)`** / SPICE Netlists / Simulations | [`context/designer/eldo_simulation_guide.md`](eldo_simulation_guide.md) | Line 1 title comment rule, Level-1 fallback models, REPL commands (`run`/`step`), `.extract` result parsing. |
+| **Waveform Visualization** / Plotting SPICE Waveforms | [`context/designer/eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms`](eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms) | `eldo(action="visualize_waveforms")` signal grouping rules, separating currents from logic voltages, and multi-window invocations. |
+| **`workboard(...)`** / Workspace Synchronization | [`context/designer/workboard_sync_guide.md`](workboard_sync_guide.md) | Git baseline commit tracking ($C_{\text{sync}}$), line-by-line unified diff advancing, `.workboard.json` schema. |
+| **`report_issue(...)`** / Bug Reports & Feature Requests | [`context/designer/issue_reporting_guide.md`](issue_reporting_guide.md) | Freeform Markdown formatting, bug reproduction templates, enhancement implementation milestone structures. |
+| **Tool Interface Schemas & Action Modes** | [`context/designer/mcp_tools_spec.md`](mcp_tools_spec.md) | TypeScript interface schemas, parameter types, timeouts, action mode invariants for all 5 MCP tools. |
 
 ---
 
 ## Agent Context Index
 
-- [`schematic_flow.md`](schematic_flow.md): Quick step-by-step procedure for creating analog schematics, ASCII previews, `ask_question` user confirmations, and Virtuoso/Eldo workflows.
-- [`mcp_tools_spec.md`](mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
-- [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks, GUI `geOpen` window rules.
-- [`eldo_simulation_guide.md`](eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
-- [`workboard_sync_guide.md`](workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
-- [`issue_reporting_guide.md`](issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.
+- [`context/designer/schematic_flow.md`](schematic_flow.md): Quick step-by-step procedure for creating analog schematics, ASCII previews, `ask_question` user confirmations, and Virtuoso/Eldo workflows.
+- [`context/designer/mcp_tools_spec.md`](mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
+- [`context/designer/virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks, GUI `geOpen` window rules.
+- [`context/designer/eldo_simulation_guide.md`](eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
+- [`context/designer/workboard_sync_guide.md`](workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
+- [`context/designer/issue_reporting_guide.md`](issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.

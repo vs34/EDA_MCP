@@ -28,20 +28,20 @@
 
 | Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
 | :--- | :--- | :--- |
-| **GitHub Issue Fixing / Branching / PR Creation** | [`issue_resolution_workflow.md`](issue_resolution_workflow.md) | Agent branch naming (`<agent>/issue-<id>-<desc>`), custom author commits, PR label auto-creation (`gh label create`), PR templates, **STRICT NO-AUTOMERGE RULE**. |
-| **Server Architecture / MCP Handler Edits** | [`server_and_mcp.md`](server_and_mcp.md) | `FastMCP` session allocations (`RemoteSession`), tool dispatch table, logger setup (`logs/eda_mcp_*.log`). |
-| **SSH / SCP Transport Layer Edits** | [`transport_layer.md`](transport_layer.md) | Subshell `csh` sentinel tokens, regex REPL stream matching, OpenSSH `scp -O` parameters. |
-| **Virtuoso / Eldo Tool Client Edits** | [`eda_tool_clients.md`](eda_tool_clients.md) | `MCP.command` FIFO pipe IPC state machine, `MCP_setup.il` error trapping, REPL interactive loops. |
-| **WorkBoard Engine Edits** | [`workboard_backend.md`](workboard_backend.md) | `.workboard.json` registry schema, `_git_cmd` subprocess wrapper, SHA-256 checksum tracking. |
-| **Debugging / Running Test Suites** | [`known_issues_and_maintenance.md`](known_issues_and_maintenance.md) | Bug audit matrices, test suite discovery commands (`python3 -m unittest discover tests`). |
+| **GitHub Issue Fixing / Branching / PR Creation** | [`context/coder/issue_resolution_workflow.md`](issue_resolution_workflow.md) | Agent branch naming (`<agent>/issue-<id>-<desc>`), custom author commits, PR label auto-creation (`gh label create`), PR templates, **STRICT NO-AUTOMERGE RULE**. |
+| **Server Architecture / MCP Handler Edits** | [`context/coder/server_and_mcp.md`](server_and_mcp.md) | `FastMCP` session allocations (`RemoteSession`), tool dispatch table, logger setup (`logs/eda_mcp_*.log`). |
+| **SSH / SCP Transport Layer Edits** | [`context/coder/transport_layer.md`](transport_layer.md) | Subshell `csh` sentinel tokens, regex REPL stream matching, OpenSSH `scp -O` parameters. |
+| **Virtuoso / Eldo Tool Client Edits** | [`context/coder/eda_tool_clients.md`](eda_tool_clients.md) | `MCP.command` FIFO pipe IPC state machine, `MCP_setup.il` error trapping, REPL interactive loops. |
+| **WorkBoard Engine Edits** | [`context/coder/workboard_backend.md`](workboard_backend.md) | `.workboard.json` registry schema, `_git_cmd` subprocess wrapper, SHA-256 checksum tracking. |
+| **Debugging / Running Test Suites** | [`context/coder/known_issues_and_maintenance.md`](known_issues_and_maintenance.md) | Bug audit matrices, test suite discovery commands (`python3 -m unittest discover tests`). |
 
 ---
 
 ## Coder Context Index
 
-- [`issue_resolution_workflow.md`](issue_resolution_workflow.md): Standard operating procedure for Coder agents resolving issues, creating agent branches, PR formatting, and human review gates.
-- [`server_and_mcp.md`](server_and_mcp.md): FastMCP tool signatures, tool action dispatching, session isolation logic.
-- [`transport_layer.md`](transport_layer.md): Subshell IO pipes, sentinel token format, regex prompt match loop, SCP command generation.
-- [`eda_tool_clients.md`](eda_tool_clients.md): FIFO pipe write/read contract, REPL interactive streaming state machine.
-- [`workboard_backend.md`](workboard_backend.md): `.workboard.json` schema, Git subprocess wrapper (`_git_cmd`), `diff` auto-advance algorithm.
-- [`known_issues_and_maintenance.md`](known_issues_and_maintenance.md): Bug audit list (missing `run_script`), test discovery commands.
+- [`context/coder/issue_resolution_workflow.md`](issue_resolution_workflow.md): Standard operating procedure for Coder agents resolving issues, creating agent branches, PR formatting, and human review gates.
+- [`context/coder/server_and_mcp.md`](server_and_mcp.md): FastMCP tool signatures, tool action dispatching, session isolation logic.
+- [`context/coder/transport_layer.md`](transport_layer.md): Subshell IO pipes, sentinel token format, regex prompt match loop, SCP command generation.
+- [`context/coder/eda_tool_clients.md`](eda_tool_clients.md): FIFO pipe write/read contract, REPL interactive streaming state machine.
+- [`context/coder/workboard_backend.md`](workboard_backend.md): `.workboard.json` schema, Git subprocess wrapper (`_git_cmd`), `diff` auto-advance algorithm.
+- [`context/coder/known_issues_and_maintenance.md`](known_issues_and_maintenance.md): Bug audit list (missing `run_script`), test discovery commands.
