@@ -196,6 +196,7 @@ def eldo(
         - Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
         - Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents I(VDD) with logic voltages V(IN)).
         - Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. V(A) and V(Y)).
+        - To present large, clear graphs without overcrowding a single layout, call `eldo(action="visualize_waveforms")` multiple times to open separate plot windows for different signal categories.
         - Example layout:
           [
             {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
