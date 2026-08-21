@@ -54,7 +54,7 @@ type VirtuosoArgs = {
 ---
 
 ## Tool 3: `eldo`
-**Description**: Siemens Eldo analog simulation control, measurement retrieval, and high-performance PyQtGraph waveform visualization.
+**Description**: Siemens Eldo analog simulation control, measurement retrieval, and waveform visualization.
 
 ### Interface Schema
 ```typescript
