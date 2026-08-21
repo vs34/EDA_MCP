@@ -96,21 +96,16 @@ sequenceDiagram
 
 To render simulation results in an oscilloscope viewer window for the user, invoke `eldo(action="visualize_waveforms", ...)` on the `.raw` or `.spi3` simulation output file.
 
-### Tool Invocation
-```json
-{
-  "action": "visualize_waveforms",
-  "file_path": "workboard/aoi32_sim/aoi32_formats.raw",
-  "layout": [
+### Guidance for LLM Signal Grouping
+- Intelligently group related signals into separate vertical panes for clear timing & signal integrity analysis.
+- Keep signals with different units or scales in separate panes (e.g. NEVER mix supply currents `I(VDD)` with logic voltages `V(IN)`).
+- Group correlated input/output voltage signals into the same pane for propagation delay measurements (e.g. `V(A)` and `V(Y)`).
+- To present large, clear graphs without overcrowding a single layout, call `eldo(action="visualize_waveforms")` multiple times to open separate plot windows for different signal categories.
+- Example layout:
+  ```json
+  [
     {"pane_title": "Logic Inputs & Output", "signals": ["V(A1)", "V(A2)", "V(Y)"]},
     {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
   ]
-}
-```
-
-### Signal Grouping Rules for Designers
-1. **Correlated Signals**: Group related input and output voltage signals in the same plot pane for timing and propagation delay ($t_{pd}$) measurements (e.g. `V(A1)` and `V(Y)`).
-2. **Unit Isolation**: Keep signals with different units or scales in separate panes (e.g. keep supply currents `I(VDD)` in a separate pane from logic voltages `V(A)`).
-3. **Multiple Window Instances**: To display large, uncrowded graphs, call `eldo(action="visualize_waveforms")` multiple times to open separate plot window instances for different signal categories.
-4. **Optional Layout**: If `layout` is omitted, signals are automatically grouped into a "Voltages" pane and a "Currents" pane.
+  ```
 
