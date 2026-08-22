@@ -16,7 +16,7 @@ Choose the smallest circuit and simulation set that can answer the user’s ques
 ## 3. Create a physically valid schematic
 
 1. Open/create `MCP/<cell>/schematic` unless the user names another library.
-2. Instantiate `cmos065/psvtgp` and `cmos065/nsvtgp`, then initialize each MOS with string micron dimensions, for example:
+2. Instantiate `cmos065/psvtgp` and `cmos065/nsvtgp`. **Name instances starting with `X`** (e.g. `"XP0"`, `"XN0"`, `"XM0"`; never `"M0"`/`"MP0"`) so exported CDL netlists invoke subcircuit wrappers rather than primitives. Initialize each MOS with string micron dimensions:
 
    ```lisp
    initMosTransistor(inst "2.0" "0.065")
