@@ -47,11 +47,22 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 
 ### Eldo Simulator Integration & Netlist Rules
 - **Circuit Title Line:** Line 1 of an Eldo `.cir` netlist MUST be an explicit title line (Eldo treats Line 1 as a title comment).
-- **Level-1 Model Fallback:** If full BSIM4 SSIM model decks are unlinked, use Eldo-compatible MOS model cards:
+- **Subcircuit Wrapper Architecture (PDK & Level-1 Models):**
+  Cadence `auCdl` netlists export instances with CDF parameters (`nfing`, `sense`, `ngcon`, `accurateFlow`, unitless `w`/`l`).
+  Always wrap transistor models inside `.SUBCKT` definitions in the testbench deck (`.cir`) so that Cadence CDF parameters are absorbed cleanly without modifying the immutable structural netlist:
   ```spice
-  .MODEL nsvtgp NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
-  .MODEL psvtgp PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
+  .SUBCKT psvtgp d g s b w=2.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0
+  M0 d g s b psvtgp_core W='w*1u' L='l*1u' M='m'
+  .ENDS
+
+  .SUBCKT nsvtgp d g s b w=1.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0
+  M0 d g s b nsvtgp_core W='w*1u' L='l*1u' M='m'
+  .ENDS
+
+  .MODEL psvtgp_core PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
+  .MODEL nsvtgp_core NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
   ```
+- **Immutable Netlist Rule:** Never hand-edit or sanitize `<cellName>.net` files. Handle all scaling and parameter absorption at the testbench/model wrapper layer.
 - **Interactive Simulation:** Initialize `eldo`, run `start_interactive(command="...")`, send `run`, then `step` via `run_interactive` to complete DC/transient sweeps.
 
 ### Timeout Management
@@ -88,9 +99,9 @@ foreach(shape cv~>shapes dbDeleteObject(shape))
 foreach(net cv~>nets dbDeleteObject(net))
 foreach(term cv~>terminals dbDeleteObject(term))
 
-;; Place Instances
-pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "I0" list(1.0 1.5) "R0")
-nInst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "I1" list(1.0 0.5) "R0")
+;; Place Instances (Name with 'X' prefix e.g. "XP0", "XN0" to invoke subcircuit models in Eldo)
+pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "XP0" list(1.0 1.5) "R0")
+nInst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "XN0" list(1.0 0.5) "R0")
 
 ;; Place Pins
 ip  = dbOpenCellViewByType("basic" "ipin" "symbol")

@@ -21,7 +21,7 @@ type RemoteControlArgs = {
   - *Returns*: `Exit Status: <code>\n--- STDOUT ---\n<out>\n--- STDERR ---\n<err>`
 - `read_file`: Reads text from `path`.
   - *Returns*: Text content string.
-- `write_file`: Encodes `content` as Base64 and writes to `path`.
+- `write_file`: Encodes `content` as Base64 and writes to `path`. Prefer WorkBoard for reviewable simulation artifacts; use direct write only when explicitly appropriate to the task.
   - *Returns*: `"Successfully wrote <bytes> bytes to remote file '<path>'."`
 
 ---
@@ -48,7 +48,7 @@ type VirtuosoArgs = {
 - `start_standalone`: Launches non-graphical Virtuoso REPL (`virtuoso -nograph`).
 - `standalone`: Sends SKILL statement to active `virtuoso -nograph` REPL stream.
 - `stop_standalone`: Sends `exit()` to non-graphical REPL and closes session.
-- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Constraint**: SKILL `command` MUST NOT be excessively long; keep commands short and modular. **GUI Window Display**: When asked to build or open a schematic/layout view in Virtuoso, use `geOpen(?lib ... ?cell ... ?view ...)` to display the window in the live Virtuoso GUI (do NOT call `dbClose(cv)`). **GUI Popups**: If a modal GUI popup opens (e.g. save dialog, schCheck warning), notify the user to interact with the Virtuoso GUI.
+- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Formatting Guarantee**: The MCP server automatically strips comments (`;...`) and collapses newlines before piping to Virtuoso; standard multi-line SKILL blocks are supported natively. Do NOT write temporary `.il` files to disk. **GUI Window Display**: When asked to build or open a schematic/layout view in Virtuoso, use `geOpen(?lib ... ?cell ... ?view ...)` to display the window in the live Virtuoso GUI (do NOT call `dbClose(cv)`). **GUI Popups**: Modal popups can be dismissed programmatically (e.g., `hiFormDone(simSaveAllForm)`, `hiDBoxOK(simNetNoOp6)`).
 - `run_terminal_command`: Executes shell command in Virtuoso terminal environment.
 
 ---
@@ -128,6 +128,6 @@ type ReportIssueArgs = {
 
 ### Auto-Behavior
 - **Client Agent Auto-Detection**: Extracts `agent_name` (`Antigravity`, `claude-code`, `cursor`) from MCP `clientInfo` context via FastMCP `Context`.
-- **Log Auto-Attachment**: Automatically attaches active server log from `temp/eda_mcp_*.log`.
+- **Log Auto-Attachment**: Automatically references the active server log in `logs/eda_mcp_*.log`.
 - **GitHub Label Auto-Creation**: Checks repository via `gh label list` and creates agent label (`gh label create`) if missing.
 - **Form Suggestions**: For suggested Markdown body structure on bugs and enhancements, see [`issue_reporting_guide.md`](issue_reporting_guide.md).

@@ -5,6 +5,19 @@
 - **Registry File**: `./workboard/<workboard_name>/.workboard.json`
 - **Sync Baseline**: `last_sync_commit` (SHA of local Git commit at last synchronized state $C_{\text{sync}}$)
 
+`local_path` is relative to the selected WorkBoard root, not an arbitrary workspace path. To create a new simulation deck, first initialize/select a board, then create the file at `./workboard/<workboard_name>/<local_path>` before calling `export`.
+
+Example lifecycle:
+
+```text
+workboard(action="initialize", workboard_name="inverter_sim")
+# create ./workboard/inverter_sim/tb_inverter.cir locally
+workboard(action="export", workboard_name="inverter_sim",
+          local_path="tb_inverter.cir", remote_path="~/Desktop/eldo/tb_inverter.cir")
+```
+
+When more than one WorkBoard exists, pass `workboard_name` on every operation unless the current server session has already selected one. That selection is session-local; do not assume it persists across MCP server restarts.
+
 ---
 
 ## 2. Action State Matrix
@@ -31,5 +44,4 @@ Agent can execute terminal commands inside `./workboard/<name>/`:
 ---
 
 ## 4. Local Tooling & Sizing Computation Authorization
-- Agents are fully authorized to use any local environment tools (Python scripts, math/symbolic packages, scratch scripts, local file generators, and web research) to calculate transistor aspect ratios ($W/L$), generate local SPICE netlists, draft schematic definitions, or evaluate circuit equations before invoking `workboard(action="export")` or `workboard(action="push")`.
-
+- Agents may use local tools to calculate transistor aspect ratios ($W/L$), evaluate equations, analyze retrieved results, and author **simulation decks**. Structural transistor netlists must come from the verified Virtuoso exporter, not local reconstruction.
