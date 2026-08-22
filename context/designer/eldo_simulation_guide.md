@@ -1,8 +1,8 @@
 # ELDO_SIMULATION_SPEC
 
 ## 1. SPICE Netlist Syntax & Rules
-- **Rule 1 (Title Line)**: Line 1 of `.cir` deck is ALWAYS evaluated as Title Comment by Eldo parser.
-- **Rule 2 (Level-1 Fallback Model Decks)**:
+- **Rule 1 (Title Line)**: Line 1 of a `.cir` deck is a title line. Start it with a descriptive comment such as `* Inverter transient test`.
+- **Rule 2 (Model fidelity)**: Use the installed `cmos065` model deck for design validation. The following Level-1 models are permitted only for an explicitly labelled parser/syntax sanity check when no PDK model is available; they are not PDK-accurate and must not support sizing or signoff claims.
   ```spice
   .MODEL nsvtgp NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
   .MODEL psvtgp PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
@@ -14,7 +14,7 @@
 
 ### A. Virtuoso CDL/SPICE Netlist Export (`<cellName>.net`)
 - The structural netlist file (`<cellName>.net` or `.cdl`) contains transistor connectivity (`.subckt <cellName> ...`).
-- **Export Target**: Exported programmatically from the Virtuoso schematic cellview (`MCP` library) via CDL SKILL export and saved to the default server Eldo directory: `~/Desktop/eldo/<cellName>.net`.
+- **Export Target**: Export from the Virtuoso schematic cellview (`MCP` library) with the verified `auCdl`/CDL flow in [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md). Verify the produced path and pin order before simulation; do not assume a netlister default directory.
 
 ### B. Execution Modes
 
@@ -25,12 +25,13 @@
 #### Mode 2: Batch Script Simulation (`eldo(action="run_script")`)
 Requires two distinct files:
 1. **Structural Netlist (`<cellName>.net`)**: Exported from Virtuoso directly to `~/Desktop/eldo/<cellName>.net`.
-2. **Simulation Configuration Deck (`<cellName>.cir`)**: Created **locally** by the agent (containing `.include "<cellName>.net"`, `.include "cmos065.mod"`, subcircuit instantiation `X1`, pin voltage sources `Vvdd`/`Vvin`, and simulation controls `.dc`/`.tran`), and then **exported/synced to the server using WorkBoard (`workboard`)**.
+2. **Simulation Configuration Deck (`<cellName>.cir`)**: Created locally inside a WorkBoard by the agent (containing `.include "<cellName>.net"`, the verified installed model include, subcircuit instantiation `X1`, pin voltage sources, and simulation controls), reviewed, and then exported/synced to the server using WorkBoard (`workboard`).
 
 ```spice
 * Eldo Simulation Configuration Deck (<cellName>.cir)
 .include "<cellName>.net"
-.include "cmos065.mod"
+* Include the verified installed cmos065 model deck here.
+* Do not assume a file named cmos065.mod exists.
 
 * Instantiate Virtuoso Subcircuit
 X1 VIN VOUT VDD GND <cellName>
@@ -102,4 +103,3 @@ To render simulation results in an oscilloscope viewer window for the user, invo
     {"pane_title": "Supply Currents", "signals": ["I(VDD)", "I(VSS)"]}
   ]
   ```
-

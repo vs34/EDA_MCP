@@ -21,7 +21,7 @@ type RemoteControlArgs = {
   - *Returns*: `Exit Status: <code>\n--- STDOUT ---\n<out>\n--- STDERR ---\n<err>`
 - `read_file`: Reads text from `path`.
   - *Returns*: Text content string.
-- `write_file`: Encodes `content` as Base64 and writes to `path`.
+- `write_file`: Encodes `content` as Base64 and writes to `path`. Prefer WorkBoard for reviewable simulation artifacts; use direct write only when explicitly appropriate to the task.
   - *Returns*: `"Successfully wrote <bytes> bytes to remote file '<path>'."`
 
 ---
@@ -128,6 +128,6 @@ type ReportIssueArgs = {
 
 ### Auto-Behavior
 - **Client Agent Auto-Detection**: Extracts `agent_name` (`Antigravity`, `claude-code`, `cursor`) from MCP `clientInfo` context via FastMCP `Context`.
-- **Log Auto-Attachment**: Automatically attaches active server log from `temp/eda_mcp_*.log`.
+- **Log Auto-Attachment**: Automatically references the active server log in `logs/eda_mcp_*.log`.
 - **GitHub Label Auto-Creation**: Checks repository via `gh label list` and creates agent label (`gh label create`) if missing.
 - **Form Suggestions**: For suggested Markdown body structure on bugs and enhancements, see [`issue_reporting_guide.md`](issue_reporting_guide.md).
