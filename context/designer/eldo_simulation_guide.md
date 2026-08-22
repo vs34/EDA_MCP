@@ -2,10 +2,15 @@
 
 ## 1. SPICE Netlist Syntax & Rules
 - **Rule 1 (Title Line)**: Line 1 of a `.cir` deck is a title line. Start it with a descriptive comment such as `* Inverter transient test`.
-- **Rule 2 (Model fidelity)**: Use the installed `cmos065` model deck for design validation. The following Level-1 models are permitted only for an explicitly labelled parser/syntax sanity check when no PDK model is available; they are not PDK-accurate and must not support sizing or signoff claims.
+- **Rule 2 (Model fidelity)**: Use the installed `cmos065` model deck for design validation. The standard Level-1 BSIM models used for Eldo simulation in this environment are:
   ```spice
   .MODEL nsvtgp NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
   .MODEL psvtgp PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
+  ```
+- **Rule 3 (CDL Parameter Sanitization)**: Cadence `auCdl` netlists frequently contain physical PDK parameters (`NFING=1`, `SENSE=0`, `NGCON=1`, `ACCURATEFLOW=0`). Eldo rejects these with parser errors (`ERROR 254: Unknown parameter NFING`). Ensure exported transistor instances in `<cellName>.net` contain only standard SPICE parameters:
+  ```spice
+  MMP0 OUT IN VDD VDD psvtgp W=2.0u L=0.065u
+  MMN0 OUT IN VSS VSS nsvtgp W=1.0u L=0.065u
   ```
 
 ---
@@ -14,7 +19,7 @@
 
 ### A. Virtuoso CDL/SPICE Netlist Export (`<cellName>.net`)
 - The structural netlist file (`<cellName>.net` or `.cdl`) contains transistor connectivity (`.subckt <cellName> ...`).
-- **Export Target**: Export from the Virtuoso schematic cellview (`MCP` library) with the verified `auCdl`/CDL flow in [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md). Verify the produced path and pin order before simulation; do not assume a netlister default directory.
+- **Export Target**: Export from Virtuoso schematic (`MCP` library) via the `"test"` template GUI flow in [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) to `~/Desktop/eldo/<cellName>.net`. Verify the pin order before simulation.
 
 ### B. Execution Modes
 

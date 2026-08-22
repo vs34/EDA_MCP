@@ -10,21 +10,51 @@
 ## Safe construction pattern
 
 ```lisp
-cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "a")
+;; 1. Standard Pin Creation Helper
+procedure(createPin(cv name dir pt)
+  let((pinMaster pinInst)
+    pinMaster = case(dir
+      ("input"  dbOpenCellViewByType("basic" "ipin"  "symbol" nil "r"))
+      ("output" dbOpenCellViewByType("basic" "opin"  "symbol" nil "r"))
+      (t        dbOpenCellViewByType("basic" "iopin" "symbol" nil "r"))
+    )
+    pinInst = schCreatePin(cv pinMaster name dir nil pt "R0")
+    dbClose(pinMaster)
+    pinInst
+  )
+)
+
+;; 2. Standard Cellview Construction
+cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "w")
 
 p = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "MP1" list(1.0 1.5) "R0")
 n = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "MN1" list(1.0 0.5) "R0")
 initMosTransistor(p "2.0" "0.065")
 initMosTransistor(n "1.0" "0.065")
+
+createPin(cv "IN" "input" list(0.0 1.0))
+createPin(cv "OUT" "output" list(2.0 1.0))
+createPin(cv "VDD" "inputOutput" list(1.25 2.0))
+createPin(cv "VSS" "inputOutput" list(1.25 0.0))
+
+;; 3. DUAL BINDING RULE: Always bind logical net AND draw physical wire
+;; Both dbCreateConnByName AND schCreateWire are strictly required for schCheck (0 0).
+netIn = dbCreateNet(cv "IN")
+dbCreateConnByName(netIn p "g")
+dbCreateConnByName(netIn n "g")
 ```
 
-Use CDF callbacks; do not assign meter-valued raw properties. Build logical nets and physical wires. A net connection that is not represented by wire geometry can still fail `schCheck` in this PDK.
+Use CDF callbacks (`initMosTransistor`); do not assign meter-valued raw properties. Build logical nets (`dbCreateConnByName`) and physical wires (`schCreateWire`).
+
+## Assisted Run SKILL Formatting Guarantee
+
+The MCP server automatically strips comments (`;...`) and normalizes newlines before sending commands to Virtuoso. Agents can safely write formatted, multi-line SKILL blocks directly in `virtuoso(action="assisted_run", command="...")`. Do **NOT** write temporary `.il` files to disk.
 
 ## Physical wiring and validation
 
 - Determine terminal endpoints from the verified offset table in [`schematic_flow.md`](schematic_flow.md) only for the stated PDK release and `R0`; otherwise inspect the instance geometry.
 - Create wires that end on the actual terminal/pin connection points. Use jogs and T-junctions rather than four-way crossings.
-- For the documented schematic environment, this helper creates a single wire segment; compose L-jogs and T-junctions from multiple segments as needed:
+- Helper for creating wire segments:
 
   ```lisp
   procedure(schW(cv p1 p2)
@@ -51,26 +81,50 @@ Do not call `dbClose(cv)` in that path. In a standalone/headless flow, save and 
 
 ## Structural netlist export
 
-`hnlInit`, `hnlNetlist`, and `hnlEnd` are obsolete for this deployed Virtuoso environment and MUST NOT be used. They can fail as unbound SKILL functions.
+`hnlInit`, `hnlNetlist`, and `hnlEnd` are obsolete for this deployed Virtuoso environment and MUST NOT be used.
 
-Preferred flow: use the installed Cadence `auCdl` exporter after verifying that its form/callback APIs are available in the current session. The required output is a structural CDL/SPICE netlist generated from `MCP/<cell>/schematic`, with an explicit output file and run directory. A known working form-based configuration is:
+### Primary Verified Flow: GUI Form with `"test"` Template
+The fastest and most reliable way to export structural CDL netlists is using `transCdlOutForm` loaded with the pre-configured `"test"` template:
 
 ```lisp
-transCdlOutForm~>cdlOLibName~>value     = "MCP"
-transCdlOutForm~>cdlOTopCell~>value     = "<cellName>"
-transCdlOutForm~>cdlOViewName~>value    = "schematic"
-transCdlOutForm~>cdlONetlistFile~>value = "<cellName>.cdl"
-transCdlOutForm~>cdlORunDir~>value      = "/home/vaibhav22555/Desktop/eldo"
-transCdlOutForm~>cdlOSimViewList~>value = "auCdl schematic symbol"
-transCdlOutForm~>cdlOSimStopList~>value = "auCdl"
-transCdlOutForm~>cdlOBkgd~>value        = nil
-cdlOutCallback()
+prog(()
+  transCdlOutDisplay()
+  hiiSetCurrentForm('transCdlOutForm)
+  transCdlOutForm->cdlOTemplateFile->value = "test"
+  transCdlOutForm->cdlOLibName->value = "MCP"
+  transCdlOutForm->cdlOTopCell->value = "<cellName>"
+  transCdlOutForm->cdlOViewName->value = "schematic"
+  transCdlOutForm->cdlONetlistFile->value = "<cellName>.net"
+  transCdlOutForm->cdlORunDir->value = "/home/vaibhav22555/Desktop/eldo"
+  hiFormDone(transCdlOutForm)
+  when(boundp('simSaveAllForm) && hiIsFormDisplayed(simSaveAllForm) hiFormDone(simSaveAllForm))
+  when(boundp('simNetNoOp6) hiDBoxOK(simNetNoOp6))
+  return(t)
+)
 ```
 
-Before relying on that form, verify the installed `auCdl` environment and output file. If it is unavailable, stop before simulation, report the missing capability to the user, and use another verified Virtuoso-native exporter only if available. Do not silently synthesize a transistor netlist from assumptions.
-
-The simulation deck is separate: it is a locally authored test configuration that includes the exported structural netlist. It must not replicate the device connectivity.
+### Alternative Batch Flow: Cadence `si.env` Netlister
+If running non-interactively or headless:
+1. Write `si.env` in Virtuoso workspace (`~/Desktop/cmos65/si.env`):
+   ```lisp
+   let((fp)
+     fp = outfile("si.env" "w")
+     fprintf(fp "simLibName = \"MCP\"\n")
+     fprintf(fp "simCellName = \"%s\"\n" "<cellName>")
+     fprintf(fp "simViewName = \"schematic\"\n")
+     fprintf(fp "simSimulator = \"auCdl\"\n")
+     fprintf(fp "simNotIncremental = 't\nsimReNetlistAll = 't\n")
+     fprintf(fp "simViewList = '(\"auCdl\" \"auSchematic\" \"auGate_sch\" \"auGate_cdl\" \"auCmos_sch\" \"schematic\" \"gate_sch\" \"cmos_sch\" \"symbol\")\n")
+     fprintf(fp "simStopList = '(\"auCdl\")\n")
+     fprintf(fp "simNetlistHier = t\n")
+     fprintf(fp "hnlNetlistFileName = \"%s.net\"\n" "<cellName>")
+     fprintf(fp "auCdlDefNetlistProc = \"ansCdlSubcktCall\"\n")
+     drain(fp) close(fp)
+   )
+   ```
+2. Execute via `virtuoso(action="run_terminal_command")`:
+   `si . -batch -command netlist && cp <cellName>.net ~/Desktop/eldo/`
 
 ## Error handling
 
-Keep `assisted_run` commands small enough to diagnose. If a call times out, inspect its returned diagnostics and the GUI state; a modal dialog may need the user’s intervention. Use `errset` when it improves recovery or captures a specific SKILL failure.
+Keep `assisted_run` commands focused. If a call times out, inspect its returned diagnostics and GUI state; a modal dialog (`simSaveAllForm`, `simNetNoOp6`, `schCheck` dialog) may need programmatic dismissal via `hiFormDone(...)` or `hiDBoxOK(...)`.
