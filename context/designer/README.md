@@ -18,7 +18,7 @@ This is an operational specification for an AI agent that designs, inspects, and
 4. **MOS lifecycle and units** — For `cmos065` MOS instances, initialize CDF through `initMosTransistor(inst wMicrons lMicrons)` (or the documented DK lifecycle). Pass width and length as micron strings, for example `"2.0"` and `"0.065"`.
 5. **GUI lifecycle** — In `assisted_run`, guard display with `unless(geGetCellViewWindow(cv) geOpen(...))`; do not `dbClose(cv)` when leaving that view displayed. In a headless standalone flow, close database views after saving.
 6. **Netlisting** — Never use the obsolete `hnlInit` / `hnlNetlist` template. Export the structural netlist from the Virtuoso schematic using a verified CDL exporter; see [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md). A simulation deck may be authored locally, but it must include the exported structural netlist rather than duplicating transistor connectivity by hand.
-7. **Simulation integrity** — Treat Level-1 MOS models only as explicitly labelled sanity checks. Do not use them as a substitute for the installed `cmos065` model deck or present their results as PDK-accurate.
+7. **Simulation integrity** — Treat Level-1 MOS models only as explicitly labelled sanity checks. Include server process corner decks at `/modelfile_65nm/` (e.g. `.include "/modelfile_65nm/typNtypP.cir"`, `minNminP.cir`, `maxNmaxP.cir`) for PDK-accurate simulation results.
 8. **SKILL file output** — Before closing an `outfile` stream, call `drain(fileId)`.
 9. **Side effects** — Creating GitHub issues is external and persistent. Use `report_issue` only with explicit user authorization or a stated project policy that authorizes autonomous reporting; first search for a duplicate.
 

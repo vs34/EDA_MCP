@@ -27,6 +27,14 @@
 - **Rule 4 (Instance Prefix Hierarchy)**:
   - `X...`: Subcircuit instantiation (used in testbenches to instantiate circuit cells, e.g. `X1 IN OUT VDD GND inverter`, and for subcircuit transistors `XM0`, `XM1`).
   - `M...`: Built-in native SPICE primitive transistor.
+- **Rule 5 (PDK Process Corner Decks at `/modelfile_65nm/`)**:
+  Process corner decks for 65nm simulations reside on the remote server at `/modelfile_65nm/`. Agents should include the required corner file using `.INCLUDE "/modelfile_65nm/<corner_file>.cir"`:
+  - **TT (Typical NMOS, Typical PMOS)**: `.include "/modelfile_65nm/typNtypP.cir"` (or `typNtypP_new.cir`)
+  - **SS (Slow NMOS, Slow PMOS)**: `.include "/modelfile_65nm/minNminP.cir"`
+  - **FF (Fast NMOS, Fast PMOS)**: `.include "/modelfile_65nm/maxNmaxP.cir"`
+  - **FS (Fast NMOS, Slow PMOS)**: `.include "/modelfile_65nm/maxNminP.cir"`
+  - **SF (Slow NMOS, Fast PMOS)**: `.include "/modelfile_65nm/minNmaxP.cir"`
+  - **Auxiliary Decks**: `/modelfile_65nm/diode_typ.cir` (diode typical), `/modelfile_65nm/diode_fast.cir`, `/modelfile_65nm/diode_slow.cir`, `/modelfile_65nm/resistor.cir` (resistors), `/modelfile_65nm/no_mismatch.cir` (no mismatch).
 
 ---
 
@@ -85,7 +93,9 @@ XM1 OUT IN VSS VSS nsvtgp w=1.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1
 .OPTION ASCII=1
 .OPTION SPI3ASC=1
 
-* 1. PDK / Subcircuit Model Definitions
+* 1. PDK Process Corner Deck & Subcircuit Wrappers
+.INCLUDE "/modelfile_65nm/typNtypP.cir"
+
 .SUBCKT psvtgp d g s b w=2.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0
 M0 d g s b psvtgp_core W='w*1u' L='l*1u' M='m'
 .ENDS
