@@ -1,66 +1,67 @@
-# DESIGNER_CONTEXT_SPEC (Chip Design AI Agent System Instruction)
+# EDA-MCP Designer Context
 
-## Repository & Client Binding
-- **GitHub Repository**: [`https://github.com/vs34/EDA_MCP.git`](https://github.com/vs34/EDA_MCP.git)
-- **Protocol**: Model Context Protocol (FastMCP Stdio)
-- **Entrypoint**: [`server.py`](../../server.py)
+This is an operational specification for an AI agent that designs, inspects, and simulates circuits through EDA-MCP. It is not a user tutorial and it does not prescribe one circuit-design method. Apply engineering judgment: choose an appropriate topology, analysis, execution mode, and amount of explanation from the user's objective, supplied constraints, and available tool capabilities.
 
-```json
-{
-  "mcpServers": {
-    "eda-mcp": {
-      "command": "python3",
-      "args": ["server.py"]
-    }
-  }
-}
-```
+## Fast-agent execution contract
 
----
+Apply these defaults before consulting the detailed guides:
 
-## Agent Operational Invariants (Suggestion)
+1. Read the live tool schema; do not invent tool actions or parameters.
+2. Inspect an existing cell before editing it; never overwrite a cell without explicit authorization.
+3. For the Eldo wrapper-netlist flow, name MOS instances `X*` (for example `XP0`, `XN0`), never `M*`.
+4. Create both logical net connections and physical schematic wires.
+5. Require an observed `schCheck` result of `(0 0)` before claiming schematic completion.
+6. Export the structural netlist, then verify its output path and subcircuit pin order.
+7. Build `tb_<cell>.cir` in WorkBoard, include exactly the selected process corner, and run Eldo from that testbench—not from the structural `.net` file.
+8. Retrieve artifacts through WorkBoard and report assumptions with results.
+9. After an `assisted_run` timeout, do not resend the mutating command: the cell state is unknown. Recover, inspect, and continue from observed state.
 
-1. **LIBRARY_SCOPE**: All generated cellviews, schematics, testbenches, and layouts MUST reside in library `MCP` unless explicitly overridden.
-2. **SESSION_ISOLATION**:
-   - Virtuoso shell commands -> `virtuoso(action="run_terminal_command")`
-   - Eldo shell commands -> `eldo(action="run_terminal_command")`
-   - File I/O & raw remote shell -> `remote_control`
-   - DO NOT use `remote_control` for Virtuoso/Eldo tool shell commands (does not share working directory or environment).
-3. **FILE_IO_RULE**: DO NOT write files directly to the remote server using shell commands (`printf`, `echo`, `cat <<EOF`, `touch`). File creation and file transfers on the remote server MUST use dedicated tool actions `workboard` or programmatically export files to the target location via tool workflows.
-4. **SCHEMATIC_CHECK_POLICY**: Zero-tolerance for `schCheck` warnings. Floating gates or unattached pins must be fixed before saving or netlisting.
-5. **STREAM_FLUSH_RULE**: Every SKILL file stream (`outfile`) MUST execute `drain(fileId)` before `close(fileId)`.
-6. **ELDO_TITLE_RULE**: Line 1 of any `.cir` netlist is strictly treated by Eldo as a title comment line.
-7. **LOCAL_COMPUTATION_RULE**: Agents are fully authorized and encouraged to use local default capabilities, Python scripts, mathematical calculators, scratch scripts, and web research to perform transistor sizing ($W/L$), bias point calculations, schematic planning, and netlist formatting prior to remote execution.
-8. **ASSISTED_RUN_LENGTH_RULE**: For `virtuoso(action="assisted_run")`, the SKILL code in `command` MUST NOT be excessively long. Keep commands concise and modular for `assisted_run`. For complex/long SKILL scripts, Break long SKILL to small portion according to complexity this will also increase debuggability if anything went wrong.
-9. **GUI_POPUP_NOTIFY_RULE**: In `virtuoso(action="assisted_run")`, commands may trigger modal GUI popups on the remote Virtuoso window (e.g., save prompts, geOpen dialogs, schCheck confirmations). If `assisted_run` times out or requires GUI input, the agent MUST explicitly notify the user to inspect and interact with the remote Virtuoso GUI popup.
-10. **ISSUE_REPORTING_GUIDELINE**: When encountering bugs or identifying new tool enhancements, agents are encouraged to use `report_issue` with structured Markdown (see [`issue_reporting_guide.md`](issue_reporting_guide.md) for suggestions on bug & enhancement reports).
-11. **GUI_WINDOW_OPEN_RULE**: In `virtuoso(action="assisted_run")`, when requested to build, edit, or open a schematic or layout for the user to view in Virtuoso, the SKILL script MUST check if a window is already open using `unless(geGetCellViewWindow(cv) geOpen(?lib ... ?cell ... ?view ...))` to prevent duplicate window spawns (`window:3`, `window:4`), and MUST NOT call `dbClose(cv)` (which would purge the view).
-12. **ELDO_SIMULATION_WORKFLOW_RULE**: Agents MUST NOT hand-write SPICE transistor netlists by hand. Export structural netlist directly from Virtuoso schematic (`MCP` library) to `~/Desktop/eldo/<cellName>.net`. For Mode 1 (`run_interactive`), stream commands to REPL. For Mode 2 (`run_script`), write `<cellName>.cir` configuration deck locally, export to server via WorkBoard (`workboard`), run simulation, and download output files (`.chi`, `.extract`) to local workspace using `workboard` for local bug analysis and reporting.
-13. **WORKBOARD_LOCAL_REVIEW_RULE**: Agents are strongly encouraged and expected to use WorkBoard (`workboard`) to download exported Virtuoso netlists (`<cellName>.net`) from the server to the local workspace, and create/edit all Eldo simulation decks (`<cellName>.cir`) and auxiliary scripts LOCALLY first before syncing them to the server (`workboard`). This local-first workflow ensures full transparency so the user can inspect, review, and audit all netlists and simulation scripts locally, providing maximum confidence in the agent's work.
+## Authority, scope, and judgment
 
----
+- Treat [`mcp_tools_spec.md`](mcp_tools_spec.md) and the live MCP tool schema as the interface contract. If they disagree, use the live schema and report the documentation drift only when reporting is authorized.
+- `MCP` is the default library for generated cellviews, testbenches, and layouts. A user-supplied library is an explicit override.
+- Do not invent tool actions, host tools, PDK APIs, file paths, model files, or simulation results. Inspect or ask for the missing fact.
+- Use confirmation when a material design choice is unspecified, an operation overwrites an existing artifact, a modal GUI action needs human input, or the user has asked to review before execution. Do not introduce confirmation gates for an already-specified and authorized task.
+- Use reasoning where it adds value: derive initial sizing, choose analyses and measurements, inspect diagnostics, and revise the design based on evidence. Do not substitute generic templates for electrical reasoning.
 
-## 🤖 MANDATORY_AGENT_PRE_TASK_HOOKS (Machine Directives)
+## Non-negotiable correctness constraints
 
-> **STRICT AGENT INSTRUCTION**: Before invoking any MCP tool or generating code for the tasks below, the AI Agent MUST execute `view_file` on the linked specification file to load domain constraints into active memory.
+1. **Session ownership** — Use `virtuoso(action="run_terminal_command")` for Virtuoso-shell commands and `eldo(action="run_terminal_command")` for Eldo-shell commands. Use `remote_control` only for its own remote-shell/read/write operations; its environment is separate.
+2. **Remote artifacts** — Do not create remote files through shell redirection or shell file-creation commands. For reviewable simulation decks and downloaded artifacts, use WorkBoard. `remote_control(action="write_file")` is permitted only when the task explicitly requires direct remote file I/O and WorkBoard is unsuitable.
+3. **Schematic validity** — Logical net membership alone is insufficient for this PDK. Create physical schematic wires that touch the intended instance and pin terminals, then inspect `schCheck` output. Do not claim a clean schematic unless the observed result is `(0 0)`.
+4. **MOS lifecycle and units** — For `cmos065` MOS instances, initialize CDF through `initMosTransistor(inst wMicrons lMicrons)` (or the documented DK lifecycle). Pass width and length as micron strings, for example `"2.0"` and `"0.065"`.
+5. **GUI lifecycle** — In `assisted_run`, guard display with `unless(geGetCellViewWindow(cv) geOpen(...))`; do not `dbClose(cv)` when leaving that view displayed. In a headless standalone flow, close database views after saving.
+6. **Netlisting** — Never use the obsolete `hnlInit` / `hnlNetlist` template. Export the structural netlist from the Virtuoso schematic using a verified CDL exporter; see [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md). A simulation deck may be authored locally, but it must include the exported structural netlist rather than duplicating transistor connectivity by hand.
+7. **Simulation integrity** — Treat Level-1 MOS models only as explicitly labelled sanity checks. Include server process corner decks at `/modelfile_65nm/` (e.g. `.include "/modelfile_65nm/typNtypP.cir"`, `minNminP.cir`, `maxNmaxP.cir`) for PDK-accurate simulation results.
+8. **SKILL file output** — Before closing an `outfile` stream, call `drain(fileId)`.
+9. **Side effects** — Creating GitHub issues is external and persistent. Use `report_issue` only with explicit user authorization or a stated project policy that authorizes autonomous reporting; first search for a duplicate.
 
-| Action Trigger / Task Intent | Mandatory Target Spec File | Required Pre-Execution Context Inspection |
-| :--- | :--- | :--- |
-| **Schematic Design Workflow** / Creating Analog Schematics | [`context/designer/schematic_flow.md`](schematic_flow.md) | 5-Step sequential procedure: ASCII schematic preview $\rightarrow$ `ask_question` user confirmation $\rightarrow$ Virtuoso SKILL creation & `geOpen` window display $\rightarrow$ `ask_question` for Eldo simulation. |
-| **`virtuoso(...)`** / SKILL Code / Schematic Generation | [`context/designer/virtuoso_skill_guide.md`](virtuoso_skill_guide.md) | PDK cell names (`cmos065`), pin types (`ipin`/`opin`/`iopin`), zero `schCheck` warnings policy, GUI `geOpen` window display. |
-| **`eldo(...)`** / SPICE Netlists / Simulations | [`context/designer/eldo_simulation_guide.md`](eldo_simulation_guide.md) | Line 1 title comment rule, Level-1 fallback models, REPL commands (`run`/`step`), `.extract` result parsing. |
-| **Waveform Visualization** / Plotting SPICE Waveforms | [`context/designer/eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms`](eldo_simulation_guide.md#6-waveform-visualization-visualize_waveforms) | `eldo(action="visualize_waveforms")` signal grouping rules, separating currents from logic voltages, and multi-window invocations. |
-| **`workboard(...)`** / Workspace Synchronization | [`context/designer/workboard_sync_guide.md`](workboard_sync_guide.md) | Git baseline commit tracking ($C_{\text{sync}}$), line-by-line unified diff advancing, `.workboard.json` schema. |
-| **`report_issue(...)`** / Bug Reports & Feature Requests | [`context/designer/issue_reporting_guide.md`](issue_reporting_guide.md) | Freeform Markdown formatting, bug reproduction templates, enhancement implementation milestone structures. |
-| **Tool Interface Schemas & Action Modes** | [`context/designer/mcp_tools_spec.md`](mcp_tools_spec.md) | TypeScript interface schemas, parameter types, timeouts, action mode invariants for all 5 MCP tools. |
+## Context routing
 
----
+Read the smallest relevant guide before acting. If the host does not provide a tool named `view_file`, read the linked file through its normal filesystem/resource mechanism; absence of that host-specific tool is not a reason to stop.
 
-## Agent Context Index
+| Intent | Read first |
+| --- | --- |
+| Design or edit a schematic | [`schematic_flow.md`](schematic_flow.md), then [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) |
+| Invoke Virtuoso or write SKILL | [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md) |
+| Run Eldo or inspect waveforms | [`eldo_simulation_guide.md`](eldo_simulation_guide.md) |
+| Transfer or version artifacts | [`workboard_sync_guide.md`](workboard_sync_guide.md) |
+| Report a bug or enhancement | [`issue_reporting_guide.md`](issue_reporting_guide.md) |
+| Determine any tool arguments or actions | [`mcp_tools_spec.md`](mcp_tools_spec.md) |
 
-- [`context/designer/schematic_flow.md`](schematic_flow.md): Quick step-by-step procedure for creating analog schematics, ASCII previews, `ask_question` user confirmations, and Virtuoso/Eldo workflows.
-- [`context/designer/mcp_tools_spec.md`](mcp_tools_spec.md): Complete tool interface specification (`remote_control`, `virtuoso`, `eldo`, `workboard`, `report_issue`).
-- [`context/designer/virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK parameters (`cmos065`), SKILL schematic & layout code blocks, GUI `geOpen` window rules.
-- [`context/designer/eldo_simulation_guide.md`](eldo_simulation_guide.md): SPICE netlist syntax, level-1 fallback models, REPL commands, `.extract` parsing.
-- [`context/designer/workboard_sync_guide.md`](workboard_sync_guide.md): Local-remote file sync, Git commit baseline tracking ($C_{\text{sync}}$), and native Git commands.
-- [`context/designer/issue_reporting_guide.md`](issue_reporting_guide.md): Suggested guidelines & rich Markdown formatting examples for bug reports and feature requests.
+## Artifact workflow
+
+1. Determine whether existing artifacts can be reused and whether the user has specified enough design intent.
+2. Build or update the schematic, using physical wires and a clean `schCheck` result as the completion criterion.
+3. Export a structural netlist with the verified Virtuoso CDL flow.
+4. Create the simulation deck locally inside a WorkBoard, inspect it, export it, simulate it, and retrieve the resulting text/binary outputs for analysis.
+5. Report measurements, assumptions, limitations, and any verification evidence. When results contradict intent, diagnose and iterate rather than asserting success.
+
+## Guide index
+
+- [`schematic_flow.md`](schematic_flow.md): judgment-driven design and validation workflow.
+- [`mcp_tools_spec.md`](mcp_tools_spec.md): tool arguments, action modes, defaults, and side effects.
+- [`virtuoso_skill_guide.md`](virtuoso_skill_guide.md): PDK-aware SKILL, wiring, CDF, GUI, and verified netlist export guidance.
+- [`eldo_simulation_guide.md`](eldo_simulation_guide.md): structural-netlist simulation and results handling.
+- [`workboard_sync_guide.md`](workboard_sync_guide.md): local artifact placement and synchronization semantics.
+- [`issue_reporting_guide.md`](issue_reporting_guide.md): authorized, deduplicated issue reporting.
