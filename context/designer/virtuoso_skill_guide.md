@@ -29,11 +29,8 @@ procedure(createPin(cv name dir pt)
 ;; overwrite an existing view. Inspect an existing cell and obtain authorization first.
 cv = dbOpenCellViewByType("MCP" "<newCellName>" "schematic" "schematic" "a")
 
-;; INSTANCE NAMING RULE: Always prefix transistor instance names with 'X' (e.g., "XP1", "XN1", "XM0")
-;; NEVER start instance names with 'M' (e.g., "MP1", "M0") because Cadence auCdl exports them as 'M...',
-;; which causes downstream Eldo simulations to treat them as native SPICE primitives and reject CDF parameters.
-p = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "XP1" list(1.0 1.5) "R0")
-n = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "XN1" list(1.0 0.5) "R0")
+p = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "MP1" list(1.0 1.5) "R0")
+n = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "MN1" list(1.0 0.5) "R0")
 initMosTransistor(p "2.0" "0.065")
 initMosTransistor(n "1.0" "0.065")
 
@@ -50,15 +47,6 @@ dbCreateConnByName(netIn n "g")
 ```
 
 Use CDF callbacks (`initMosTransistor`); do not assign meter-valued raw properties. Build logical nets (`dbCreateConnByName`) and physical wires (`schCreateWire`).
-
-### Transistor Instance Naming Directive (`X*` vs `M*`)
-- **Strict Requirement**: Transistor instance names in Virtuoso schematics **MUST start with `X`** (e.g. `"XP0"`, `"XN0"`, `"XM0"`, `"XM1"`).
-- **Prohibited**: Do NOT name transistor instances starting with `M` (e.g. `"M0"`, `"M1"`, `"MP1"`, `"MN1"`).
-- **Rationale**:
-  - When Cadence `auCdl` exports the schematic to CDL/SPICE netlist, it maintains or prepends `M` to names starting with `M` (`MM0`, `MMP1`).
-  - In SPICE syntax, any line starting with `M` is parsed by Eldo as a built-in primitive MOSFET evaluated against `.MODEL`. Eldo primitives strictly reject Cadence CDF layout parameters (`nfing`, `sense`, `ngcon`, `accurateFlow`), throwing `ERROR 254: Unknown parameter NFING`.
-  - When named with `X`, Cadence exports them starting with `X` (`XM0`, `XP1`), which Eldo parses as subcircuit instantiations (`.SUBCKT`), allowing all PDK parameters to be absorbed cleanly without error.
-
 
 ## Assisted Run SKILL Formatting Guarantee
 

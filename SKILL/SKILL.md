@@ -101,9 +101,8 @@ foreach(shape cv~>shapes dbDeleteObject(shape))
 foreach(net cv~>nets dbDeleteObject(net))
 foreach(term cv~>terminals dbDeleteObject(term))
 
-;; Place Instances (Name with 'X' prefix e.g. "XP0", "XN0" to invoke subcircuit models in Eldo)
-pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "XP0" list(1.0 1.5) "R0")
-nInst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "XN0" list(1.0 0.5) "R0")
+pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "symbol" "MP0" list(1.0 1.5) "R0")
+nInst = dbCreateInstByMasterName(cv "cmos065" "nsvtgp" "symbol" "MN0" list(1.0 0.5) "R0")
 
 ;; Place Pins
 ip  = dbOpenCellViewByType("basic" "ipin" "symbol")

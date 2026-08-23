@@ -8,10 +8,10 @@ Apply these defaults before consulting the detailed guides:
 
 1. Read the live tool schema; do not invent tool actions or parameters.
 2. Inspect an existing cell before editing it; never overwrite a cell without explicit authorization.
-3. For the Eldo wrapper-netlist flow, name MOS instances `X*` (for example `XP0`, `XN0`), never `M*`.
-4. Create both logical net connections and physical schematic wires.
-5. Require an observed `schCheck` result of `(0 0)` before claiming schematic completion.
-6. Export the structural netlist, then verify its output path and subcircuit pin order.
+3. Create both logical net connections and physical schematic wires.
+4. Require an observed `schCheck` result of `(0 0)` before claiming schematic completion.
+5. Export the structural netlist, then verify its output path and subcircuit pin order.
+6. When the Eldo wrapper flow is needed, preserve the original export and create its documented `M`→`X` simulation copy; never encode that transformation into schematic instance names.
 7. Build `tb_<cell>.cir` in WorkBoard, include exactly the selected process corner, and run Eldo from that testbench—not from the structural `.net` file.
 8. Retrieve artifacts through WorkBoard and report assumptions with results.
 9. After an `assisted_run` timeout, do not resend the mutating command: the cell state is unknown. Recover, inspect, and continue from observed state.
