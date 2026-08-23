@@ -3,10 +3,12 @@
 ## 1. SPICE Netlist Syntax & Core Invariants
 
 - **Rule 1 (Title Line)**: Line 1 of every `.cir` simulation deck is strictly treated as a title comment line. Always start line 1 with a descriptive comment (e.g. `* Inverter Transient Simulation Deck`).
-- **Rule 2 (Model Fidelity & Subcircuit Wrapper Architecture)**:
-  Cadence Virtuoso CDL (`auCdl`) netlists export transistor instances with PDK-specific CDF physical parameters (`nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0`) and unit-less dimensions (`w=2.0 l=0.065`).
-  - **Primitive `.MODEL` Limitation**: Native SPICE MOSFET primitives (`M...`) evaluated against `.MODEL ... NMOS/PMOS` strictly reject extra CDF parameters (`ERROR 254: Unknown parameter NFING`).
-  - **Subcircuit Wrapper Solution**: Transistors instantiated with `X...` (or `XM...`) in the netlist are treated as subcircuit calls. By defining `.SUBCKT` wrappers in the testbench (or including PDK corner files), all Cadence CDF parameters are absorbed cleanly without error and scaled to microns (`W='w*1u' L='l*1u'`).
+- **Rule 2 (Model Fidelity & Wrapper Architecture)**:
+  Cadence Virtuoso CDL (`auCdl`) netlists can export PDK-specific CDF parameters (`nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0`) and unit-less dimensions (`w=2.0 l=0.065`). Native SPICE MOS primitives (`M...`) can reject these extra parameters.
+  - An `X...` instance needs a compatible `.SUBCKT` definition to absorb those parameters.
+  - A process-corner include alone does **not** create that wrapper or make an arbitrary Level-1 model PDK-accurate.
+  - For PDK-corner simulation, inspect the selected corner deck and use its verified wrapper/model interface. Do not define a same-named wrapper until you know that it does not collide with a deck-defined model or subcircuit.
+  - The wrapper below is a **Level-1 syntax smoke-test example only**. It validates parsing and connectivity; it is not suitable for sizing, corner comparison, or signoff.
   ```spice
   * Standard 65nm Subcircuit Wrappers for Eldo (absorbing Cadence CDF parameters)
   .SUBCKT psvtgp d g s b w=2.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0
@@ -20,7 +22,7 @@
   .MODEL psvtgp_core PMOS (LEVEL=1 VTO=-0.36 KP=50u TOX=1.85n)
   .MODEL nsvtgp_core NMOS (LEVEL=1 VTO=0.38 KP=150u TOX=1.85n)
   ```
-  *(For low-power LP devices, declare `.SUBCKT psvtlp` and `.SUBCKT nsvtlp` identically).*
+  Do not extrapolate this wrapper to LP or other device variants: inspect the selected PDK deck for the correct names and parameters.
 - **Rule 3 (Immutable Netlist Principle)**:
   **NEVER manually edit or sanitize the structural netlist (`<cellName>.net`) exported from Virtuoso.**
   The structural netlist is immutable. All parameter handling, unit scaling, and PDK subcircuit definitions must reside in the **simulation configuration deck (`<cellName>.cir`)** or model include files.
@@ -35,6 +37,7 @@
   - **FS (Fast NMOS, Slow PMOS)**: `.include "/modelfile_65nm/maxNminP.cir"`
   - **SF (Slow NMOS, Fast PMOS)**: `.include "/modelfile_65nm/minNmaxP.cir"`
   - **Auxiliary Decks**: `/modelfile_65nm/diode_typ.cir` (diode typical), `/modelfile_65nm/diode_fast.cir`, `/modelfile_65nm/diode_slow.cir`, `/modelfile_65nm/resistor.cir` (resistors), `/modelfile_65nm/no_mismatch.cir` (no mismatch).
+  Select exactly one transistor process corner for a simulation unless the experiment explicitly requires multiple corners. Including a corner file is necessary but not sufficient: verify its device interface before calling the result PDK-accurate.
 
 ---
 
@@ -86,16 +89,14 @@ XM1 OUT IN VSS VSS nsvtgp w=1.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1
 .ENDS
 ```
 
-### Sample B: Transient Simulation Configuration Deck (`tb_inverter_tran.cir`)
+### Sample B: Level-1 Syntax Smoke-Test Deck (`tb_inverter_smoke.cir`)
 ```spice
-* Inverter Transient Simulation Deck
+* Inverter syntax smoke test — NOT PDK-accurate
 .OPTION POST=1
 .OPTION ASCII=1
 .OPTION SPI3ASC=1
 
-* 1. PDK Process Corner Deck & Subcircuit Wrappers
-.INCLUDE "/modelfile_65nm/typNtypP.cir"
-
+* 1. Approximate wrappers; do not combine with a same-named PDK wrapper/model.
 .SUBCKT psvtgp d g s b w=2.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1 accurateFlow=0
 M0 d g s b psvtgp_core W='w*1u' L='l*1u' M='m'
 .ENDS
@@ -129,7 +130,26 @@ CL   OUT 0 10fF
 .END
 ```
 
-For VTC, create a separate `tb_inverter_vtc.cir` with the same model, wrapper, include, and supply sections, then replace the pulse source and transient analysis with:
+### PDK-Corner Deck Template (`tb_inverter_tt.cir`)
+
+Use this structure only after inspecting the selected corner deck and identifying its compatible device wrapper/model interface. `<verified-pdk-wrapper-or-model-include>` is intentionally a placeholder; do not replace it with the Level-1 definitions above.
+
+```spice
+* Inverter TT-corner deck — complete only after verifying PDK device interface
+.INCLUDE "/modelfile_65nm/typNtypP.cir"
+.INCLUDE "<verified-pdk-wrapper-or-model-include>"
+.INCLUDE "inverter.net"
+X1 IN OUT VDD VSS inverter
+VVDD VDD 0 DC 1.2
+VVSS VSS 0 DC 0
+VIN IN 0 PULSE(0 1.2 0.5n 0.05n 0.05n 1n 2n)
+CL OUT 0 10f
+.TRAN 0.005n 4n
+.PRINT TRAN V(IN) V(OUT)
+.END
+```
+
+For VTC, create a separate `tb_inverter_vtc.cir` with the same **verified** model/wrapper, structural-netlist, and supply sections. Replace the input and the complete transient analysis/output block with:
 
 ```spice
 VIN IN 0 DC 0
@@ -143,7 +163,7 @@ Use broad probes such as `.PROBE V(*)`, `.PROBE V(X1.*)`, or `.PROBE I(*)` only 
 ```text
   Run on edatools-server2.iiitd.edu.in (Linux 2.6.32-754.35.1.el6.x86_64)
 
-/mentor/AMS/aol/bin/eldo_64.exe -i tb_inverter.cir 
+/mentor/AMS/aol/bin/eldo_64.exe -i tb_inverter_smoke.cir
 
 ***** PRE-PROCESSING ...
 ***** ANALYSIS ....
@@ -159,7 +179,7 @@ Memory space allocated (MB):    242
 3 input signals
 
 Eldo VERSION : ELDO 12.2 (64 bits)
-*** TITLE: * Inverter Transient Simulation Deck
+*** TITLE: * Inverter syntax smoke test — NOT PDK-accurate
 TEMPERATURE : 27.000000 degrees C
 
 Performing DC analysis...
@@ -176,7 +196,7 @@ nb of nodes: 4
 Number of steps computed: 74
 
 ***> CPU TIME 0s 020ms <***
-***> MESSAGE SUMMARY: 0 errors, 3 warnings
+***> MESSAGE SUMMARY: 0 errors, 0 warnings
 ***> GLOBAL ELAPSED TIME 2s <***
 ```
 
@@ -195,7 +215,7 @@ Number of steps computed: 74
     "tool": "eldo",
     "arguments": {
       "action": "run_script",
-      "command": "tb_inverter_tran.cir",
+      "command": "tb_inverter_smoke.cir",
       "work_dir": "~/Desktop/eldo"
     }
   }
