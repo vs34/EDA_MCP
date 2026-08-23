@@ -115,7 +115,7 @@ X1 IN OUT VDD VSS inverter
 
 * 4. Power Supplies & Input Stimulus
 VVDD VDD 0 DC 1.2
-VVSS GND 0 DC 0.0
+VVSS VSS 0 DC 0.0
 VIN  IN  0 PULSE(0.0 1.2 0.5n 0.05n 0.05n 1.0n 2.0n)
 CL   OUT 0 10fF
 
