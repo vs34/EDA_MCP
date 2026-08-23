@@ -7,6 +7,8 @@ description: Best practices, workflow patterns, and SKILL automation guidelines 
 
 This skill provides operational patterns, conventions, and SKILL code templates for interacting with Cadence Virtuoso using the `eda-mcp` MCP server.
 
+> **Precedence:** [`context/designer/README.md`](../context/designer/README.md) is the concise execution contract and its linked designer guides are authoritative for the assisted Virtuoso-to-Eldo workflow. Use this file as supplemental implementation reference. If guidance differs, follow the designer context and live MCP schema.
+
 ---
 
 ## 1. Core Operating Guidelines
@@ -88,12 +90,12 @@ This skill provides operational patterns, conventions, and SKILL code templates 
 ## 3. SKILL Automation Guidelines
 
 ### A. Schematic Creation Pattern
-Always open schematic cellviews in append (`"a"`) or write (`"w"`) mode, place instances, create pins, connect nets, extract/check, and save.
+Use a unique new cell name for a new design. Inspect existing cellviews before editing them and never use write mode (`"w"`) or destructive clearing without explicit authorization.
 
 ```lisp
 cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "a")
 
-;; Clear existing objects if starting fresh
+;; Only clear existing objects after explicit authorization to replace this cellview.
 foreach(inst cv~>instances dbDeleteObject(inst))
 foreach(shape cv~>shapes dbDeleteObject(shape))
 foreach(net cv~>nets dbDeleteObject(net))
@@ -136,7 +138,8 @@ dbSave(cv)
 - Add layout pins using `dbCreatePin(net pinShape pinName)` and matching `dbCreateLabel`.
 
 ```lisp
-cv = dbOpenCellViewByType("MCP" "<cellName>" "layout" "maskLayout" "w")
+;; Use a unique layout name; obtain authorization before replacing an existing view.
+cv = dbOpenCellViewByType("MCP" "<newCellName>" "layout" "maskLayout" "a")
 
 ;; Place layout instances
 pInst = dbCreateInstByMasterName(cv "cmos065" "psvtgp" "layout" "I0" list(0.0 3.0) "R0")
@@ -198,4 +201,3 @@ The `workboard` tool manages isolated local Git repositories (`./workboard/<name
     - `git show <commit_sha>:<local_path>`: View exact file content at a past sync baseline.
     - `git checkout <commit_sha> -- <local_path>`: Roll back a file to any past verified sync commit.
     - `git diff <commit_sha_1> <commit_sha_2> -- <local_path>`: Compare changes across historical sync baselines.
-

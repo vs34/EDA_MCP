@@ -25,7 +25,9 @@ procedure(createPin(cv name dir pt)
 )
 
 ;; 2. Standard Cellview Construction
-cv = dbOpenCellViewByType("MCP" "<cellName>" "schematic" "schematic" "w")
+;; Use a new, unique cell name. Do not use mode "w" as a generic default: it can
+;; overwrite an existing view. Inspect an existing cell and obtain authorization first.
+cv = dbOpenCellViewByType("MCP" "<newCellName>" "schematic" "schematic" "a")
 
 ;; INSTANCE NAMING RULE: Always prefix transistor instance names with 'X' (e.g., "XP1", "XN1", "XM0")
 ;; NEVER start instance names with 'M' (e.g., "MP1", "M0") because Cadence auCdl exports them as 'M...',
@@ -60,7 +62,7 @@ Use CDF callbacks (`initMosTransistor`); do not assign meter-valued raw properti
 
 ## Assisted Run SKILL Formatting Guarantee
 
-The MCP server automatically strips comments (`;...`) and normalizes newlines before sending commands to Virtuoso. Agents can safely write formatted, multi-line SKILL blocks directly in `virtuoso(action="assisted_run", command="...")`. Do **NOT** write temporary `.il` files to disk.
+The MCP server removes `;;` SKILL comments and normalizes newlines before sending commands to Virtuoso. Use `;;` comments only; do not rely on a single `;` comment being removed. Agents can write formatted, multi-line SKILL blocks directly in `virtuoso(action="assisted_run", command="...")`. Do **NOT** write temporary `.il` files to disk.
 
 ## Physical wiring and validation
 
@@ -107,7 +109,7 @@ prog(()
   transCdlOutForm->cdlOTopCell->value = "<cellName>"
   transCdlOutForm->cdlOViewName->value = "schematic"
   transCdlOutForm->cdlONetlistFile->value = "<cellName>.net"
-  transCdlOutForm->cdlORunDir->value = "/home/vaibhav22555/Desktop/eldo"
+  transCdlOutForm->cdlORunDir->value = "<ELDO_WORKDIR>"
   hiFormDone(transCdlOutForm)
   when(boundp('simSaveAllForm) && hiIsFormDisplayed(simSaveAllForm) hiFormDone(simSaveAllForm))
   when(boundp('simNetNoOp6) hiDBoxOK(simNetNoOp6))
@@ -115,8 +117,10 @@ prog(()
 )
 ```
 
+After export, verify that `<ELDO_WORKDIR>/<cellName>.net` exists and inspect its `.SUBCKT` pin order before building a testbench. The form names in the example are environment-specific recovery details, not commands to invoke blindly.
+
 ### Alternative Batch Flow: Cadence `si.env` Netlister
-If running non-interactively or headless:
+Use this fallback only when a headless workflow is required and the GUI form flow is unavailable:
 1. Write `si.env` in Virtuoso workspace (`~/Desktop/cmos65/si.env`):
    ```lisp
    let((fp)
@@ -134,9 +138,8 @@ If running non-interactively or headless:
      drain(fp) close(fp)
    )
    ```
-2. Execute via `virtuoso(action="run_terminal_command")`:
-   `si . -batch -command netlist && cp <cellName>.net ~/Desktop/eldo/`
+2. Execute via `virtuoso(action="run_terminal_command")` and copy the result to `<ELDO_WORKDIR>`.
 
 ## Error handling
 
-Keep `assisted_run` commands focused. If a call times out, inspect its returned diagnostics and GUI state; a modal dialog (`simSaveAllForm`, `simNetNoOp6`, `schCheck` dialog) may need programmatic dismissal via `hiFormDone(...)` or `hiDBoxOK(...)`.
+Keep `assisted_run` commands focused and require a returned `RESULT:` marker after each mutating phase: open/create, placement, wiring, validation, and save/display. If a call times out, the database state is unknown: do **not** resend the mutating command. Inspect the GUI/cellview, dismiss any modal dialog, run a tiny read-only `printf` health probe, then continue from the observed state. `simSaveAllForm` and `simNetNoOp6` are environment-specific examples; use `hiFormDone(...)` or `hiDBoxOK(...)` only after confirming that form/dialog is present.

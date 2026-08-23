@@ -2,6 +2,20 @@
 
 This is an operational specification for an AI agent that designs, inspects, and simulates circuits through EDA-MCP. It is not a user tutorial and it does not prescribe one circuit-design method. Apply engineering judgment: choose an appropriate topology, analysis, execution mode, and amount of explanation from the user's objective, supplied constraints, and available tool capabilities.
 
+## Fast-agent execution contract
+
+Apply these defaults before consulting the detailed guides:
+
+1. Read the live tool schema; do not invent tool actions or parameters.
+2. Inspect an existing cell before editing it; never overwrite a cell without explicit authorization.
+3. For the Eldo wrapper-netlist flow, name MOS instances `X*` (for example `XP0`, `XN0`), never `M*`.
+4. Create both logical net connections and physical schematic wires.
+5. Require an observed `schCheck` result of `(0 0)` before claiming schematic completion.
+6. Export the structural netlist, then verify its output path and subcircuit pin order.
+7. Build `tb_<cell>.cir` in WorkBoard, include exactly the selected process corner, and run Eldo from that testbench—not from the structural `.net` file.
+8. Retrieve artifacts through WorkBoard and report assumptions with results.
+9. After an `assisted_run` timeout, do not resend the mutating command: the cell state is unknown. Recover, inspect, and continue from observed state.
+
 ## Authority, scope, and judgment
 
 - Treat [`mcp_tools_spec.md`](mcp_tools_spec.md) and the live MCP tool schema as the interface contract. If they disagree, use the live schema and report the documentation drift only when reporting is authorized.

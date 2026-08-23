@@ -48,7 +48,7 @@ type VirtuosoArgs = {
 - `start_standalone`: Launches non-graphical Virtuoso REPL (`virtuoso -nograph`).
 - `standalone`: Sends SKILL statement to active `virtuoso -nograph` REPL stream.
 - `stop_standalone`: Sends `exit()` to non-graphical REPL and closes session.
-- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Formatting Guarantee**: The MCP server automatically strips comments (`;...`) and collapses newlines before piping to Virtuoso; standard multi-line SKILL blocks are supported natively. Do NOT write temporary `.il` files to disk. **GUI Window Display**: When asked to build or open a schematic/layout view in Virtuoso, use `geOpen(?lib ... ?cell ... ?view ...)` to display the window in the live Virtuoso GUI (do NOT call `dbClose(cv)`). **GUI Popups**: Modal popups can be dismissed programmatically (e.g., `hiFormDone(simSaveAllForm)`, `hiDBoxOK(simNetNoOp6)`).
+- `assisted_run`: Sends SKILL code to GUI Virtuoso via FIFO pipe (`MCP.command`) and polls `mcp_output.txt`. **Formatting Guarantee**: The server removes `;;` comments and normalizes newlines; use `;;` comments only. Do NOT write temporary `.il` files to disk. **GUI Window Display**: When asked to build or open a schematic/layout view, use guarded `geOpen(...)` and do not call `dbClose(cv)`. **Timeout Recovery**: A timeout leaves mutation state unknown; do not resend a mutating command. Inspect the cell/GUI and regain a `RESULT:` response with a read-only probe. **GUI Popups**: Form-dismissal calls are environment-specific and must only be used after confirming the form/dialog is present.
 - `run_terminal_command`: Executes shell command in Virtuoso terminal environment.
 
 ---

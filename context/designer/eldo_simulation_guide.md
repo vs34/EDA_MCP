@@ -25,7 +25,7 @@
   **NEVER manually edit or sanitize the structural netlist (`<cellName>.net`) exported from Virtuoso.**
   The structural netlist is immutable. All parameter handling, unit scaling, and PDK subcircuit definitions must reside in the **simulation configuration deck (`<cellName>.cir`)** or model include files.
 - **Rule 4 (Instance Prefix Hierarchy)**:
-  - `X...`: Subcircuit instantiation (used in testbenches to instantiate circuit cells, e.g. `X1 IN OUT VDD GND inverter`, and for subcircuit transistors `XM0`, `XM1`).
+  - `X...`: Subcircuit instantiation (used in testbenches to instantiate circuit cells, e.g. `X1 IN OUT VDD VSS inverter`, and for subcircuit transistors `XM0`, `XM1`).
   - `M...`: Built-in native SPICE primitive transistor.
 - **Rule 5 (PDK Process Corner Decks at `/modelfile_65nm/`)**:
   Process corner decks for 65nm simulations reside on the remote server at `/modelfile_65nm/`. Agents should include the required corner file using `.INCLUDE "/modelfile_65nm/<corner_file>.cir"`:
@@ -86,9 +86,9 @@ XM1 OUT IN VSS VSS nsvtgp w=1.0 l=0.065 nfing=1 sense=0 ngcon=1 m=1
 .ENDS
 ```
 
-### Sample B: Complete Simulation Configuration Deck (`tb_inverter.cir`)
+### Sample B: Transient Simulation Configuration Deck (`tb_inverter_tran.cir`)
 ```spice
-* Inverter Transient and VTC Simulation Deck
+* Inverter Transient Simulation Deck
 .OPTION POST=1
 .OPTION ASCII=1
 .OPTION SPI3ASC=1
@@ -111,7 +111,7 @@ M0 d g s b nsvtgp_core W='w*1u' L='l*1u' M='m'
 .INCLUDE "inverter.net"
 
 * 3. Instantiate Subcircuit under Test (X1)
-X1 IN OUT VDD GND inverter
+X1 IN OUT VDD VSS inverter
 
 * 4. Power Supplies & Input Stimulus
 VVDD VDD 0 DC 1.2
@@ -122,14 +122,22 @@ CL   OUT 0 10fF
 * 5. Simulation Analysis
 .TRAN 0.005n 4.0n
 
-* 6. Signal Output Probes
+* 6. Minimal Signal Output Probes
 .PRINT TRAN V(IN) V(OUT)
 .PLOT TRAN V(IN) V(OUT)
 .PROBE TRAN V(IN) V(OUT)
-.PROBE V(*) V(X1.*)
-.PROBE I(*)
 .END
 ```
+
+For VTC, create a separate `tb_inverter_vtc.cir` with the same model, wrapper, include, and supply sections, then replace the pulse source and transient analysis with:
+
+```spice
+VIN IN 0 DC 0
+.DC VIN 0 1.2 0.01
+.PRINT DC V(IN) V(OUT)
+```
+
+Use broad probes such as `.PROBE V(*)`, `.PROBE V(X1.*)`, or `.PROBE I(*)` only for a focused debug run: they can create unnecessarily large output files.
 
 ### Sample C: Annotated Eldo Output Listing (`inverter.chi`)
 ```text
@@ -151,7 +159,7 @@ Memory space allocated (MB):    242
 3 input signals
 
 Eldo VERSION : ELDO 12.2 (64 bits)
-*** TITLE: * Inverter Transient and VTC Simulation Deck
+*** TITLE: * Inverter Transient Simulation Deck
 TEMPERATURE : 27.000000 degrees C
 
 Performing DC analysis...
@@ -177,7 +185,7 @@ Number of steps computed: 74
 ## 4. Execution Modes
 
 ### Mode 1: Interactive REPL Simulation (`start_interactive` & `run_interactive`)
-- Uses the exported `<cellName>.net` structural netlist file.
+- Starts from the completed `tb_<cell>.cir` testbench, which includes the exported `<cellName>.net` structural netlist.
 - The agent sends interactive commands directly into the REPL terminal (`run`, `step`, parameter sweeps, print commands) to observe real-time simulation output.
 
 ### Mode 2: Batch Script Simulation (`run_script` / `run_terminal_command`)
@@ -187,7 +195,7 @@ Number of steps computed: 74
     "tool": "eldo",
     "arguments": {
       "action": "run_script",
-      "command": "tb_inverter.cir",
+      "command": "tb_inverter_tran.cir",
       "work_dir": "~/Desktop/eldo"
     }
   }
@@ -213,7 +221,7 @@ To render simulation results in an interactive oscilloscope window for the user,
   "tool": "eldo",
   "arguments": {
     "action": "visualize_waveforms",
-    "file_path": "/Users/vs/function/EDA_MCP/workboard/inverter_tc/inverter_tran.spi3",
+    "file_path": "<workboard-root>/inverter_tran.spi3",
     "layout": [
       {
         "pane_title": "Logic Waveforms",
@@ -224,3 +232,4 @@ To render simulation results in an interactive oscilloscope window for the user,
 }
 ```
 
+Replace `<workboard-root>` with the local path returned by the WorkBoard operation; never copy a path from another agent host.
