@@ -12,6 +12,14 @@
 
 ---
 
+## 📹 Demo Video
+
+<video src="doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
+
+*(Video source: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4))*
+
+---
+
 ## 🏛️ Architecture: Local Control Plane + Remote Execution Engine
 
 ```
@@ -27,6 +35,7 @@
 ```
 
 ---
+
 
 ## 🚀 Key Features & Tools
 

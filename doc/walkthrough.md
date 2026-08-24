@@ -4,6 +4,14 @@ We have implemented a highly modular, state-isolated, and scalable architecture 
 
 ---
 
+## 📹 Demo Video
+
+<video src="media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
+
+> *Local video path: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4)*
+
+---
+
 ## 🏗️ Modular Architecture Overview
 
 ```
@@ -64,3 +72,4 @@ And registers three unified `@mcp.tool()` definitions:
 
 ## Verification
 - `python3 -m py_compile server.py ssh_client.py virtuoso_client.py eldo_client.py tests/test_eldo.py` executed cleanly with **0 syntax errors**.
+
