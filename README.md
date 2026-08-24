@@ -14,9 +14,11 @@
 
 ## 📹 Demo Video
 
+[![EDA_MCP Demo Video](doc/media/demo.gif)](doc/media/My%20Movie.mp4)
+
 <video src="doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
-*(Video source: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4))*
+*(Click image above to watch or download full 2-minute MP4 video: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4))*
 
 ---
 

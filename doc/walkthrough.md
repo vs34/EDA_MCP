@@ -6,6 +6,8 @@ We have implemented a highly modular, state-isolated, and scalable architecture 
 
 ## 📹 Demo Video
 
+[![EDA_MCP Demo Video](media/demo.gif)](media/My%20Movie.mp4)
+
 <video src="media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
 > *Local video path: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4)*
