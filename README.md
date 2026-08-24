@@ -14,11 +14,9 @@
 
 ## 📹 Demo Video
 
-<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
+<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/small_demo_720p.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
-[![EDA_MCP Demo Video](doc/media/demo.gif)](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4)
-
-*(Full 2-minute MP4 video: [`doc/media/My Movie.mp4`](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4))*
+*(Demo video file: [`doc/media/small_demo_720p.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/small_demo_720p.mp4))*
 
 ---
 
