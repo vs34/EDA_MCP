@@ -36,17 +36,18 @@ Choose the smallest circuit and simulation set that can answer the user’s ques
    Treat this table as PDK-version and orientation-specific. For another orientation, master, or PDK release, inspect the actual terminal geometry rather than extrapolating offsets. Pin connection points created with `schCreatePin(... list(x y) "R0")` are `(x, y)`.
 6. Avoid four-way wire crossings. Route branches as staggered three-way T-junctions so `schCheck` does not create crossover/solder-dot warnings.
 
-## 4. Validate and display
+## 4. Open Window First, Construct Live, and Validate
 
-- Run `schCheck(cv)`, inspect its returned log, correct every warning and error, and rerun until the observed result is `(0 0)`.
-- Only then `dbSave(cv)`.
-- In assisted mode, display without duplicate windows:
+- In assisted GUI mode, **ALWAYS open the Virtuoso schematic window FIRST** so all operations occur live in the visible window:
 
   ```lisp
-  unless(geGetCellViewWindow(cv)
-    geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
-  )
+  win = geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+  cv = geGetWindowCellView(win)
   ```
+
+- Perform all schematic construction (placing instances, drawing physical wires, creating pins, initializing CDF parameters) directly on `cv` while visible in the open window.
+- Run `schCheck(cv)`, inspect its returned log, correct every warning and error, and rerun until the observed result is `(0 0)`.
+- Save the design with `dbSave(cv)`. Do not close the window (`dbClose(cv)`).
 
 - If a modal GUI dialog blocks the assisted session, tell the user exactly what needs attention. Do not assume a timeout means the design failed.
 

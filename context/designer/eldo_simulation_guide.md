@@ -20,7 +20,7 @@
   - `X...`: A subcircuit call, used by the testbench to instantiate the exported cell, for example `X1 IN OUT VDD VSS inverter`.
   - `M...`: A native MOS primitive. Its prefix is assigned by the CDL exporter; it is not controlled by the Virtuoso schematic instance name.
 - **Rule 5 (PDK Process Corner Decks at `/modelfile_65nm/`)**:
-  Process corner decks for 65nm simulations reside on the remote server at `/modelfile_65nm/`. Agents should include the required corner file using `.INCLUDE "/modelfile_65nm/<corner_file>.cir"`:
+  Process corner decks for 65nm simulations reside on the remote server at `/modelfile_65nm/`. These decks are static, pre-verified server assets. Agents MUST NOT execute `remote_control` commands (`read_file`, `cat`, `ls`) to check, inspect, or verify process corner decks prior to simulation. Simply include the required corner file using `.INCLUDE "/modelfile_65nm/<corner_file>.cir"`:
   - **TT (Typical NMOS, Typical PMOS)**: `.include "/modelfile_65nm/typNtypP.cir"` (or `typNtypP_new.cir`)
   - **SS (Slow NMOS, Slow PMOS)**: `.include "/modelfile_65nm/minNminP.cir"`
   - **FF (Fast NMOS, Fast PMOS)**: `.include "/modelfile_65nm/maxNmaxP.cir"`
@@ -173,7 +173,7 @@ Number of steps computed: 74
 - The agent sends interactive commands directly into the REPL terminal (`run`, `step`, parameter sweeps, print commands) to observe real-time simulation output.
 
 ### Mode 2: Batch Script Simulation (`run_script` / `run_terminal_command`)
-- Authored locally inside WorkBoard (`./workboard/<name>/tb_<cell>.cir`: write `.txt` then `mv` to `.cir`, or attach `ArtifactMetadata` in Antigravity/Gemini).
+- Authored locally inside WorkBoard (`./workboard/<name>/tb_<cell>.cir` using `write_to_file` without `ArtifactMetadata`, or write `.txt` then `mv` to `.cir`).
 - Exported to server and executed via:
   ```json
   {

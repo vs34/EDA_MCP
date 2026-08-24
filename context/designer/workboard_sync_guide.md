@@ -9,8 +9,8 @@
 
 ### Local Deck Authoring Protocol
 To write `./workboard/<name>/tb_<cell>.cir`:
-- Write `./workboard/<name>/tb_<cell>.txt` then run `mv ./workboard/<name>/tb_<cell>.txt ./workboard/<name>/tb_<cell>.cir`.
-- [Antigravity/Gemini Only]: `write_to_file` fallback requires `ArtifactMetadata: { "Summary": "Eldo deck", "UserFacing": false, "RequestFeedback": false }`.
+- Use `write_to_file` WITHOUT `ArtifactMetadata` (ArtifactMetadata is strictly for artifact directory files; passing it for workspace files causes validation errors).
+- Alternatively, write `./workboard/<name>/tb_<cell>.txt` then run `mv ./workboard/<name>/tb_<cell>.txt ./workboard/<name>/tb_<cell>.cir`.
 - Export: `workboard(action="export", workboard_name="<name>", local_path="tb_<cell>.cir", remote_path="~/Desktop/eldo/tb_<cell>.cir")`.
 
 Example lifecycle:

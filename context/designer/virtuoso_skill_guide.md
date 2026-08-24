@@ -69,17 +69,22 @@ The MCP server removes `;;` SKILL comments and normalizes newlines before sendin
 
 ## GUI and headless ownership
 
-For an assisted GUI operation, save and retain the database object while opening the view:
+For an assisted GUI operation, **ALWAYS open the Virtuoso schematic window FIRST** so that schematic creation and modifications occur live in the visible window:
 
 ```lisp
+;; 1. Open GUI window first
+win = geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
+cv = geGetWindowCellView(win)
+
+;; 2. Place instances, draw wires, create pins, and initialize CDF live in cv
+...
+
+;; 3. Check and save
 schCheck(cv)
 dbSave(cv)
-unless(geGetCellViewWindow(cv)
-  geOpen(?lib "MCP" ?cell "<cellName>" ?view "schematic" ?viewType "schematic" ?mode "a")
-)
 ```
 
-Do not call `dbClose(cv)` in that path. In a standalone/headless flow, save and close the view when its work is complete.
+Do not call `dbClose(cv)` when leaving that view displayed in the GUI window. In a standalone/headless flow, save and close the view when its work is complete.
 
 ## Structural netlist export
 

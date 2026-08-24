@@ -51,10 +51,11 @@ TASK INTENT CLASSIFICATION                  MANDATORY SPECIFICATION TO READ (vie
 3. `CDF_UNITS`: CDF fields `w` and `l` MUST receive string values in **Microns ($\mu\text{m}$)** (e.g., `"2.0"`, `"0.065"`). Never assign raw float meters (`2.0u`).
 4. `CDF_LIFECYCLE`: Transistors MUST be initialized via `initMosTransistor(inst, wMicrons, lMicrons)` or `DK_mosInit` $\rightarrow$ `DK_CBmos('w)` $\rightarrow$ `DK_CBmos('l)` $\rightarrow$ `DK_mosDone(inst)`.
 5. `SCH_CHECK`: Zero-tolerance for `schCheck` warnings (`(0 0)` required).
-6. `GUI_OPEN`: Open schematic windows via `unless(geGetCellViewWindow(cv) geOpen(?lib ... ?cell ...))` to prevent duplicate window spawns (`window:3`, `window:4`). DO NOT call `dbClose(cv)` when displaying in GUI.
+6. `GUI_OPEN_FIRST`: In `assisted_run`, ALWAYS open the Virtuoso GUI schematic window FIRST before building/modifying the schematic (`win = geOpen(?lib ... ?cell ... ?mode "a")`, `cv = geGetWindowCellView(win)`). Perform all schematic work (instances, wires, pins, CDF, `schCheck`) live in the open, visible window. DO NOT call `dbClose(cv)` when displaying in GUI.
 7. `FILE_IO`: DO NOT write files directly to the remote server using shell commands (`printf`, `echo`, `cat <<EOF`). Use `remote_control(action="write_file")`, `workboard`, or tool export workflows.
 8. `NETLIST_EXTRACTION`: DO NOT hand-write SPICE transistor netlists for Eldo. Programmatically extract structural netlist `<cellName>.net` from the Virtuoso schematic (`MCP` library) and wrap it using `.include "<cellName>.net"` inside the Eldo simulation config deck (`tb_<cellName>.cir`).
 9. `ELDO_TITLE`: Line 1 of every Eldo `.cir` netlist is strictly treated as a title comment line.
+10. `STATIC_CORNER_DECKS`: Process corner decks at `/modelfile_65nm/` (`typNtypP.cir`, `minNminP.cir`, `maxNmaxP.cir`, `maxNminP.cir`, `minNmaxP.cir`) are static, pre-verified server assets. DO NOT execute `remote_control` commands (`read_file`, `cat`, `ls`) to inspect or verify corner decks prior to simulation.
 
 ---
 
