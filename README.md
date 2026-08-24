@@ -14,11 +14,11 @@
 
 ## 📹 Demo Video
 
-[![EDA_MCP Demo Video](doc/media/demo.gif)](doc/media/My%20Movie.mp4)
+<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
-<video src="doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
+[![EDA_MCP Demo Video](doc/media/demo.gif)](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4)
 
-*(Click image above to watch or download full 2-minute MP4 video: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4))*
+*(Full 2-minute MP4 video: [`doc/media/My Movie.mp4`](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4))*
 
 ---
 

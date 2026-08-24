@@ -6,11 +6,11 @@ We have implemented a highly modular, state-isolated, and scalable architecture 
 
 ## 📹 Demo Video
 
-[![EDA_MCP Demo Video](media/demo.gif)](media/My%20Movie.mp4)
+<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
-<video src="media/My%20Movie.mp4" autoplay loop muted playsinline controls width="100%"></video>
+[![EDA_MCP Demo Video](media/demo.gif)](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4)
 
-> *Local video path: [`doc/media/My Movie.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/My%20Movie.mp4)*
+> *Local video path: [`doc/media/My Movie.mp4`](https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/My%20Movie.mp4)*
 
 ---
 
