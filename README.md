@@ -12,11 +12,10 @@
 
 ---
 
-## 📹 Demo Video
 
-<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/small_demo_720p.mp4" autoplay loop muted playsinline controls width="100%"></video>
 
-*(Demo video file: [`doc/media/small_demo_720p.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/small_demo_720p.mp4))*
+<video src="https://github.com/user-attachments/assets/091cc42f-4188-4e31-8d5c-49ad20e18e45" autoplay loop muted playsinline controls width="100%"></video>
+
 
 ---
 
