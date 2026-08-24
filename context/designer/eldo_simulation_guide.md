@@ -173,7 +173,8 @@ Number of steps computed: 74
 - The agent sends interactive commands directly into the REPL terminal (`run`, `step`, parameter sweeps, print commands) to observe real-time simulation output.
 
 ### Mode 2: Batch Script Simulation (`run_script` / `run_terminal_command`)
-- Authored locally inside WorkBoard, reviewed, exported to server, and executed via:
+- Authored locally inside WorkBoard (`./workboard/<name>/tb_<cell>.cir`: write `.txt` then `mv` to `.cir`, or attach `ArtifactMetadata` in Antigravity/Gemini).
+- Exported to server and executed via:
   ```json
   {
     "tool": "eldo",

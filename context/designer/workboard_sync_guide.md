@@ -7,11 +7,17 @@
 
 `local_path` is relative to the selected WorkBoard root, not an arbitrary workspace path. To create a new simulation deck, first initialize/select a board, then create the file at `./workboard/<workboard_name>/<local_path>` before calling `export`.
 
+### Local Deck Authoring Protocol
+To write `./workboard/<name>/tb_<cell>.cir`:
+- Write `./workboard/<name>/tb_<cell>.txt` then run `mv ./workboard/<name>/tb_<cell>.txt ./workboard/<name>/tb_<cell>.cir`.
+- [Antigravity/Gemini Only]: `write_to_file` fallback requires `ArtifactMetadata: { "Summary": "Eldo deck", "UserFacing": false, "RequestFeedback": false }`.
+- Export: `workboard(action="export", workboard_name="<name>", local_path="tb_<cell>.cir", remote_path="~/Desktop/eldo/tb_<cell>.cir")`.
+
 Example lifecycle:
 
 ```text
 workboard(action="initialize", workboard_name="inverter_sim")
-# create ./workboard/inverter_sim/tb_inverter.cir locally
+# write ./workboard/inverter_sim/tb_inverter.txt -> mv to tb_inverter.cir
 workboard(action="export", workboard_name="inverter_sim",
           local_path="tb_inverter.cir", remote_path="~/Desktop/eldo/tb_inverter.cir")
 ```
