@@ -4,11 +4,17 @@ We have implemented a highly modular, state-isolated, and scalable architecture 
 
 ---
 
-## 📹 Demo Video
+## 📹 Demo Video (MP4 Video Player vs. Animated WebP Comparison)
 
-<video src="https://raw.githubusercontent.com/vs34/EDA_MCP/main/doc/media/small_demo_720p.mp4" autoplay loop muted playsinline controls width="100%"></video>
+### 1. Interactive MP4 Video Player
+<video src="https://github.com/user-attachments/assets/091cc42f-4188-4e31-8d5c-49ad20e18e45" autoplay loop muted playsinline controls width="100%"></video>
 
-> *Local video path: [`doc/media/small_demo_720p.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/small_demo_720p.mp4)*
+*(MP4 Video Source: [`doc/media/demo.mp4`](file:///Users/vs/function/EDA_MCP/doc/media/demo.mp4))*
+
+### 2. TrueColor Animated WebP (Instant Autoplay & Looping Preview)
+![EDA_MCP TrueColor Demo](media/demo.webp)
+
+*(WebP File Source: [`doc/media/demo.webp`](file:///Users/vs/function/EDA_MCP/doc/media/demo.webp))*
 
 ---
 
