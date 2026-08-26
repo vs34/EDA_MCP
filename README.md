@@ -42,7 +42,7 @@ Modern Integrated Circuit (IC) design demands high-performance Linux compute clu
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              LOCAL SYSTEM (Developer / AI Agent)                         │
+│                              LOCAL SYSTEM (Developer / AI Agent)                        │
 │                                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                              EDA_MCP (FastMCP Server)                             │  │
@@ -58,10 +58,10 @@ Modern Integrated Circuit (IC) design demands high-performance Linux compute clu
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                              REMOTE EDA LINUX SERVER / CLUSTER                          │
 │                                                                                         │
-│  ┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐ ┌──────────────┐ │
-│  │  Git Workspace /   │ │  Cadence Virtuoso  │ │    Siemens Eldo    │ │ Process PDKs │ │
-│  │  WorkBoard Sync    │ │  SKILL IPC FIFO    │ │   SPICE Simulator  │ │  (cmos065)   │ │
-│  └────────────────────┘ └────────────────────┘ └────────────────────┘ └──────────────┘ │
+│  ┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐ ┌──────────────┐  │
+│  │  Git Workspace /   │ │  Cadence Virtuoso  │ │    Siemens Eldo    │ │ Process PDKs │  │
+│  │  WorkBoard Sync    │ │  SKILL IPC FIFO    │ │   SPICE Simulator  │ │  (cmos065)   │  │
+│  └────────────────────┘ └────────────────────┘ └────────────────────┘ └──────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
